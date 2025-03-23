@@ -28,6 +28,10 @@ const productSchema = mongoose.Schema({
   review: {
     type: String,
     required: true
+  },
+  feedback: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
