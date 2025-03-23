@@ -7,6 +7,7 @@ import userRouter from "./routes/userRoute.js"
 import doctorRouter from "./routes/doctorRoute.js"
 import adminRouter from "./routes/adminRoute.js"
 import dRequestRouter from "./routes/dRequestRoute.js"
+import universityRouter from "./routes/universityRoute.js"
 
 
 // app config
@@ -24,6 +25,7 @@ app.use("/api/user", userRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 app.use("/api/doctor-request", dRequestRouter)
+app.use("/api/university", universityRouter)
 
 
 app.get("/", (req, res) => {

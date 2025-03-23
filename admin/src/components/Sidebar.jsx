@@ -1,198 +1,70 @@
 import React, { useContext } from "react";
-import { assets } from "../assets/assets";
 import { NavLink } from "react-router-dom";
+import {
+  Home,
+  CalendarCheck,
+  University as UniversityIcon,
+  UserPlus,
+  UserCircle,
+  ClipboardList,
+  FileText,
+} from "lucide-react";
 import { DoctorContext } from "../context/DoctorContext";
 import { AdminContext } from "../context/AdminContext";
 import { UniversityContext } from "../context/UniversityContext";
 
-const Sidebar = () => {
+export default function Sidebar() {
   const { dToken } = useContext(DoctorContext);
   const { aToken } = useContext(AdminContext);
   const { uToken } = useContext(UniversityContext);
 
- 
-
   return (
-    console.log("In sidebar.jsx..."), // Debugging
-    console.log("Admin Token:", aToken),  // Log Admin Token
-    console.log("Doctor Token:", dToken), // Log Doctor Token
-    console.log("University Token:", uToken),  // Log University Token
+    <div className="min-h-screen w-64 bg-white border-r fixed">
+      {aToken && (
+        <ul className="text-[#515151] mt-5 space-y-1">
+          <NavItem to="/admin-dashboard" label="Dashboard" Icon={Home} />
+          <NavItem to="/all-appointments" label="Appointments" Icon={CalendarCheck} />
+          <NavItem to="/add-uni" label="Add University" Icon={UniversityIcon} />
+          <NavItem to="/doctor-list" label="Doctors List" Icon={UserPlus} />
+          <NavItem to="/admin-profile" label="Profile" Icon={UserCircle} />
+          <NavItem to="/requests" label="Requests" Icon={ClipboardList} />
+        </ul>
+      )}
 
-    (
-      <div className="min-h-screen bg-white border-r fixed">
-        {aToken && (
-          <ul className="text-[#515151] mt-5">
-            <NavLink
-              to={"/admin-dashboard"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.home_icon} alt="" />
-              <p className="hidden md:block">Dashboard</p>
-            </NavLink>
-            <NavLink
-              to={"/all-appointments"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.appointment_icon} alt="" />
-              <p className="hidden md:block">Appointments</p>
-            </NavLink>
-            <NavLink
-              to={"/add-doctor"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.add_icon} alt="" />
-              <p className="hidden md:block">Add Doctor</p>
-            </NavLink>
-            <NavLink
-              to={"/add-uni"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.add_icon} alt="" />
-              <p className="hidden md:block">Add University</p>
-            </NavLink>
-            <NavLink
-              to={"/doctor-list"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.people_icon} alt="" />
-              <p className="hidden md:block">Doctors List</p>
-            </NavLink>
-            <NavLink
-              to={"/admin-profile"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.people_icon} alt="" />
-              <p className="hidden md:block">Profile</p>
-            </NavLink>
-            <NavLink
-              to={"/requests"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.people_icon} alt="" />
-              <p className="hidden md:block">Requests</p>
-            </NavLink>
-          </ul>
-        )}
+      {dToken && (
+        <ul className="text-[#515151] mt-5 space-y-1">
+          <NavItem to="/doctor-dashboard" label="Dashboard" Icon={Home} />
+          <NavItem to="/doctor-appointments" label="Appointments" Icon={CalendarCheck} />
+          <NavItem to="/patient-feedback" label="Patient Feedback" Icon={FileText} />
+          <NavItem to="/patient-requests" label="Requests" Icon={ClipboardList} />
+          <NavItem to="/doctor-user-profile" label="Profile" Icon={UserCircle} />
+        </ul>
+      )}
 
-        {dToken && (
-          <ul className="text-[#515151] mt-5">
-            <NavLink
-              to={"/doctor-dashboard"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.home_icon} alt="" />
-              <p className="hidden md:block">Dashboard</p>
-            </NavLink>
-            <NavLink
-              to={"/doctor-appointments"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.appointment_icon} alt="" />
-              <p className="hidden md:block">Appointments</p>
-            </NavLink>
-            <NavLink
-              to={"/patient-feedback"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.people_icon} alt="" />
-              <p className="hidden md:block">Patient FeedBack</p>
-            </NavLink>
-            <NavLink
-              to={"/patient-requests"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.people_icon} alt="" />
-              <p className="hidden md:block">Requests</p>
-            </NavLink>
-            <NavLink
-              to={"/doctor-user-profile"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.people_icon} alt="" />
-              <p className="hidden md:block">Profile</p>
-            </NavLink>
-          </ul>
-        )}
-
-        {uToken && !aToken && !dToken &&(
-          console.log("In university sidebar..."), // Debugging
-          <ul className="text-[#515151] mt-5">
-            <NavLink
-              to={"/uni-dashboard"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.home_icon} alt="" />
-              <p className="hidden md:block">Dashboard</p>
-            </NavLink>
-            <NavLink
-              to={"/university-appointments"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${
-                  isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""
-                }`
-              }
-            >
-              <img className="min-w-5" src={assets.appointment_icon} alt="" />
-              <p className="hidden md:block">Appointments</p>
-            </NavLink>
-            
-          </ul>
-        )}
-      </div>
-    )
+      {uToken && !aToken && !dToken && (
+        <ul className="text-[#515151] mt-5 space-y-1">
+          <NavItem to="/uni-dashboard" label="Dashboard" Icon={Home} />
+          <NavItem to="/university-appointments" label="Appointments" Icon={CalendarCheck} />
+        </ul>
+      )}
+    </div>
   );
-};
+}
 
-export default Sidebar;
+function NavItem({ to, label, Icon }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-4 py-3 px-4 md:px-6 transition-colors duration-200 w-full ${
+          isActive
+            ? "bg-indigo-100 text-indigo-700 font-medium rounded-none"
+            : "hover:bg-gray-100 hover:text-indigo-600 hover:rounded-none"
+        }`
+      }
+    >
+      <Icon size={20} className="min-w-[20px]" />
+      <span className="hidden md:block">{label}</span>
+    </NavLink>
+  );
+}

@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import validator from "validator";
 import { v2 as cloudinary } from "cloudinary";
 import userModel from "../models/userModel.js";
+import adminModel from "../models/adminModel.js";
 
 // API for admin login
 const loginAdmin = async (req, res) => {
@@ -175,7 +176,24 @@ const adminDashboard = async (req, res) => {
     }
 }
 
+const getAdminProfile = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
 
+    const admin = await adminModel.findOne({ email });
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+
+    res.json({ success: true, admin });
+  } catch (err) {
+    console.error("Error fetching admin profile:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 export {
     loginAdmin,
@@ -184,4 +202,5 @@ export {
     addDoctor,
     allDoctors,
     adminDashboard,
+    getAdminProfile,
 }
