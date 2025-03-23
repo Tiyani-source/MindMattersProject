@@ -154,6 +154,5 @@ export {
     appointmentCancel,
     addDoctor,
     allDoctors,
-    adminDashboard,
-    addSupplyManager
+    adminDashboard
 }
