@@ -119,7 +119,7 @@ const AdminProductManagement = () => {
       courier: product.courier,
       colour: product.colour,
       size: product.size,
-      review: product.review
+      review: product.desc
     });
     setCurrentProductId(product._id);
     setEditMode(true);
@@ -272,7 +272,7 @@ const AdminProductManagement = () => {
                   </div>
                 </div>
                 <Card.Text className="product-review text-truncate mb-3">
-                  {product.review}
+                  {product.desc}
                 </Card.Text>
                 <div className="mt-auto pt-2 border-top">
                   <div className="d-flex justify-content-between">
@@ -379,7 +379,7 @@ const AdminProductManagement = () => {
                   </td>
                   <td className="align-middle">{product.size}</td>
                   <td className="align-middle text-truncate" style={{maxWidth: "200px"}}>
-                    {product.review}
+                    {product.desc}
                   </td>
                   <td className="align-middle text-center">
                     <Button 
