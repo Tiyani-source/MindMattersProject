@@ -23,7 +23,7 @@ export const getProductById = async (req, res) => {
 };
 
 export const addProduct = async (req, res) => {
-  const { name, stock, courier, colour, size, review } = req.body;
+  const { name, stock, courier, colour, size, desc } = req.body;
   const image = req.file ? req.file.path : '';
 
   const product = new Product({
@@ -33,7 +33,7 @@ export const addProduct = async (req, res) => {
     courier,
     colour,
     size,
-    review
+    desc
   });
 
   try {
@@ -54,7 +54,7 @@ export const updateProduct = async (req, res) => {
       product.courier = req.body.courier || product.courier;
       product.colour = req.body.colour || product.colour;
       product.size = req.body.size || product.size;
-      product.review = req.body.review || product.review;
+      product.desc = req.body.desc || product.desc;
 
       const updatedProduct = await product.save();
       res.json(updatedProduct);
