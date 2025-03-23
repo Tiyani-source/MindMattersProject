@@ -1,16 +1,16 @@
 import express from 'express';
 import { getFeedbacks, getFeedbackById, addFeedback, updateFeedback, deleteFeedback } from '../controllers/feedbackController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import authUser from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
   .get(getFeedbacks)
-  .post(protect, addFeedback);
+  .post(authUser, addFeedback);
 
 router.route('/:id')
   .get(getFeedbackById)
-  .put(protect, updateFeedback)
-  .delete(protect, deleteFeedback);
+  .put(authUser, updateFeedback)
+  .delete(authUser, deleteFeedback);
 
 export default router;
