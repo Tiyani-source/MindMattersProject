@@ -596,13 +596,13 @@ const AdminProductManagement = () => {
                 </Row>
 
                 <Form.Group controlId="formReview" className="mb-3">
-                  <Form.Label>Product Review</Form.Label>
+                  <Form.Label>Product Description</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={3}
-                    name="review"
-                    placeholder="Enter product review or description"
-                    value={formData.review}
+                    name="desc"
+                    placeholder="Enter product description or review"
+                    value={formData.desc}
                     onChange={handleInputChange}
                     required
                   />
