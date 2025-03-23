@@ -4,6 +4,10 @@ import upload from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
+
+router.route("/login")
+  .post()
+
 router.route('/')
   .get(getProducts)
   .post(upload.single('image'), addProduct);
