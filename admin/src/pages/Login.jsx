@@ -4,6 +4,7 @@ import { DoctorContext } from '../context/DoctorContext'
 import { AdminContext } from '../context/AdminContext'
 import { SupplyManagerContext } from '../context/SupplyManagerContext.jsx'
 import { toast } from 'react-toastify'
+import { useNavigate } from 'react-router-dom'
 
 const Login = () => {
   // Add Supply Manager to the possible states
@@ -17,6 +18,7 @@ const Login = () => {
   const { setDToken } = useContext(DoctorContext)
   const { setAToken } = useContext(AdminContext)
   const { setSMToken } = useContext(SupplyManagerContext)
+  const navigate = useNavigate()
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
@@ -28,6 +30,7 @@ const Login = () => {
           setAToken(data.token)
           localStorage.setItem('aToken', data.token)
           toast.success('Admin login successful')
+          navigate('/admin-dashboard')
         } else {
           toast.error(data.message)
         }
@@ -37,15 +40,18 @@ const Login = () => {
           setDToken(data.token)
           localStorage.setItem('dToken', data.token)
           toast.success('Doctor login successful')
+          navigate('/doctor-dashboard')
         } else {
           toast.error(data.message)
         }
       } else if (state === 'Supply Manager') {
         const { data } = await axios.post(backendUrl + '/api/supplymanager/login', { email, password })
         if (data.success) {
+          console.log('Navigating to /s-dashboard');
           setSMToken(data.token)
           localStorage.setItem('smToken', data.token)
           toast.success('Supply Manager login successful')
+          navigate('/supplier-dashboard')
         } else {
           toast.error(data.message)
         }
