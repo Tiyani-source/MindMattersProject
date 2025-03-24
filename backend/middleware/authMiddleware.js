@@ -3,18 +3,19 @@ import User from '../models/userModel.js'; // Assuming you have a user model
 
 // user authentication middleware
 const authUser = async (req, res, next) => {
-    const { token } = req.headers;
-    if (!token) {
-        return res.json({ success: false, message: 'Not Authorized. Login Again' });
-    }
-    try {
-        const token_decode = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = await User.findById(token_decode.id).select('-password'); // Fetch user and attach to req.user
-        next();
-    } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
-    }
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ success: false, message: 'Invalid token' });
+  }
 };
 
 export default authUser;

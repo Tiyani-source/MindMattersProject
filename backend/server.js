@@ -9,6 +9,7 @@ import adminRouter from "./routes/adminRoute.js"
 import productRoutes from './routes/productRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import supportTicketRoutes from './routes/supportTicketRoutes.js'
+import smRouter from "./routes/supplyManager.js"
 
 // app config
 const app = express()
@@ -28,6 +29,7 @@ app.use('/api/supportTickets', supportTicketRoutes)
 app.use("/api/user", userRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
+app.use("/api/supplymanager", smRouter)
 
 app.get("/", (req, res) => {
   res.send("API Working")

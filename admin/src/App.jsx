@@ -15,13 +15,15 @@ import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
 import AdminProductManagement from './pages/supplyManager/ProductManagementDashboard.jsx'
+import { SupplyManagerContext } from './context/SupplyManagerContext.jsx';
 
 const App = () => {
 
   const { dToken } = useContext(DoctorContext)
   const { aToken } = useContext(AdminContext)
+  const { smToken } = useContext(SupplyManagerContext)
 
-  return dToken || aToken || true ? (
+  return dToken || aToken || smToken ? (
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
       <Navbar />
@@ -36,7 +38,7 @@ const App = () => {
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
           <Route path='/doctor-profile' element={<DoctorProfile />} />
-          <Route path="/products" element={<AdminProductManagement />} />
+          <Route path="/product-management" element={<AdminProductManagement />} />
         </Routes>
       </div>
     </div>
