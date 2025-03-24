@@ -32,6 +32,10 @@ const productSchema = mongoose.Schema({
   feedback: {
     type: Number,
     default: 0
+  },
+  price: {
+    type: Number,
+    required: true
   }
 }, {
   timestamps: true

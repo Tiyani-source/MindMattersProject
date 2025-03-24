@@ -4,7 +4,7 @@ import {
   Container, Row, Col, Modal, Button, Form, 
   Card, Badge, Spinner, Alert, InputGroup, FormControl, Dropdown
 } from 'react-bootstrap';
-import './AdminProductManagement.css'; 
+import './AdminProductManagement.css';
 
 const AdminProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -21,16 +21,16 @@ const AdminProductManagement = () => {
     courier: '',
     colour: '',
     size: '',
-    review: ''
+    review: '',
+    price: '' 
   });
   const [editMode, setEditMode] = useState(false);
   const [currentProductId, setCurrentProductId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
 
-  // Base URL from .env file
   const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
   useEffect(() => {
@@ -111,28 +111,6 @@ const AdminProductManagement = () => {
     }
   };
 
-  const handleEdit = (product) => {
-    setFormData({
-      name: product.name,
-      image: null,
-      stock: product.stock,
-      courier: product.courier,
-      colour: product.colour,
-      size: product.size,
-      review: product.desc
-    });
-    setCurrentProductId(product._id);
-    setEditMode(true);
-    setShow(true);
-    
-    // Set image preview if product has an image
-    if (product.image) {
-      setImagePreview(`${API_URL}/${product.image}`);
-    } else {
-      setImagePreview(null);
-    }
-  };
-
   const confirmDelete = (productId) => {
     setProductToDelete(productId);
     setShowDeleteConfirm(true);
@@ -166,6 +144,28 @@ const AdminProductManagement = () => {
     resetForm();
   };
 
+  const handleEdit = (product) => {
+    setFormData({
+      name: product.name,
+      image: null,
+      stock: product.stock,
+      courier: product.courier,
+      colour: product.colour,
+      size: product.size,
+      review: product.desc,
+      price: product.price || '' 
+    });
+    setCurrentProductId(product._id);
+    setEditMode(true);
+    setShow(true);
+    
+    if (product.image) {
+      setImagePreview(`${API_URL}/${product.image}`);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -174,7 +174,8 @@ const AdminProductManagement = () => {
       courier: '',
       colour: '',
       size: '',
-      review: ''
+      review: '',
+      price: ''
     });
     setCurrentProductId(null);
     setImagePreview(null);
@@ -254,6 +255,9 @@ const AdminProductManagement = () => {
                 <Card.Title className="product-title">{product.name}</Card.Title>
                 <div className="product-details mb-3">
                   <div className="product-detail-item">
+                    <span className="detail-label">Price:</span> ${product.price.toFixed(2)}
+                  </div>
+                  <div className="product-detail-item">
                     <span className="detail-label">Courier:</span> {product.courier}
                   </div>
                   <div className="product-detail-item">
@@ -309,9 +313,15 @@ const AdminProductManagement = () => {
         <table className="table table-hover product-table">
           <thead className="table-light">
             <tr>
-              <th onClick={() => handleSort('name')} className="sortable-header">
+            <th onClick={() => handleSort('name')} className="sortable-header">
                 Name
                 <span className={`sort-indicator ms-1 ${sortField === 'name' ? 'd-inline' : 'd-none'}`}>
+                  {sortDirection === 'asc' ? '▲' : '▼'}
+                </span>
+              </th>
+              <th onClick={() => handleSort('price')} className="sortable-header">
+                Price
+                <span className={`sort-indicator ms-1 ${sortField === 'price' ? 'd-inline' : 'd-none'}`}>
                   {sortDirection === 'asc' ? '▲' : '▼'}
                 </span>
               </th>
@@ -375,6 +385,11 @@ const AdminProductManagement = () => {
                         }}
                       ></span>
                       {product.colour}
+                    </div>
+                  </td>
+                  <td className="align-middle">
+                    <div className="d-flex align-items-center">
+                      ${product.price.toFixed(2)}
                     </div>
                   </td>
                   <td className="align-middle">{product.size}</td>
@@ -551,6 +566,23 @@ const AdminProductManagement = () => {
                       />
                     </Form.Group>
                   </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="formPrice" className="mb-3">
+                      <Form.Label>Price</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="price"
+                        placeholder="Enter product price"
+                        value={formData.price}
+                        onChange={handleInputChange}
+                        required
+                        min="0"
+                        step="0.01"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
                   <Col md={6}>
                     <Form.Group controlId="formCourier" className="mb-3">
                       <Form.Label>Courier Service</Form.Label>
