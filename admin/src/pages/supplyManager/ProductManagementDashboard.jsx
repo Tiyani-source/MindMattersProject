@@ -4,7 +4,7 @@ import {
   Container, Row, Col, Modal, Button, Form, 
   Card, Badge, Spinner, Alert, InputGroup, FormControl, Dropdown
 } from 'react-bootstrap';
-import './AdminProductManagement.css'; // We'll modify this file for card styling
+import './AdminProductManagement.css'; 
 
 const AdminProductManagement = () => {
   const [products, setProducts] = useState([]);
