@@ -19,7 +19,6 @@ const SupplierProfileDashboard = () => {
     );
   }
 
-  // Format date strings if available
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -39,7 +38,6 @@ const SupplierProfileDashboard = () => {
     </Card>
   );
 
-  // Render fallback profile image when main image fails to load
   const ProfileImage = () => {
     const [imageError, setImageError] = React.useState(false);
 
