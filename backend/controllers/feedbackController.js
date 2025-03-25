@@ -9,6 +9,18 @@ const getFeedbacks = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const getFeedbacksByProductID = async (req, res) => {
+  try {
+    const feedback = await Feedback.find({product : req.params.id});
+    if (feedback) {
+      res.json(feedback);
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 const getFeedbackById = async (req, res) => {
   try {
@@ -25,9 +37,8 @@ const getFeedbackById = async (req, res) => {
 
 const addFeedback = async (req, res) => {
   const { product, rating, comment } = req.body;
-
   const feedback = new Feedback({
-    user: req.user._id,
+    user: req.user.id,
     product,
     rating,
     comment
@@ -101,5 +112,6 @@ export {
   getFeedbackById,
   addFeedback,
   updateFeedback,
+  getFeedbacksByProductID,
   deleteFeedback
 };
