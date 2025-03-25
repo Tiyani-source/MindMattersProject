@@ -1,11 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AppContext } from '../context/AppContext';
+import axios from 'axios'; // Make sure to install axios
 
 const ProductDetails = () => {
   const { prodId } = useParams();
   const navigate = useNavigate();
-  const { products } = useContext(AppContext);
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [newReview, setNewReview] = useState('');
@@ -15,25 +14,124 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
   useEffect(() => {
-    if (products.length > 0) {
-      const foundProduct = products.find(p => p._id === prodId);
-      setProduct(foundProduct);
-      if (foundProduct) {
-        setReviews(foundProduct.reviews || []);
-        setRelatedProducts(products.filter(p => p.category === foundProduct.category && p._id !== foundProduct._id));
-      }
-    }
-  }, [products, prodId]);
+    const fetchProductDetails = async () => {
+      try {
+        setLoading(true);
+        // Fetch product details
+        const productResponse = await axios.get(`${API_URL}/api/products/${prodId}`);
+        const fetchedProduct = productResponse.data;
+        setProduct(fetchedProduct);
+        setReviews(fetchedProduct.reviews || []);
 
-  const handleAddReview = () => {
-    if (newReview.trim() === '') return;
-    const updatedReviews = [...reviews, { user: 'Anonymous', comment: newReview, rating: newRating }];
-    setReviews(updatedReviews);
-    setNewReview('');
-    setNewRating(5);
+        // Fetch related products by category
+        const relatedResponse = await axios.get(`${API_URL}/api/products?category=${fetchedProduct.category}`);
+        const relatedProds = relatedResponse.data.filter(p => p._id !== fetchedProduct._id);
+        setRelatedProducts(relatedProds);
+
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch product details');
+        setLoading(false);
+        console.error('Error fetching product:', err);
+      }
+    };
+
+    fetchProductDetails();
+  }, [prodId]);
+
+  const handleEditFeedback = async () => {
+    if (!editingFeedback) return;
+
+    try {
+      const response = await axios.put(`/api/feedbacks/${editingFeedback._id}`, {
+        rating: newRating,
+        comment: newFeedback
+      });
+
+      // Update local feedbacks state
+      const updatedFeedbacks = feedbacks.map(f => 
+        f._id === editingFeedback._id ? response.data : f
+      );
+      setFeedbacks(updatedFeedbacks);
+      
+      // Reset editing state
+      setEditingFeedback(null);
+      setNewFeedback('');
+      setNewRating(5);
+    } catch (err) {
+      console.error('Error updating feedback:', err);
+      alert('Failed to update feedback');
+    }
   };
+
+  const handleDeleteFeedback = async (feedbackId) => {
+    try {
+      await axios.delete(`/api/feedbacks/${feedbackId}`);
+
+      // Update local feedbacks state
+      const updatedFeedbacks = feedbacks.filter(f => f._id !== feedbackId);
+      setFeedbacks(updatedFeedbacks);
+    } catch (err) {
+      console.error('Error deleting feedback:', err);
+      alert('Failed to delete feedback');
+    }
+  };
+
+  const startEditFeedback = (feedback) => {
+    setEditingFeedback(feedback);
+    setNewFeedback(feedback.comment);
+    setNewRating(feedback.rating);
+  };
+  
+  const handleAddReview = async () => {
+    if (newReview.trim() === '') return;
+    
+    try {
+      // Submit review to backend
+      const response = await axios.post(`${API_URL}/api/feedbacks`, {
+        product: prodId,
+        rating: newRating,
+        comment: newFeedback
+      });
+
+      // Update local reviews state
+      setReviews(response.data.reviews);
+      setNewReview('');
+      setNewRating(5);
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      // Optionally show an error message to the user
+    }
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      // Add to cart endpoint
+      await axios.post('${API_URL}/api/cart/add', {
+        productId: prodId,
+        quantity,
+        color: selectedColor,
+        size: selectedSize
+      });
+      // Optionally show a success toast or modal
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      // Optionally show an error message to the user
+    }
+  };
+
+  if (loading) {
+    return <p className='text-center text-gray-500'>Loading product details...</p>;
+  }
+
+  if (error) {
+    return <p className='text-center text-red-500'>{error}</p>;
+  }
 
   if (!product) {
     return <p className='text-center text-gray-500'>Product not found.</p>;
@@ -43,12 +141,11 @@ const ProductDetails = () => {
     <div className='p-6 sm:p-12'>
       <div className='flex flex-col sm:flex-row gap-6'>
         {/* Product Image */}
-          <img
-            className='max-w-md w-full h-auto object-contain rounded-xl self-start'
-            src={product.image}
-            alt={product.name}
-          />
-
+        <img
+          className='max-w-md w-full h-auto object-contain rounded-xl self-start'
+          src={API_URL+"/"+product.image}
+          alt={product.name}
+        />
 
         {/* Product Details */}
         <div className='flex-1 bg-white border p-6 rounded-xl shadow-sm'>
@@ -66,10 +163,12 @@ const ProductDetails = () => {
           {/* Star Rating */}
           <div className='flex items-center mt-2'>
             <p className='text-yellow-500 text-lg'>
-              {"★".repeat(Math.round(product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length))}
-              {"☆".repeat(5 - Math.round(product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length))}
+              {product.reviews && product.reviews.length > 0 
+                ? `${"★".repeat(Math.round(product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length))}${"☆".repeat(5 - Math.round(product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length))}`
+                : '☆☆☆☆☆'
+              }
             </p>
-            <p className='text-sm text-gray-500 ml-2'>({product.reviews.length} reviews)</p>
+            <p className='text-sm text-gray-500 ml-2'>({product.reviews ? product.reviews.length : 0} reviews)</p>
           </div>
 
           {/* Description */}
@@ -101,27 +200,26 @@ const ProductDetails = () => {
             </div>
           </div>
 
-         {/* Size Selection (only for T-Shirt and Hoodie) */}
-        {['T-Shirt', 'Hoodie'].includes(product.name) && (
-          <div className='mt-4'>
-            <p className='font-medium text-gray-800'>Size:</p>
-            <div className='flex gap-3 mt-2'>
-              {['S', 'M', 'L', 'XL', 'XXL'].map((size, index) => (
-                <div
-                  key={index}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-3 py-1 border rounded cursor-pointer flex items-center justify-center text-sm ${
-                    selectedSize === size ? 'border-gray-700 bg-gray-100' : 'border-gray-300'
-                  }`}
-                >
-                  {size}
-                  {selectedSize === size && <span className='ml-1 text-xs text-green-600 font-bold'>✓</span>}
-                </div>
-              ))}
+          {/* Size Selection (only for T-Shirt and Hoodie) */}
+          {['T-Shirt', 'Hoodie'].includes(product.name) && (
+            <div className='mt-4'>
+              <p className='font-medium text-gray-800'>Size:</p>
+              <div className='flex gap-3 mt-2'>
+                {['S', 'M', 'L', 'XL', 'XXL'].map((size, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setSelectedSize(size)}
+                    className={`px-3 py-1 border rounded cursor-pointer flex items-center justify-center text-sm ${
+                      selectedSize === size ? 'border-gray-700 bg-gray-100' : 'border-gray-300'
+                    }`}
+                  >
+                    {size}
+                    {selectedSize === size && <span className='ml-1 text-xs text-green-600 font-bold'>✓</span>}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
+          )}
 
           {/* Quantity Selector */}
           <div className='mt-6'>
@@ -152,7 +250,12 @@ const ProductDetails = () => {
           {/* Action Buttons */}
           <div className='mt-6 flex gap-3'>
             <button className='bg-blue-500 text-white px-5 py-2 rounded-full text-sm'>Buy Now</button>
-            <button className='bg-primary text-white px-4 py-2 rounded-full text-sm'>Add to Cart</button>
+            <button 
+              onClick={handleAddToCart}
+              className='bg-primary text-white px-4 py-2 rounded-full text-sm'
+            >
+              Add to Cart
+            </button>
           </div>
         </div>
       </div>
@@ -219,8 +322,8 @@ const ProductDetails = () => {
             {relatedProducts.map((related, index) => (
               <div key={index} 
                 onClick={() => { navigate(`/product/${related._id}`); window.scrollTo(0, 0); }} 
-                className='border border-indigo-200 rounded-xl overflow-hidden cursor-pointer hover:translate-y-[-10px] transition-all duration-500'>
-
+                className='border border-indigo-200 rounded-xl overflow-hidden cursor-pointer hover:translate-y-[-10px] transition-all duration-500'
+              >
                 <img className='bg-indigo-50 w-full h-48 object-cover' src={related.image} alt={related.name} />
 
                 <div className='p-4'>
