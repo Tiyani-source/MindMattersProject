@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Make sure to install axios
+import axios from 'axios';
+import { AppContext } from '../context/AppContext';
 
 const ProductDetails = () => {
   const { prodId } = useParams();
@@ -16,7 +17,8 @@ const ProductDetails = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+  const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+  const { token } = useContext(AppContext)
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -26,6 +28,8 @@ const ProductDetails = () => {
         const productResponse = await axios.get(`${API_URL}/api/products/${prodId}`);
         const fetchedProduct = productResponse.data;
         setProduct(fetchedProduct);
+
+        const feedbackResponse = await axios.get(`${API_URL}/api/feedbacks/product/${prodId}`)
         setReviews(fetchedProduct.reviews || []);
 
         // Fetch related products by category
@@ -43,6 +47,37 @@ const ProductDetails = () => {
 
     fetchProductDetails();
   }, [prodId]);
+
+  useEffect(() => {
+    const fetchProductAndReviews = async () => {
+      try {
+        setLoading(true);
+        
+        const productResponse = await axios.get(`${API_URL}/api/products/${prodId}`);
+        const fetchedProduct = productResponse.data;
+        setProduct(fetchedProduct);
+  
+        const reviewsResponse = await axios.get(`${API_URL}/api/feedbacks/product/${prodId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        const sortedReviews = reviewsResponse.data.sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        
+        setReviews(sortedReviews);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching product details and reviews:', err);
+        setError(err.response?.data?.message || 'Failed to load product details and reviews');
+        setLoading(false);
+      }
+    };
+  
+    fetchProductAndReviews();
+  }, [prodId, token]);
 
   const handleEditFeedback = async () => {
     if (!editingFeedback) return;
@@ -68,11 +103,15 @@ const ProductDetails = () => {
       alert('Failed to update feedback');
     }
   };
-
   const handleDeleteFeedback = async (feedbackId) => {
+  
     try {
-      await axios.delete(`/api/feedbacks/${feedbackId}`);
-
+      await axios.delete(`/api/feedbacks/${feedbackId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+  
       // Update local feedbacks state
       const updatedFeedbacks = feedbacks.filter(f => f._id !== feedbackId);
       setFeedbacks(updatedFeedbacks);
@@ -81,7 +120,7 @@ const ProductDetails = () => {
       alert('Failed to delete feedback');
     }
   };
-
+  
   const startEditFeedback = (feedback) => {
     setEditingFeedback(feedback);
     setNewFeedback(feedback.comment);
@@ -89,23 +128,25 @@ const ProductDetails = () => {
   };
   
   const handleAddReview = async () => {
+  
     if (newReview.trim() === '') return;
-    
+  
     try {
-      // Submit review to backend
       const response = await axios.post(`${API_URL}/api/feedbacks`, {
         product: prodId,
         rating: newRating,
-        comment: newFeedback
+        comment: newReview
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
-
-      // Update local reviews state
+  
       setReviews(response.data.reviews);
       setNewReview('');
       setNewRating(5);
     } catch (err) {
       console.error('Error submitting review:', err);
-      // Optionally show an error message to the user
     }
   };
 
