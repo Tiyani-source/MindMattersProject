@@ -15,6 +15,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Verify from './pages/Verify'
 import Store from './pages/Store'
 import ProductDetails from './pages/ProductDetails';
+import SupportTicketsPage from './pages/supportDesk.jsx'
 
 const App = () => {
   return (
@@ -35,6 +36,7 @@ const App = () => {
         <Route path='/my-appointments' element={<MyAppointments />} />
         <Route path='/my-profile' element={<MyProfile />} />
         <Route path='/verify' element={<Verify />} />
+        <Route path='/support-desk' element={<SupportTicketsPage />} />
       </Routes>
       <Footer />
     </div>
