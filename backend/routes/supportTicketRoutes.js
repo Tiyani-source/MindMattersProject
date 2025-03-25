@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSupportTickets, getSupportTicketById, addSupportTicket, addSupportResponse } from '../controllers/supportTicketController.js';
+import { getSupportTickets, getSupportTicketById, addSupportTicket, addSupportResponse, editSupportTicket ,getResponses, deleteSupportTicket} from '../controllers/supportTicketController.js';
 import authUser from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -10,6 +10,11 @@ router.route('/')
 
 router.route('/:id')
   .get(authUser, getSupportTicketById)
-  .post(authUser, addSupportResponse);
+  .put(authUser,editSupportTicket)
+  .post(authUser, addSupportResponse)
+  .delete(authUser,deleteSupportTicket);
 
+  
+router.route('/:id/responses')
+  .get(authUser,getResponses)
 export default router;
