@@ -14,6 +14,8 @@ import Login from './pages/Login';
 import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
+import PaymentDashboard from './pages/Payment/PaymentDashboard';
+import { PaymentProvider } from './context/PaymentContext';
 
 const App = () => {
 
@@ -21,6 +23,7 @@ const App = () => {
   const { aToken } = useContext(AdminContext)
 
   return dToken || aToken ? (
+    <PaymentProvider>
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
       <Navbar />
@@ -35,9 +38,11 @@ const App = () => {
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
           <Route path='/doctor-profile' element={<DoctorProfile />} />
+          <Route path='/payment-dashboard' element={<PaymentDashboard />} />
         </Routes>
       </div>
     </div>
+    </PaymentProvider>
   ) : (
     <>
       <ToastContainer />
