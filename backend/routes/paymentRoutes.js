@@ -1,7 +1,11 @@
 import express from "express";
 import Payment from "../models/Payment.js";
-
+import { processPayment, getPaymentDashboard } from "../controllers/paymentController.js";
 const router = express.Router();
+
+router.post("/", processPayment);
+
+router.get("/dashboard", getPaymentDashboard);
 
 // Complete Payment (Marks therapy session as completed)
 router.put("/:id/complete", async (req, res) => {
