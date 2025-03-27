@@ -1,5 +1,6 @@
 import stripe from "stripe";
 import Payment from "../models/Payment.js";
+import appointmentModel from "../models/appointmentModel.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -9,14 +10,14 @@ const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
 // Process Payment
 export const processPayment = async (req, res) => {
     try {
-        const { name, email, amount, currency = "usd" } = req.body;
+        const { name, email, amount, appointmentId, currency = "usd" } = req.body;
 
         // Create Stripe Payment Intent
-        const paymentIntent = await stripeInstance.paymentIntents.create({
-            amount: amount * 100, // Convert amount to cents
-            currency,
-            payment_method_types: ["card"],
-        });
+        // const paymentIntent = await stripeInstance.paymentIntents.create({
+        //     amount: amount * 100, // Convert amount to cents
+        //     currency,
+        //     payment_method_types: ["card"],
+        // });
 
         // Store payment in DB with "pending" status
         const payment = new Payment({
@@ -24,15 +25,15 @@ export const processPayment = async (req, res) => {
             email,
             amount,
             currency,
-            paymentIntentId: paymentIntent.id,
-            status: "pending",
+            paymentIntentId: appointmentId,
+            status: "successs",
         });
 
         await payment.save();
-
+        await appointmentModel.findByIdAndUpdate(appointmentId, { payment: true })
+        
         res.status(201).json({
-            message: "Payment initiated",
-            clientSecret: paymentIntent.client_secret,
+            message: "Payment Success",
             payment,
         });
     } catch (error) {
@@ -79,7 +80,7 @@ export const getPaymentDashboard = async (req, res) => {
         const totalEarnings = await Payment.aggregate([{ $match: { status: "succeeded" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]);
         const totalTransactions = await Payment.countDocuments();
         const pendingPayments = await Payment.countDocuments({ status: "pending" });
-        const latestPayments = await Payment.find().sort({ createdAt: -1 }).limit(5);
+        const latestPayments = await Payment.find({removed: false}).sort({ createdAt: -1 }).limit(5);
 
         res.status(200).json({
             totalEarnings: totalEarnings[0]?.total || 0,
@@ -96,7 +97,7 @@ export const getPaymentDashboard = async (req, res) => {
 export const completePayment = async (req, res) => {
     try {
         const { id } = req.params;
-        const updatedPayment = await Payment.findByIdAndUpdate(id, { status: "succeeded" }, { new: true });
+        const updatedPayment = await Payment.findByIdAndUpdate(id, { therapyCompleted: true });
 
         if (!updatedPayment) {
             return res.status(404).json({ message: "Payment not found" });

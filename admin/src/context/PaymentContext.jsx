@@ -12,6 +12,7 @@ export const PaymentProvider = ({ children }) => {
             const response = await axios.get("http://localhost:4000/api/payments/dashboard", {
                 headers: { Authorization: `Bearer ${pToken}` }
             });
+            console.log(response.data);
             setPaymentData(response.data);
         } catch (error) {
             console.error("Error fetching payment data:", error);
@@ -23,7 +24,7 @@ export const PaymentProvider = ({ children }) => {
             await axios.put(`http://localhost:4000/api/payments/${paymentId}/complete`, {}, {
                 headers: { Authorization: `Bearer ${pToken}` }
             });
-            getPaymentData(); // Refresh data
+            await getPaymentData(); // Refresh data
         } catch (error) {
             console.error("Error completing payment:", error);
         }
