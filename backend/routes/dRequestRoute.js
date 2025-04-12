@@ -1,6 +1,6 @@
 import express from 'express';
 import {addDoctorRequest, viewDoctorRequests, deleteDoctorRequest, addDoctorFromRequest }from '../controllers/dRequestController.js';
-import authAdmin from '../middleware/authAdmin.js'; // Assuming only admins can approve/reject
+import {authAdmin} from '../middleware/authAdmin.js'; 
 import upload from '../middleware/uploadMiddleware.js';
 
 const dRequestRouter = express.Router();

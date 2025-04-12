@@ -4,7 +4,7 @@ import {
   viewUniversities,
   deleteUniversity,
 } from "../controllers/universityController.js";
-import authAdmin from "../middleware/authAdmin.js";
+import {authAdmin} from "../middleware/authAdmin.js";
 import upload from "../middleware/uploadMiddleware.js";
 
 const universityRouter = express.Router();

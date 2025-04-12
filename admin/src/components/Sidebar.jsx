@@ -38,6 +38,7 @@ export default function Sidebar() {
           <NavItem to="/patient-feedback" label="Patient Feedback" Icon={FileText} />
           <NavItem to="/patient-requests" label="Requests" Icon={ClipboardList} />
           <NavItem to="/doctor-user-profile" label="Profile" Icon={UserCircle} />
+          <NavItem to="/student-list" label="Student List" Icon={UserPlus} />
         </ul>
       )}
 

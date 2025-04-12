@@ -24,7 +24,7 @@ import UniversityDashboard from "./pages/University/UDashboard";
 
 import Requests from "./pages/Admin/Requests";
 import AddUni from "./pages/Admin/AddUni";
-
+import StudentList from "./pages/Doctor/studentList";
 const App = () => {
   const { dToken } = useContext(DoctorContext);
   const { aToken } = useContext(AdminContext);
@@ -53,6 +53,9 @@ const App = () => {
             <Route path="/requests" element={<Requests />} />
             <Route path="/add-uni" element={<AddUni />} />
             <Route path="/uni-dashboard" element={<UniversityDashboard />} />
+            <Route path="/student-list" element={<StudentList />} />
+
+            
 
           </Routes>
         </div>

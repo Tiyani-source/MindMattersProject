@@ -13,6 +13,7 @@ import earning_icon from './earning_icon.svg'
 import patients_icon from './patients_icon.svg'
 import student from './student.png'
 import university from './uni.png'
+import logo11 from './logo11.png'
 
 export const assets = {
     add_icon,
@@ -29,7 +30,8 @@ export const assets = {
     tick_icon,
     appointments_icon,
     earning_icon,
-    university
+    university,
+    logo11
 }
 // Dummy Dashboard Data
 export const dummyDashData = {

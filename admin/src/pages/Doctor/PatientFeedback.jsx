@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-
-import { Star, StarHalf } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -13,243 +11,288 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
 } from "recharts";
+import { Star, StarHalf } from "lucide-react";
+import { motion } from "framer-motion";
 
-// Example Ratings
 const initialRatings = [
-  {
-    id: 1,
-    rating: 8,
-    review: "Great session! Helped me a lot.",
-    month: "January",
-  },
-  {
-    id: 2,
-    rating: 9,
-    review: "Very understanding and professional.",
-    month: "January",
-  },
-  {
-    id: 3,
-    rating: 7,
-    review: "Good experience, but could be more interactive.",
-    month: "February",
-  },
-  {
-    id: 4,
-    rating: 10,
-    review: "Best therapist ever! Highly recommend.",
-    month: "March",
-  },
-  {
-    id: 5,
-    rating: 6,
-    review: "It was fine, but I expected more.",
-    month: "April",
-  },
+  { id: 1, rating: 8, review: "Great session!", month: "January" },
+  { id: 2, rating: 9, review: "Very understanding.", month: "January" },
+  { id: 3, rating: 7, review: "Good but could be better.", month: "February" },
+  { id: 4, rating: 10, review: "Outstanding!", month: "March" },
+  { id: 5, rating: 6, review: "Average experience.", month: "April" },
   { id: 6, rating: 8, review: "Helpful and kind.", month: "April" },
-  { id: 7, rating: 9, review: "Very professional.", month: "May" },
-  { id: 8, rating: 7, review: "Good experience overall.", month: "May" },
-  { id: 9, rating: 10, review: "Absolutely amazing session!", month: "June" },
-  { id: 10, rating: 9, review: "Great session!", month: "June" },
+  { id: 7, rating: 9, review: "Professional.", month: "May" },
+  { id: 8, rating: 7, review: "Nice overall.", month: "May" },
+  { id: 9, rating: 10, review: "Amazing session!", month: "June" },
+  { id: 10, rating: 9, review: "Loved it!", month: "June" },
+];
+
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#845EC2",
+  "#D65DB1",
+  "#FF6F91",
+  "#FFC75F",
+  "#F9F871",
+  "#2C73D2",
 ];
 
 const PatientFeedbackPage = () => {
   const [ratings] = useState(initialRatings);
+  const [filterMonth, setFilterMonth] = useState("All");
 
-  // 1. Pie Chart Data - Count of Ratings
-  const ratingCount = [
-    {
-      rating: "1 Star",
-      count: ratings.filter((entry) => entry.rating === 1).length,
-    },
-    {
-      rating: "2 Stars",
-      count: ratings.filter((entry) => entry.rating === 2).length,
-    },
-    {
-      rating: "3 Stars",
-      count: ratings.filter((entry) => entry.rating === 3).length,
-    },
-    {
-      rating: "4 Stars",
-      count: ratings.filter((entry) => entry.rating === 4).length,
-    },
-    {
-      rating: "5 Stars",
-      count: ratings.filter((entry) => entry.rating === 5).length,
-    },
-    {
-      rating: "6 Stars",
-      count: ratings.filter((entry) => entry.rating === 6).length,
-    },
-    {
-      rating: "7 Stars",
-      count: ratings.filter((entry) => entry.rating === 7).length,
-    },
-    {
-      rating: "8 Stars",
-      count: ratings.filter((entry) => entry.rating === 8).length,
-    },
-    {
-      rating: "9 Stars",
-      count: ratings.filter((entry) => entry.rating === 9).length,
-    },
-    {
-      rating: "10 Stars",
-      count: ratings.filter((entry) => entry.rating === 10).length,
-    },
-  ];
+  const filteredRatings =
+    filterMonth === "All"
+      ? ratings
+      : ratings.filter((r) => r.month === filterMonth);
 
-  // 2. Bar Chart Data - Average Rating per Month
+  const ratingDistribution = Array.from({ length: 10 }, (_, i) => ({
+    rating: `${i + 1} Star${i === 0 ? "" : "s"}`,
+    count: filteredRatings.filter((r) => r.rating === i + 1).length,
+  }));
+
   const months = ["January", "February", "March", "April", "May", "June"];
-  const averageRatingsPerMonth = months.map((month) => {
-    const ratingsInMonth = ratings.filter((entry) => entry.month === month);
-    const averageRating =
-      ratingsInMonth.reduce((sum, entry) => sum + entry.rating, 0) /
-      ratingsInMonth.length;
+  const avgRatings = months.map((month) => {
+    const inMonth = filteredRatings.filter((r) => r.month === month);
+    const avg = inMonth.reduce((sum, r) => sum + r.rating, 0) / inMonth.length;
     return {
       month,
-      averageRating: isNaN(averageRating) ? 0 : averageRating.toFixed(1),
+      average: parseFloat(avg.toFixed(2)) || 0,
+      total: inMonth.length,
     };
   });
 
-  // Pie chart colors (different colors for each rating)
-  const COLORS = [
-    "#FFB6C1",
-    "#FF69B4",
-    "#FF1493",
-    "#C71585",
-    "#DB7093",
-    "#8B008B",
-    "#9B30FF",
-    "#6A5ACD",
-    "#483D8B",
-    "#0000CD",
-  ];
+  const feedbackTrend = filteredRatings.map((r, i) => ({
+    session: `Session ${i + 1}`,
+    rating: r.rating,
+  }));
 
-  // For debugging: log the processed data
-  console.log("Rating Count:", ratingCount);
-  console.log("Average Ratings per Month:", averageRatingsPerMonth);
+  const summaryStats = {
+    totalReviews: filteredRatings.length,
+    averageRating: (
+      filteredRatings.reduce((a, b) => a + b.rating, 0) / filteredRatings.length
+    ).toFixed(1),
+    highest: filteredRatings.reduce(
+      (a, b) => (a.rating > b.rating ? a : b),
+      filteredRatings[0] || {}
+    ),
+  };
 
   return (
-    <div className="flex flex-col  ml-10 mr-10 ">
-      <h2 className="text-2xl font-semibold mb-4 text-center mt-10">
-        Patient Feedback Overview
-      </h2>
+    <motion.div
+      className="p-6 max-w-screen-xl mx-auto space-y-12 text-gray-800"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
+      <h1 className="text-4xl font-bold text-center mt-4">
+        Patient Feedback Dashboard
+      </h1>
 
-      {/* Charts Section: Pie Chart and Bar Chart */}
-      <div className="flex justify-between gap-6 mb-6">
-        {/* Pie Chart - Rating Distribution */}
-        <div className="w-full lg:w-1/2">
-          <h3 className="text-xl font-semibold mb-2">Rating Distribution</h3>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-blue-100 p-6 rounded-xl shadow">
+          <h3 className="text-lg font-semibold">🧾 Total Reviews</h3>
+          <p className="text-3xl font-bold mt-2">{summaryStats.totalReviews}</p>
+        </div>
+        <div className="bg-green-100 p-6 rounded-xl shadow">
+          <h3 className="text-lg font-semibold">⭐ Average Rating</h3>
+          <p className="text-3xl font-bold mt-2">
+            {summaryStats.averageRating || 0} / 10
+          </p>
+        </div>
+        <div className="bg-purple-100 p-6 rounded-xl shadow">
+          <h3 className="text-lg font-semibold">🏆 Top Feedback</h3>
+          <p className="text-md mt-1">
+            "{summaryStats.highest?.review || "No data"}"
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            ({summaryStats.highest?.rating || "-"}/10)
+          </p>
+        </div>
+        <div className="bg-yellow-100 p-6 rounded-xl shadow">
+          <h3 className="text-lg font-semibold">📅 Filtered Month</h3>
+          <p className="text-xl font-bold mt-2">{filterMonth}</p>
+        </div>
+      </div>
+
+      <div className="w-full mt-4">
+        <select
+          className="w-full px-4 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
+          value={filterMonth}
+          onChange={(e) => setFilterMonth(e.target.value)}
+        >
+          <option value="All">All Months</option>
+          {months.map((month) => (
+            <option key={month} value={month}>
+              {month}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <motion.div
+          className="bg-white p-6 rounded-xl shadow"
+          whileHover={{ scale: 1.02 }}
+        >
+          <h3 className="text-xl font-semibold mb-4">📊 Rating Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={ratingCount}
+                data={ratingDistribution}
                 dataKey="count"
                 nameKey="rating"
-                outerRadius={120}
-                fill="#8884d8"
+                cx="50%"
+                cy="50%"
+                outerRadius={110}
                 label
               >
-                {ratingCount.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
+                {ratingDistribution.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                content={({ payload }) => {
-                  if (payload && payload.length > 0) {
-                    const { name, value } = payload[0];
-                    return (
-                      <div>
-                        <strong>{name}</strong>
-                        <br />
-                        Count: {value}
-                        <br />
-                        Percentage:{" "}
-                        {((value / ratings.length) * 100).toFixed(2)}%
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
+              <Tooltip />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
 
-        {/* Bar Chart - Average Rating Per Month */}
-        <div className="w-full lg:w-1/2">
-          <h3 className="text-xl font-semibold mb-2">
-            Average Rating Per Month
+        <motion.div
+          className="bg-white p-6 rounded-xl shadow"
+          whileHover={{ scale: 1.02 }}
+        >
+          <h3 className="text-xl font-semibold mb-4">
+            📅 Avg Rating Per Month
           </h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={averageRatingsPerMonth}>
+            <BarChart data={avgRatings}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="averageRating" fill="#8884d8" />
+              <Bar dataKey="average" fill="#8884d8" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
+
+    
       </div>
 
-      {/* Patient Reviews Table */}
-      <div className="patient-reviews mb-6">
-        <h3 className="text-xl font-semibold mb-2">Patient Reviews</h3>
-
-        <div className="flex-grow overflow-auto">
-          <table className="w-full border rounded-lg">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-4">Rating</th>
-                <th className="p-4">Review</th>
+      <motion.div
+        className="bg-gradient-to-br from-pink-50 to-blue-50 p-6 rounded-2xl shadow-lg border border-gray-200"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <h3 className="text-2xl font-bold mb-4 text-center text-indigo-700">
+          📝 Detailed Patient Reviews
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left text-gray-700 border">
+            <thead className="bg-indigo-100">
+              <tr>
+                <th className="p-3">Rating</th>
+                <th className="p-3">Review</th>
+                <th className="p-3">Month</th>
               </tr>
             </thead>
             <tbody>
-              {ratings.map((entry) => {
-                const fullStars = Math.floor(entry.rating / 2); // Number of full stars
-                const halfStars = entry.rating % 2 >= 1 ? 1 : 0; // Check for half star
+              {filteredRatings.map((entry) => {
+                const full = Math.floor(entry.rating / 2);
+                const half = entry.rating % 2 >= 1 ? 1 : 0;
                 return (
-                  <tr key={entry.id} className="border-t even:bg-gray-50">
-                    <td className="p-4 text-lg font-bold flex items-center gap-1">
-                      {[...Array(fullStars)].map((_, i) => (
+                  <tr
+                    key={entry.id}
+                    className="border-b even:bg-white odd:bg-indigo-50"
+                  >
+                    <td className="p-3 flex items-center gap-1">
+                      {[...Array(full)].map((_, i) => (
                         <Star
-                          key={`full-${i}`}
+                          key={`f-${i}`}
                           size={16}
                           className="text-yellow-500 fill-yellow-500"
                         />
                       ))}
-                      {halfStars > 0 && (
+                      {half > 0 && (
                         <StarHalf
                           size={16}
                           className="text-yellow-500 fill-yellow-500"
                         />
                       )}
-                      {[...Array(5 - fullStars - halfStars)].map((_, i) => (
+                      {[...Array(5 - full - half)].map((_, i) => (
                         <Star
-                          key={`empty-${i}`}
+                          key={`e-${i}`}
                           size={16}
                           className="text-gray-300 fill-gray-300"
                         />
                       ))}
-                    
                     </td>
-                    <td className="p-4">{entry.review}</td>
+                    <td className="p-3 italic">"{entry.review}"</td>
+                    <td className="p-3 font-semibold">{entry.month}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      
+        <motion.div
+          className="bg-white p-6 rounded-xl shadow"
+          whileHover={{ scale: 1.02 }}
+        >
+          <h3 className="text-xl font-semibold mb-4">📈 Rating Trend</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={feedbackTrend}>
+              <XAxis dataKey="session" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="rating"
+                stroke="#00C49F"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </motion.div>
+
+        <motion.div
+          className="bg-white p-6 rounded-xl shadow"
+          whileHover={{ scale: 1.02 }}
+        >
+          <h3 className="text-xl font-semibold mb-4">
+            🌀 Monthly Feedback Intensity
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart data={avgRatings}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="month" />
+              <Radar
+                dataKey="total"
+                stroke="#FF6F91"
+                fill="#FF6F91"
+                fillOpacity={0.6}
+              />
+              <Tooltip />
+            </RadarChart>
+          </ResponsiveContainer>
+        </motion.div>
       </div>
-    </div>
+
+    </motion.div>
   );
 };
 

@@ -31,7 +31,7 @@ const addDoctorRequest = async (req, res) => {
     const documentFile = req.file;
 
     if (
-      !firstName || !lastName || !universityId || !doctorId || !address ||
+      !firstName || !lastName  || !doctorId || !address ||
       !gender || !experience || !qualifications || !email || !phone ||
       !documentFile || !degree || !specialty || !about || !fees
     ) {
@@ -106,6 +106,7 @@ const generateRandomPassword = () => {
   return crypto.randomBytes(8).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 10);
 };
 
+//requst to approved doctor
 const addDoctorFromRequest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -144,7 +145,7 @@ const addDoctorFromRequest = async (req, res) => {
     await newDoctor.save();
     await doctorRequestModel.findByIdAndDelete(id);
 
-    // 📧 Send email via SendGrid
+    
     await sendEmail({
       to: request.email,
       subject: "Your Doctor Account is Approved 🎉",

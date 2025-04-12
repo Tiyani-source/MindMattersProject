@@ -37,9 +37,12 @@ import Gynecologist from './Gynecologist.svg'
 import Neurologist from './Neurologist.svg'
 import Pediatricians from './Pediatricians.svg'
 import DoctorImg from './doctorForm.webp'
+import shopping_cart from './shopping_cart.png'
+import logo11 from './logo11.png'
 
 export const assets = {
     appointment_img,
+    shopping_cart,
     header_img,
     group_profiles,
     logo,
@@ -70,7 +73,9 @@ export const assets = {
     doc12,
     doc13,
     doc14,
-    doc15
+    doc15,
+    logo11,
+   
 }
 
 export const specialityData = [

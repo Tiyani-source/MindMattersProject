@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
+    "@react-oauth/google": "^0.12.1",
     "axios": "^1.8.4",
     "mdb-react-ui-kit": "^9.0.0",
     "react": "^18.3.1",
@@ -18,6 +19,7 @@
     "react-owl-carousel": "^2.3.3",
     "react-router-dom": "^6.24.1",
     "react-toastify": "^10.0.5",
+    "socket.io-client": "^4.8.1",
     "swiper": "^11.2.6"
   },
   "devDependencies": {

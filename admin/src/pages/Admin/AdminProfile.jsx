@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Lock, Phone, MapPin } from "lucide-react";
 import axios from "axios";
 import "./css/UserProfile.css";
+import decodeJWT from "../../utils/decodeJWT";
 
 export default function AdminProfile() {
   const [firstName, setFirstName] = useState("");
@@ -14,7 +15,7 @@ export default function AdminProfile() {
   const [status, setStatus] = useState("");
   const [hiredDate, setHiredDate] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("admin@mindmatters.lk"); // for fetching
+  const [email, setEmail] = useState("admin@mindmatters.lk"); // default, will be updated from token
   const [linkedIn, setLinkedIn] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
   const [whatsapp, setWhatsApp] = useState("");
@@ -24,11 +25,19 @@ export default function AdminProfile() {
   const [district, setDistrict] = useState("");
   const [country, setCountry] = useState("");
 
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const fetchAdmin = async () => {
       try {
-        const res = await axios.get(`http://localhost:4000/api/admin/profile?email=${email}`);
+        const token = localStorage.getItem("aToken");
+        if (!token) return;
+
+        const decoded = decodeJWT(token);
+        const emailFromToken = decoded?.email;
+        if (!emailFromToken) return;
+
+        const res = await axios.get(`http://localhost:4000/api/admin/profile?email=${emailFromToken}`);
         if (res.data.success) {
           const admin = res.data.admin;
           setFirstName(admin.firstName || "");
@@ -59,40 +68,43 @@ export default function AdminProfile() {
     fetchAdmin();
   }, []);
 
+  const handleUpdateToggle = async () => {
+    if (isEditing) {
+      // Save updates
+      try {
+        const res = await axios.put("http://localhost:4000/api/admin/update-profile", {
+          email, // REQUIRED for backend to find the admin
+          firstName,
+          lastName,
+          age,
+          employeeId,
+          role,
+          accessLevel,
+          hiredDate,
+          phone,
+          linkedIn,
+          emergencyContact,
+          whatsapp,
+          address,
+          city,
+          district,
+          country,
+          postalCode,
+          lastLogin,
+          status,
+        });
 
-  const handleUpdateProfile = async () => {
-    try {
-      const res = await axios.put("http://localhost:4000/api/admin/profile", {
-        firstName,
-        lastName,
-        age,
-        employeeId,
-        role,
-        accessLevel,
-        hiredDate,
-        phone,
-        email,
-        linkedIn,
-        emergencyContact,
-        whatsapp,
-        address,
-        city,
-        district,
-        country,
-        postalCode,
-        lastLogin,
-        status,
-      });
-
-      if (res.data.success) {
-        alert("Profile updated successfully!");
-      } else {
-        alert("Update failed: " + res.data.message);
+        if (res.data.success) {
+          alert("✅ Profile updated successfully!");
+        } else {
+          alert("Update failed: " + res.data.message);
+        }
+      } catch (err) {
+        console.error("Error updating profile:", err);
+        alert("❌ Failed to update profile.");
       }
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      alert("Failed to update profile.");
     }
+    setIsEditing(!isEditing); // Toggle edit mode
   };
 
   return (
@@ -119,34 +131,70 @@ export default function AdminProfile() {
           <div className="mt-4 flex space-x-4 w-full">
             <div className="flex-1">
               <label className="labelInput">First Name:</label>
-              <input className="customInput w-full" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
 
             <div className="flex-1">
               <label className="labelInput">Last Name:</label>
-              <input className="customInput w-full" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
           </div>
 
           <div className="mt-4 flex space-x-4 w-full">
             <div className="flex-1">
               <label className="labelInput">Employee ID:</label>
-              <input className="customInput w-full" type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
 
             <div className="flex-1">
               <label className="labelInput">Role:</label>
-              <input className="customInput w-full" type="text" value={role} onChange={(e) => setRole(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
 
             <div className="flex-1">
               <label className="labelInput">Access Level:</label>
-              <input className="customInput w-full" type="text" value={accessLevel} onChange={(e) => setAccessLevel(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={accessLevel}
+                onChange={(e) => setAccessLevel(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
 
             <div className="flex-1">
               <label className="labelInput">Hired Date:</label>
-              <input className="customInput w-full" type="date" value={hiredDate} onChange={(e) => setHiredDate(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="date"
+                value={hiredDate}
+                onChange={(e) => setHiredDate(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
           </div>
         </div>
@@ -169,22 +217,51 @@ export default function AdminProfile() {
           <div className="mt-4 flex space-x-4 w-full">
             <div className="flex-1">
               <label className="labelInput">Phone:</label>
-              <input className="customInput w-full" type="text" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
             <div className="flex-1">
               <label className="labelInput">Email:</label>
-              <input className="customInput w-full" type="text" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={email}
+                readOnly
+              />
             </div>
           </div>
 
           <label className="labelInput">LinkedIn:</label>
-          <input className="customInput w-full" type="text" value={linkedIn} onChange={(e) => setLinkedIn(e.target.value)} />
+          <input
+            className="customInput w-full"
+            type="text"
+            value={linkedIn}
+            onChange={(e) => setLinkedIn(e.target.value)}
+            readOnly={!isEditing}
+          />
 
           <label className="labelInput">Emergency Contact:</label>
-          <input className="customInput w-full" type="text" value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} />
+          <input
+            className="customInput w-full"
+            type="text"
+            value={emergencyContact}
+            onChange={(e) => setEmergencyContact(e.target.value)}
+            readOnly={!isEditing}
+          />
 
           <label className="labelInput">WhatsApp:</label>
-          <input className="customInput w-full" type="text" value={whatsapp} onChange={(e) => setWhatsApp(e.target.value)} />
+          <input
+            className="customInput w-full"
+            type="text"
+            value={whatsapp}
+            onChange={(e) => setWhatsApp(e.target.value)}
+            readOnly={!isEditing}
+          />
         </div>
 
         {/* Address Info */}
@@ -203,32 +280,62 @@ export default function AdminProfile() {
           <div className="mt-4 flex space-x-4 w-full">
             <div className="flex-1">
               <label className="labelInput">Country:</label>
-              <input className="customInput w-full" type="text" value={country} onChange={(e) => setCountry(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
             <div className="flex-1">
               <label className="labelInput">City:</label>
-              <input className="customInput w-full" type="text" value={city} onChange={(e) => setCity(e.target.value)} />
+              <input
+                className="customInput w-full"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                readOnly={!isEditing}
+              />
             </div>
           </div>
 
           <label className="labelInput">District:</label>
-          <input className="customInput w-full" type="text" value={district} onChange={(e) => setDistrict(e.target.value)} />
+          <input
+            className="customInput w-full"
+            type="text"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            readOnly={!isEditing}
+          />
 
           <label className="labelInput">Address:</label>
-          <input className="customInput w-full" type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <input
+            className="customInput w-full"
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            readOnly={!isEditing}
+          />
 
           <label className="labelInput">Postal Code:</label>
-          <input className="customInput w-full" type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
+          <input
+            className="customInput w-full"
+            type="text"
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value)}
+            readOnly={!isEditing}
+          />
         </div>
       </div>
 
-      {/* Update Button */}
+      {/* Update / Done Button */}
       <div className="flex justify-end mt-6">
         <button
-          onClick={handleUpdateProfile}
+          onClick={handleUpdateToggle}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold shadow-md"
         >
-          Update Profile
+          {isEditing ? "Save" : "✏️ Update Profile"}
         </button>
       </div>
     </div>

@@ -26,7 +26,7 @@ const Navbar = () => {
     
     <div className='fixed top-0 left-0 w-full bg-white shadow-md border-b flex justify-between items-center px-4 sm:px-10 py-3 z-50'>
       <div className='flex items-center gap-2 text-xs'>
-        <img onClick={() => navigate('/')} className='w-36 sm:w-40 cursor-pointer' src={assets.admin_logo} alt="Admin Logo" />
+        <img onClick={() => navigate('/')} className='w-36 sm:w-40 cursor-pointer' src={assets.logo11} alt="Admin Logo" />
         <p className='border px-2.5 py-0.5 rounded-full border-gray-500 text-gray-600'>{aToken ? 'Admin' : ( dToken ? 'Doctor' : 'University')}</p>
       </div>
       <button onClick={logout} className='bg-primary text-white text-sm px-10 py-2 rounded-full'>Logout</button>

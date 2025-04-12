@@ -8,7 +8,9 @@ import doctorRouter from "./routes/doctorRoute.js"
 import adminRouter from "./routes/adminRoute.js"
 import dRequestRouter from "./routes/dRequestRoute.js"
 import universityRouter from "./routes/universityRoute.js"
-
+import studRequestRouter from "./routes/studReqRoute.js"
+import studentRouter from "./routes/studentRoute.js"
+import patientRouter from "./routes/patientRoute.js"
 
 // app config
 const app = express()
@@ -26,7 +28,9 @@ app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 app.use("/api/doctor-request", dRequestRouter)
 app.use("/api/university", universityRouter)
-
+app.use("/api/student-request", studRequestRouter)
+app.use("/api/student", studentRouter)
+app.use("/api/patients", patientRouter);
 
 app.get("/", (req, res) => {
   res.send("API Working")

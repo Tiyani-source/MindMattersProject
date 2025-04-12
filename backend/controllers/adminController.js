@@ -195,6 +195,26 @@ const getAdminProfile = async (req, res) => {
   }
 };
 
+const updateAdminProfile = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+    const updatedAdmin = await adminModel.findOneAndUpdate({ email }, req.body, {
+      new: true,
+    });
+
+    if (!updatedAdmin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+
+    res.status(200).json({ success: true, admin: updatedAdmin });
+  } catch (error) {
+    console.error("Error updating admin profile:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 export {
     loginAdmin,
     appointmentsAdmin,
@@ -203,4 +223,5 @@ export {
     allDoctors,
     adminDashboard,
     getAdminProfile,
+    updateAdminProfile,
 }
