@@ -6,6 +6,8 @@ import connectCloudinary from "./config/cloudinary.js"
 import userRouter from "./routes/userRoute.js"
 import doctorRouter from "./routes/doctorRoute.js"
 import adminRouter from "./routes/adminRoute.js"
+import paymentRoutes from "./routes/paymentRoutes.js";
+
 
 import orderRouter from "./routes/orderRoute.js"
 import wishlistRouter from "./routes/wishlistRoutes.js"
@@ -35,10 +37,10 @@ app.use('/api/supportTickets', supportTicketRoutes)
 app.use("/api/user", userRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
+app.use("/api/payments", paymentRoutes)
 app.use("/api/orders", orderRouter)
 app.use("/api/wishlist", wishlistRouter)
 app.use("/api/cart", shoppingCartRouter)
-
 app.use("/api/supplymanager", smRouter)
 
 
