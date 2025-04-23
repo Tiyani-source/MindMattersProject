@@ -37,6 +37,8 @@ const ProductDetails = () => {
         const relatedProds = relatedResponse.data.filter(p => p._id !== fetchedProduct._id);
         setRelatedProducts(relatedProds);
 
+
+
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch product details');
@@ -196,7 +198,7 @@ const ProductDetails = () => {
           <hr className='my-4' />
 
           {/* Price & Stock Status */}
-          <p className='text-xl text-primary mt-4 font-medium'>${product.price}</p>
+          <p className='text-xl text-primary mt-4 font-medium'>Rs: {product.price}</p>
           <p className={`text-sm mt-1 ${product.stock > 0 ? 'text-green-500' : 'text-red-500'}`}>
             {product.stock > 0 ? 'Available' : 'Sold Out'}
           </p>
@@ -308,7 +310,8 @@ const ProductDetails = () => {
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
             {(showAllReviews ? reviews : reviews.slice(0, 3)).map((review, index) => (
               <div key={index} className='bg-white border p-4 rounded-lg shadow-sm'>
-                <p className='font-medium text-gray-900'>{review.user}</p>
+                <p className='font-medium text-gray-900'>{review.user?.name || 'Anonymous'}</p>
+
                 <p className='text-md text-gray-600'>{review.comment}</p>
                 <p className='text-yellow-500 text-lg'>
                   {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
@@ -365,12 +368,12 @@ const ProductDetails = () => {
                 onClick={() => { navigate(`/product/${related._id}`); window.scrollTo(0, 0); }} 
                 className='border border-indigo-200 rounded-xl overflow-hidden cursor-pointer hover:translate-y-[-10px] transition-all duration-500'
               >
-                <img className='bg-indigo-50 w-full h-48 object-cover' src={related.image} alt={related.name} />
+                <img className='bg-indigo-50 w-full h-48 object-cover'  src={`${API_URL}/${related.image}`} alt={related.name} />
 
                 <div className='p-4'>
                   <p className='text-neutral-800 text-lg font-medium'>{related.name}</p>
                   <p className='text-zinc-600 text-sm'>{related.category}</p>
-                  <p className='text-green-500 font-semibold'>${related.price}</p>
+                  <p className='text-green-500 font-semibold'>Rs: {related.price}</p>
                 </div>
               </div>
             ))}
