@@ -1,6 +1,10 @@
 {
   "dependencies": {
+
+   "react-feather": "^2.0.10",
+
   "react-feather": "^2.0.10",
+
   "recharts": "^2.15.3",
   "@fortawesome/fontawesome-svg-core": "^6.7.2",
   "@fortawesome/free-regular-svg-icons": "^6.7.2",
