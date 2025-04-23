@@ -2,6 +2,8 @@ import { createContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import axios from 'axios'
 import jsPDF from 'jspdf'; //for handlePrintInvoice
+import { products } from "../assets/assets";
+
 
 export const AppContext = createContext()
 
@@ -338,6 +340,7 @@ const AppContextProvider = (props) => {
         removeFromCart,
         clearCart,
         isLoading
+
     }
 
     return (
