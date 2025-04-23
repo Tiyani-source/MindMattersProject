@@ -15,6 +15,8 @@ import Login from './pages/Login';
 import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
+import PaymentDashboard from './pages/Payment/PaymentDashboard';
+import { PaymentProvider } from './context/PaymentContext';
 import AdminProductManagement from './pages/supplyManager/ProductManagementDashboard.jsx'
 import { SupplyManagerContext } from './context/SupplyManagerContext.jsx';
 import SupplierProfileDashboard from './pages/supplyManager/supplierProfile.jsx';
@@ -28,7 +30,8 @@ const App = () => {
   const { smToken } = useContext(SupplyManagerContext)
   
 
-  return dToken || aToken || smToken ? (
+  return dToken || aToken ? (
+    <PaymentProvider>
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
       <Navbar />
@@ -44,6 +47,7 @@ const App = () => {
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
           <Route path='/doctor-profile' element={<DoctorProfile />} />
+          <Route path='/payment-dashboard' element={<PaymentDashboard />} />
           <Route path="/product-management" element={<AdminProductManagement />} />
           <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
           <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
@@ -51,6 +55,7 @@ const App = () => {
         </Routes>
       </div>
     </div>
+    </PaymentProvider>
   ) : (
     <>
       <ToastContainer />
