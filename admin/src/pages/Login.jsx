@@ -2,10 +2,12 @@ import axios from 'axios'
 import React, { useContext, useState } from 'react'
 import { DoctorContext } from '../context/DoctorContext'
 import { AdminContext } from '../context/AdminContext'
+import { SupplyManagerContext } from '../context/SupplyManagerContext.jsx'
 import { toast } from 'react-toastify'
+import { useNavigate } from 'react-router-dom'
 
 const Login = () => {
-
+  // Add Supply Manager to the possible states
   const [state, setState] = useState('Admin')
 
   const [email, setEmail] = useState('')
@@ -15,32 +17,56 @@ const Login = () => {
 
   const { setDToken } = useContext(DoctorContext)
   const { setAToken } = useContext(AdminContext)
+  const { setSMToken } = useContext(SupplyManagerContext)
+  const navigate = useNavigate()
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
 
-    if (state === 'Admin') {
-
-      const { data } = await axios.post(backendUrl + '/api/admin/login', { email, password })
-      if (data.success) {
-        setAToken(data.token)
-        localStorage.setItem('aToken', data.token)
-      } else {
-        toast.error(data.message)
+    try {
+      if (state === 'Admin') {
+        const { data } = await axios.post(backendUrl + '/api/admin/login', { email, password })
+        if (data.success) {
+          setAToken(data.token)
+          localStorage.setItem('aToken', data.token)
+          toast.success('Admin login successful')
+          navigate('/admin-dashboard')
+        } else {
+          toast.error(data.message)
+        }
+      } else if (state === 'Doctor') {
+        const { data } = await axios.post(backendUrl + '/api/doctor/login', { email, password })
+        if (data.success) {
+          setDToken(data.token)
+          localStorage.setItem('dToken', data.token)
+          toast.success('Doctor login successful')
+          navigate('/doctor-dashboard')
+        } else {
+          toast.error(data.message)
+        }
+      } else if (state === 'Supply Manager') {
+        const { data } = await axios.post(backendUrl + '/api/supplymanager/login', { email, password })
+        if (data.success) {
+          console.log('Navigating to /s-dashboard');
+          setSMToken(data.token)
+          localStorage.setItem('smToken', data.token)
+          toast.success('Supply Manager login successful')
+          navigate('/supplier-dashboard')
+        } else {
+          toast.error(data.message)
+        }
       }
-
-    } else {
-
-      const { data } = await axios.post(backendUrl + '/api/doctor/login', { email, password })
-      if (data.success) {
-        setDToken(data.token)
-        localStorage.setItem('dToken', data.token)
-      } else {
-        toast.error(data.message)
-      }
-
+    } catch (error) {
+      toast.error('Login failed. Please try again.')
+      console.error('Login error:', error)
     }
+  }
 
+  // Function to toggle between different login types
+  const switchLoginType = (type) => {
+    setState(type)
+    setEmail('')
+    setPassword('')
   }
 
   return (
@@ -56,11 +82,21 @@ const Login = () => {
           <input onChange={(e) => setPassword(e.target.value)} value={password} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="password" required />
         </div>
         <button className='bg-primary text-white w-full py-2 rounded-md text-base'>Login</button>
-        {
-          state === 'Admin'
-            ? <p>Doctor Login? <span onClick={() => setState('Doctor')} className='text-primary underline cursor-pointer'>Click here</span></p>
-            : <p>Admin Login? <span onClick={() => setState('Admin')} className='text-primary underline cursor-pointer'>Click here</span></p>
-        }
+        
+        {/* Login type switcher options */}
+        <div className='w-full flex flex-col gap-1'>
+          {state !== 'Admin' && (
+            <p>Admin Login? <span onClick={() => switchLoginType('Admin')} className='text-primary underline cursor-pointer'>Click here</span></p>
+          )}
+          
+          {state !== 'Doctor' && (
+            <p>Doctor Login? <span onClick={() => switchLoginType('Doctor')} className='text-primary underline cursor-pointer'>Click here</span></p>
+          )}
+          
+          {state !== 'Supply Manager' && (
+            <p>Supply Manager Login? <span onClick={() => switchLoginType('Supply Manager')} className='text-primary underline cursor-pointer'>Click here</span></p>
+          )}
+        </div>
       </div>
     </form>
   )
