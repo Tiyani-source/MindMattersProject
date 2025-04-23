@@ -20,11 +20,13 @@ import { SupplyManagerContext } from './context/SupplyManagerContext.jsx';
 import SupplierProfileDashboard from './pages/supplyManager/supplierProfile.jsx';
 import SupplierDashboard from './pages/supplyManager/supplyManagerDashboard.jsx';
 
+
 const App = () => {
 
   const { dToken } = useContext(DoctorContext)
   const { aToken } = useContext(AdminContext)
   const { smToken } = useContext(SupplyManagerContext)
+  
 
   return dToken || aToken || smToken ? (
     <div className='bg-[#F8F9FD]'>
@@ -45,6 +47,7 @@ const App = () => {
           <Route path="/product-management" element={<AdminProductManagement />} />
           <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
           <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
+
         </Routes>
       </div>
     </div>
