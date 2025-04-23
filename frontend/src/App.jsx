@@ -8,7 +8,14 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Appointment from './pages/Appointment'
 import MyAppointments from './pages/MyAppointments'
+import MyOrders from './pages/MyOrders'
+import OrderAnalytics from './pages/OrderAnalytics';
 import MyProfile from './pages/MyProfile'
+import ShoppingCart from './pages/ShoppingCart'
+import Checkout from './pages/Checkout'
+import Wishlist from './pages/Wishlist'
+import Payment from './pages/Payment'
+import OrderConfirmation from './pages/OrderConfirmation'
 import Footer from './components/Footer'
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -34,7 +41,14 @@ const App = () => {
         <Route path='/contact' element={<Contact />} />
         <Route path='/appointment/:docId' element={<Appointment />} />
         <Route path='/my-appointments' element={<MyAppointments />} />
+        <Route path='/my-orders' element={<MyOrders />} />
+        <Route path="/order-analytics" element={<OrderAnalytics />} />
         <Route path='/my-profile' element={<MyProfile />} />
+        <Route path='/cart' element={<ShoppingCart />} />
+        <Route path='/checkout' element={<Checkout />} />
+        <Route path='/payment' element={<Payment />} />
+        <Route path='/wishlist' element={<Wishlist />} />
+        <Route path='/order-confirmation' element={<OrderConfirmation />} />
         <Route path='/verify' element={<Verify />} />
         <Route path='/support-desk' element={<SupportTicketsPage />} />
       </Routes>
