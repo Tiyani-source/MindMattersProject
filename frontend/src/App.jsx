@@ -11,6 +11,7 @@ import MyAppointments from './pages/MyAppointments'
 import MyOrders from './pages/MyOrders'
 import OrderAnalytics from './pages/OrderAnalytics';
 import MyProfile from './pages/MyProfile'
+import PaymentForm from './pages/PaymentForm'
 import ShoppingCart from './pages/ShoppingCart'
 import Checkout from './pages/Checkout'
 import Wishlist from './pages/Wishlist'
@@ -40,6 +41,7 @@ const App = () => {
         <Route path='/about' element={<About />} />
         <Route path='/contact' element={<Contact />} />
         <Route path='/appointment/:docId' element={<Appointment />} />
+        <Route path='/payment/:amount/:appointmentId' element={<PaymentForm />} />
         <Route path='/my-appointments' element={<MyAppointments />} />
         <Route path='/my-orders' element={<MyOrders />} />
         <Route path="/order-analytics" element={<OrderAnalytics />} />
