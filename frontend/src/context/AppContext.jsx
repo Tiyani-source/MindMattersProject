@@ -14,6 +14,9 @@ const AppContextProvider = (props) => {
     const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '')
     const [userData, setUserData] = useState(false)
     const [orders, setOrders] = useState([]); // orders state
+    const [wishlist, setWishlist] = useState([]); // wishlist state
+    const [cart, setCart] = useState({ items: [] }); // cart state
+    const [isLoading, setIsLoading] = useState(false);
 
     // Getting Doctors using API
     const getDoctosData = async () => {
@@ -157,7 +160,150 @@ const AppContextProvider = (props) => {
         return orders.filter(order => order.status === filter);
     };
 
-    
+    // Get user's wishlist
+    const getWishlist = async () => {
+        try {
+          const token = localStorage.getItem('token'); 
+      
+          const response = await axios.get('/api/wishlist', {
+            headers: {
+              Authorization: `Bearer ${token}` 
+            }
+          });
+      
+          console.log(response.data);
+          // Update state here with response.data if needed
+        } catch (error) {
+          console.error('Error fetching wishlist:', error);
+        }
+      };
+
+    // Add item to wishlist
+    const addToWishlist = async (productId, name, price) => {
+        try {
+            const { data } = await axios.post(
+                `${backendUrl}/api/wishlist/`,
+                { productId, name, price },
+                { headers: { token } }
+            );
+            if (data.success) {
+                setWishlist(data.data?.items || []);
+                toast.success('Item added to wishlist');
+            } else {
+                toast.error(data.message || 'Failed to add item to wishlist');
+            }
+        } catch (error) {
+            console.error('Error adding to wishlist:', error);
+            toast.error(error.response?.data?.message || 'Failed to add item to wishlist');
+        }
+    };
+
+    // Remove item from wishlist
+    const removeFromWishlist = async (productId) => {
+        try {
+            const { data } = await axios.delete(
+                `${backendUrl}/api/wishlist/${productId}`,
+                { headers: { token } }
+            );
+            if (data.success) {
+                setWishlist(data.data?.items || []);
+                toast.success('Item removed from wishlist');
+            } else {
+                toast.error(data.message || 'Failed to remove item from wishlist');
+            }
+        } catch (error) {
+            console.error('Error removing from wishlist:', error);
+            toast.error(error.response?.data?.message || 'Failed to remove item from wishlist');
+        }
+    };
+
+    // Get user's cart
+    const getCart = async () => {
+        try {
+            setIsLoading(true);
+            const { data } = await axios.get(`${backendUrl}/api/cart`, {
+                headers: { token }
+            });
+            if (data.success) {
+                setCart(data.cart || { items: [] });
+            } else {
+                toast.error(data.message || 'Failed to load cart');
+            }
+        } catch (error) {
+            console.error('Error fetching cart:', error);
+            toast.error(error.response?.data?.message || 'Failed to load cart');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Add item to cart
+    const addToCart = async (productId, name, price, quantity = 1) => {
+        try {
+            setIsLoading(true);
+            const { data } = await axios.post(
+                `${backendUrl}/api/cart`,
+                { productId, name, price, quantity },
+                { headers: { token } }
+            );
+            if (data.success) {
+                setCart(data.cart);
+                toast.success('Item added to cart');
+            } else {
+                toast.error(data.message || 'Failed to add item to cart');
+            }
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            toast.error(error.response?.data?.message || 'Failed to add item to cart');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Remove item from cart
+    const removeFromCart = async (productId) => {
+        try {
+            setIsLoading(true);
+            const { data } = await axios.delete(
+                `${backendUrl}/api/cart/${productId}`,
+                { headers: { token } }
+            );
+            if (data.success) {
+                setCart(data.cart);
+                toast.success('Item removed from cart');
+            } else {
+                toast.error(data.message || 'Failed to remove item from cart');
+            }
+        } catch (error) {
+            console.error('Error removing from cart:', error);
+            toast.error(error.response?.data?.message || 'Failed to remove item from cart');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Clear entire cart
+    const clearCart = async () => {
+        try {
+            setIsLoading(true);
+            const { data } = await axios.delete(
+                `${backendUrl}/api/cart/clear`,
+                { headers: { token } }
+            );
+            if (data.success) {
+                setCart({ items: [] });
+                toast.success('Cart cleared successfully');
+            } else {
+                toast.error(data.message || 'Failed to clear cart');
+            }
+        } catch (error) {
+            console.error('Error clearing cart:', error);
+            toast.error(error.response?.data?.message || 'Failed to clear cart');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
     useEffect(() => {
         getDoctosData()
@@ -166,6 +312,8 @@ const AppContextProvider = (props) => {
     useEffect(() => {
         if (token) {
             loadUserProfileData()
+            getWishlist()
+            getCart()
         }
     }, [token])
 
@@ -179,7 +327,17 @@ const AppContextProvider = (props) => {
         createOrder,
         cancelOrder,
         handlePrintInvoice,
-        getFilteredOrders 
+        getFilteredOrders,
+        wishlist, setWishlist,
+        getWishlist,
+        addToWishlist,
+        removeFromWishlist,
+        cart, setCart,
+        getCart,
+        addToCart,
+        removeFromCart,
+        clearCart,
+        isLoading
     }
 
     return (
