@@ -12,8 +12,41 @@ const AdminContextProvider = (props) => {
     const [aToken, setAToken] = useState(localStorage.getItem('aToken') ? localStorage.getItem('aToken') : '')
 
     const [appointments, setAppointments] = useState([])
+    const [therapists, setTherapists] = useState([]);
     const [doctors, setDoctors] = useState([])
     const [dashData, setDashData] = useState(false)
+
+    // Getting all therapists from Database using API
+    const getAllTherapists = async () => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/admin/all-therapists`, { headers: { aToken } });
+            if (data.success) {
+                setTherapists(data.therapists);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+            console.error(error);
+        }
+    };
+
+    // Function to add a new therapist
+    const addTherapist = async (therapistData) => {
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/admin/add-therapist`, therapistData, { headers: { aToken } });
+            if (data.success) {
+                toast.success("Therapist added successfully!");
+                getAllTherapists(); // Refresh therapist list
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+            console.error(error);
+        }
+    };
+
 
     // Getting all Doctors data from Database using API
     const getAllDoctors = async () => {
@@ -116,6 +149,9 @@ const AdminContextProvider = (props) => {
         doctors,
         getAllDoctors,
         changeAvailability,
+        therapists, 
+        getAllTherapists, 
+        addTherapist,
         appointments,
         getAllAppointments,
         getDashData,

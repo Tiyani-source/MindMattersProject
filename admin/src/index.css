@@ -10,3 +10,10 @@
 ::-webkit-scrollbar{
     display: none;
 }
+
+.scrollbar-visible {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #4C5AE3 #E5E7EB;
+    overflow-y: scroll; /* Ensures scrollbar is always visible */
+}

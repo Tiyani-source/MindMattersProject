@@ -4,9 +4,18 @@ import validator from "validator";
 import userModel from "../models/userModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import appointmentsModel from "../models/appointmentsModel.js";
+import therapistModel from '../models/therapistModel.js';
+import therapistAvailabilityModel from "../models/therapistAvailabilityModel.js";
+import clientModel from "../models/clientModel.js";
 import { v2 as cloudinary } from 'cloudinary'
 import stripe from "stripe";
 import razorpay from 'razorpay';
+
+
+
+
+
 
 // Gateway Initialize
 const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY)
@@ -83,6 +92,130 @@ const loginUser = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 }
+const getUserTherapistAppointments = async (req, res) => {
+    try {
+      const { token } = req.headers;
+      if (!token) return res.status(401).json({ success: false, message: "Unauthorized" });
+  
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.id;
+  
+      const appointments = await appointmentsModel
+        .find({ clientID: userId, statusOfAppointment: { $ne: "cancelled" } })
+        .populate("therapistID", "name image address speciality")
+  
+      res.status(200).json({ success: true, appointments });
+    } catch (err) {
+      console.error("Error fetching user appointments:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  };
+  
+  export { getUserTherapistAppointments };
+
+
+
+// Book Therapist Appointment
+export const bookTherapist = async (req, res) => {
+    try {
+        const { clientID, therapistID, date, time, typeOfAppointment, meetingLink } = req.body;
+  
+        const therapist = await therapistModel.findById(therapistID);
+        if (!therapist) return res.json({ success: false, message: "Therapist not found" });
+  
+        const amount = therapist.fees;
+  
+        // 🕒 Calculate endTime +1 hour
+        const [hour, minute] = time.split(":").map(Number);
+        const endHour = (hour + 1) % 24;
+        const endTime = `${endHour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+  
+        // Save appointment
+        const appointment = new appointmentsModel({
+            clientID,
+            therapistID,
+            typeOfAppointment,
+            meetingLink,
+            date,
+            timeSlot: {
+                startTime: time,
+                endTime: endTime // ✅ Proper value instead of empty string
+            },
+            amount
+        });
+        await appointment.save();
+  
+        // Mark availability as booked
+        await therapistAvailabilityModel.updateOne(
+            { therapistId: therapistID, date, time, type: typeOfAppointment === 'online' ? 'Online' : 'In-Person' },
+            { $set: { isBooked: true } }
+        );
+  
+        // Create client-therapist relationship if doesn't exist
+        const existingRelation = await clientModel.findOne({ therapistID, clientID });
+        if (!existingRelation) {
+            await clientModel.create({ therapistID, clientID, clientStatus: "ongoing" });
+        }
+  
+        res.json({ success: true, message: "Appointment booked successfully" });
+    } catch (err) {
+        console.error("Booking error:", err);
+        res.json({ success: false, message: err.message });
+    }
+  };
+
+// Reschedule Therapist Appointment
+export const rescheduleAppointment = async (req, res) => {
+  try {
+      const { appointmentId, newDate, newTime, typeOfAppointment } = req.body;
+
+      const updated = await appointmentsModel.findByIdAndUpdate(appointmentId, {
+          date: newDate,
+          timeSlot: { startTime: newTime, endTime: "" },
+          typeOfAppointment
+      }, { new: true });
+
+      if (!updated) return res.json({ success: false, message: "Appointment not found" });
+
+      res.json({ success: true, message: "Appointment rescheduled" });
+  } catch (err) {
+      res.json({ success: false, message: err.message });
+  }
+};
+
+// Cancel Therapist Appointment
+export const cancelTherapistAppointment = async (req, res) => {
+  try {
+      const { appointmentId } = req.body;
+
+      const appointment = await appointmentsModel.findByIdAndUpdate(appointmentId, {
+          statusOfAppointment: "cancelled",
+          cancelledBy: "client"
+      });
+
+      if (!appointment) return res.json({ success: false, message: "Appointment not found" });
+
+      res.json({ success: true, message: "Appointment cancelled" });
+  } catch (err) {
+      res.json({ success: false, message: err.message });
+  }
+};
+
+// Get Therapist Meeting Link
+export const getMeetingLink = async (req, res) => {
+  try {
+      const { appointmentId } = req.body;
+
+      const appointment = await appointmentsModel.findById(appointmentId).populate("therapistID", "name");
+      if (!appointment || appointment.statusOfAppointment === "cancelled") {
+          return res.json({ success: false, message: "Invalid or cancelled appointment" });
+      }
+
+      res.json({ success: true, meetingLink: appointment.meetingLink });
+  } catch (err) {
+      res.json({ success: false, message: err.message });
+  }
+};
 
 // API to get user profile data
 const getProfile = async (req, res) => {
