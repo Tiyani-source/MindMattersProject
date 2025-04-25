@@ -89,17 +89,18 @@ const appointmentComplete = async (req, res) => {
 }
 
 // API to get all doctors list for Frontend
-
 const doctorList = async (req, res) => {
     try {
-        const doctors = await doctorModel.find({}).select('-password');
-        res.json({ success: true, doctors });
-    } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
-    }
-}
 
+        const doctors = await doctorModel.find({}).select(['-password', '-email'])
+        res.json({ success: true, doctors })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+
+}
 
 // API to change doctor availablity for Admin and Doctor Panel
 const changeAvailablity = async (req, res) => {
@@ -120,57 +121,33 @@ const changeAvailablity = async (req, res) => {
 // API to get doctor profile for  Doctor Panel
 const doctorProfile = async (req, res) => {
     try {
-      const { email } = req.query;
-      if (!email) {
-        return res.status(400).json({ success: false, message: "Email is required" });
-      }
-  
-      const doctor = await doctorModel.findOne({ email });
-      if (!doctor) {
-        return res.status(404).json({ success: false, message: "Doctor not found" });
-      }
-  
-      res.json({ success: true, doctor });
-    } catch (err) {
-      console.error("Error fetching doctor profile:", err);
-      res.status(500).json({ success: false, message: err.message });
+
+        const { docId } = req.body
+        const profileData = await doctorModel.findById(docId).select('-password')
+
+        res.json({ success: true, profileData })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
     }
-  };
+}
 
 // API to update doctor profile data from  Doctor Panel
 const updateDoctorProfile = async (req, res) => {
-    const { email, phone, address, speciality, degree, experience, qualifications, about, fees } = req.body;
-  
     try {
-      if (!email) return res.status(400).json({ success: false, message: "Email is required" });
-  
-      const updatedDoctor = await doctorModel.findOneAndUpdate(
-        { email },
-        {
-          $set: {
-            phone,
-            address,
-            speciality,
-            degree,
-            experience,
-            qualifications,
-            about,
-            fees,
-          },
-        },
-        { new: true }
-      );
-  
-      if (!updatedDoctor) {
-        return res.status(404).json({ success: false, message: "Doctor not found" });
-      }
-  
-      return res.status(200).json({ success: true, message: "Profile updated", doctor: updatedDoctor });
-    } catch (err) {
-      console.error("Error updating doctor profile:", err);
-      return res.status(500).json({ success: false, message: "Server error" });
+
+        const { docId, fees, address, available } = req.body
+
+        await doctorModel.findByIdAndUpdate(docId, { fees, address, available })
+
+        res.json({ success: true, message: 'Profile Updated' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
     }
-  };
+}
 
 // API to get dashboard data for doctor panel
 const doctorDashboard = async (req, res) => {
@@ -213,18 +190,6 @@ const doctorDashboard = async (req, res) => {
     }
 }
 
-const deleteDoctor = async (req, res) => {
-    try {
-      const doctor = await doctorModel.findByIdAndDelete(req.params.id);
-      if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
-  
-      res.json({ success: true, message: "Doctor deleted successfully" });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
-  };
-  
-
 export {
     loginDoctor,
     appointmentsDoctor,
@@ -234,6 +199,5 @@ export {
     appointmentComplete,
     doctorDashboard,
     doctorProfile,
-    updateDoctorProfile,
-    deleteDoctor
+    updateDoctorProfile
 }
