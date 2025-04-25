@@ -30,7 +30,7 @@ const App = () => {
   const { smToken } = useContext(SupplyManagerContext)
   
 
-  return dToken || aToken ? (
+  return dToken || aToken || smToken ? (
     <PaymentProvider>
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
