@@ -14,6 +14,7 @@ const AdminContextProvider = (props) => {
     const [appointments, setAppointments] = useState([])
     const [doctors, setDoctors] = useState([])
     const [dashData, setDashData] = useState(false)
+    const [orders, setOrders] = useState([]); // orders state
 
     // Getting all Doctors data from Database using API
     const getAllDoctors = async () => {
@@ -50,7 +51,6 @@ const AdminContextProvider = (props) => {
             toast.error(error.message)
         }
     }
-
 
     // Getting all appointment data from Database using API
     const getAllAppointments = async () => {
@@ -111,6 +111,45 @@ const AdminContextProvider = (props) => {
 
     }
 
+    const changeOrderStatus = async (orderId, status) => {
+
+        console.log(orderId, status);
+        
+
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/change-status', { orderId, status }, { headers: { aToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getAllAppointments()
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+
+    }
+
+    const fetchOrders = async () => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/orders/all`, {
+                headers: { aToken }
+                });
+
+                console.log(data);
+                
+                setOrders(data);
+
+            
+        } catch (error) {
+                console.log(error);
+                toast.error("Failed to fetch orders");
+            }
+        };
+
     const value = {
         aToken, setAToken,
         doctors,
@@ -120,6 +159,10 @@ const AdminContextProvider = (props) => {
         getAllAppointments,
         getDashData,
         cancelAppointment,
+        changeOrderStatus,
+        fetchOrders,
+        sampleOrders: orders,
+        setOrders,
         dashData
     }
 
