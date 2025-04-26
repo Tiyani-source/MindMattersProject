@@ -1,19 +1,37 @@
-import jwt from 'jsonwebtoken'
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs"; 
+import doctorModel from "../models/doctorModel.js";
 
-// doctor authentication middleware
-const authDoctor = async (req, res, next) => {
-    const { dtoken } = req.headers
-    if (!dtoken) {
-        return res.json({ success: false, message: 'Not Authorized Login Again' })
-    }
-    try {
-        const token_decode = jwt.verify(dtoken, process.env.JWT_SECRET)
-        req.body.docId = token_decode.id
-        next()
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
-    }
-}
+export const authDoctor = async (req, res) => {
+  const { email, password } = req.body;
 
-export default authDoctor;
+  try {
+    
+    const doctor = await doctorModel.findOne({ email });
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: "Doctor not found" });
+    }
+
+   
+    const isMatch = await bcrypt.compare(password, doctor.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: "Invalid email or password" });
+    }
+
+  
+    const token = jwt.sign(
+      { id: doctor._id, email: doctor.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.status(200).json({
+      success: true,
+      token,
+      type: "Doctor",
+    });
+  } catch (error) {
+    console.error("Doctor login error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
