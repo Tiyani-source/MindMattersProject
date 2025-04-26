@@ -4,6 +4,7 @@ import { Container, Row, Col, Card, Table, Button, ProgressBar, Dropdown, Badge 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Package, AlertTriangle, ShoppingBag, Truck, DollarSign, RefreshCw } from 'react-feather';
 import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const SupplierDashboard = () => {
   const { supplyManager } = useContext(SupplyManagerContext);
@@ -138,7 +139,7 @@ const SupplierDashboard = () => {
     <Container fluid className="py-4 px-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="mb-1">Supply Analytics Dashboard</h2>
+          <h2 className="mb-1 mt-10">Supply Analytics Dashboard</h2>
           <p className="text-muted">
             Welcome back, {supplyManager?.name || 'Supply Manager'}!
           </p>

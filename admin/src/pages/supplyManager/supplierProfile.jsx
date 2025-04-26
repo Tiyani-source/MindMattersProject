@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { SupplyManagerContext } from '../../context/SupplyManagerContext';
 import { Container, Row, Col, Card, Badge, Button, ListGroup } from 'react-bootstrap';
 import { Calendar, Phone, Mail, MapPin, Clock, Award, Briefcase, User } from 'react-feather';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const SupplierProfileDashboard = () => {
   const { supplyManager } = useContext(SupplyManagerContext);
@@ -64,7 +65,7 @@ const SupplierProfileDashboard = () => {
   };
 
   return (
-    <Container className="py-4">
+    <Container className="py-4 mt-10">
       <Card className="shadow border-0 mb-4 overflow-hidden">
         <div className="bg-primary position-absolute w-100" style={{ height: '100px', top: 0 }}></div>
         <Card.Body className="px-4 pt-5 pb-4">

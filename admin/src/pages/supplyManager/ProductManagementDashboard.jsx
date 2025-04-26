@@ -5,6 +5,9 @@ import {
   Card, Badge, Spinner, Alert, InputGroup, FormControl, Dropdown
 } from 'react-bootstrap';
 import './AdminProductManagement.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+
 
 const AdminProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -216,7 +219,7 @@ const AdminProductManagement = () => {
   const renderProductGrid = () => {
     if (filteredProducts.length === 0) {
       return (
-        <div className="text-center my-5 py-5">
+        <div className="text-center my-5 py-5 ">
           <div className="empty-products">
             <div className="empty-icon">📦</div>
             <h4 className="mt-3">{searchTerm ? 'No products match your search criteria' : 'No products available'}</h4>
@@ -430,7 +433,7 @@ const AdminProductManagement = () => {
   };
 
   return (
-    <Container fluid className="admin-products-container py-4">
+    <Container fluid className="admin-products-container py-4 mt-10">
       <Card className="shadow-sm border-0 mb-4">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
