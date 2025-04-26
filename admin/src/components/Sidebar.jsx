@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { assets } from '../assets/assets'
+import { assets } from '../assets/assets';
 import { NavLink } from "react-router-dom";
 import {
   Home,
@@ -9,17 +9,19 @@ import {
   UserCircle,
   ClipboardList,
   FileText,
-} from "lucide-react";
+  CreditCard,
+  BarChart4,
+} from "lucide-react"; // Added relevant icons
 import { DoctorContext } from "../context/DoctorContext";
 import { AdminContext } from "../context/AdminContext";
 import { UniversityContext } from "../context/UniversityContext";
-import { SupplyManagerContext } from '../context/SupplyManagerContext'
+import { SupplyManagerContext } from '../context/SupplyManagerContext';
 
 export default function Sidebar() {
   const { dToken } = useContext(DoctorContext);
   const { aToken } = useContext(AdminContext);
   const { uToken } = useContext(UniversityContext);
-  const { smToken } = useContext(SupplyManagerContext)
+  const { smToken } = useContext(SupplyManagerContext);
 
   return (
     <div className="min-h-screen w-64 bg-white border-r fixed">
@@ -31,14 +33,8 @@ export default function Sidebar() {
           <NavItem to="/doctor-list" label="Doctors List" Icon={UserPlus} />
           <NavItem to="/admin-profile" label="Profile" Icon={UserCircle} />
           <NavItem to="/requests" label="Requests" Icon={ClipboardList} />
-          <NavLink to={'/payment-dashboard'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-          <img className='min-w-5' src={assets.list_icon} alt='' />
-          <p className='hidden md:block'>Payment List</p>
-        </NavLink>
-        <NavLink to={'/order-insights'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-          <img className='min-w-5' src={assets.order_icon} alt='' />
-          <p className='hidden md:block'>Order Insights & Actions</p>
-        </NavLink>
+          <NavItem to="/payment-dashboard" label="Payment List" Icon={CreditCard} />
+          <NavItem to="/order-insights" label="Order Insights & Actions" Icon={BarChart4} />
         </ul>
       )}
 
@@ -60,25 +56,13 @@ export default function Sidebar() {
         </ul>
       )}
 
-
-
-{smToken && <ul className='text-[#515151] mt-5'>
-        <NavLink to={'/supplier-dashboard'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-          <img className='min-w-5' src={assets.home_icon} alt='' />
-          <p className='hidden md:block'>Dashboard</p>
-        </NavLink>
-        <NavLink to={'/product-management'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-          <img className='min-w-5' src={assets.appointment_icon} alt='' />
-          <p className='hidden md:block'>Product Management</p>
-        </NavLink>
-        <NavLink to={'/supplier-profile'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-          <img className='min-w-5' src={assets.people_icon} alt='' />
-          <p className='hidden md:block'>Profile</p>
-        </NavLink>
-      </ul>}
-
-
-
+      {smToken && (
+        <ul className="text-[#515151] mt-5 space-y-1">
+          <NavItem to="/supplier-dashboard" label="Dashboard" Icon={Home} />
+          <NavItem to="/product-management" label="Product Management" Icon={ClipboardList} />
+          <NavItem to="/supplier-profile" label="Profile" Icon={UserCircle} />
+        </ul>
+      )}
     </div>
   );
 }

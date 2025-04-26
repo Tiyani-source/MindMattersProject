@@ -2,8 +2,8 @@ import React, { useContext, useState } from "react";
 import { DoctorContext } from "../context/DoctorContext";
 import { AdminContext } from "../context/AdminContext";
 import { UniversityContext } from "../context/UniversityContext";
-import { SupplyManagerContext } from '../context/SupplyManagerContext.jsx'
-import { toast } from 'react-toastify'
+import { SupplyManagerContext } from '../context/SupplyManagerContext.jsx';
+import { toast } from 'react-toastify';
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaUserMd, FaUserShield } from "react-icons/fa";
@@ -15,27 +15,40 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate();
 
   const { setDToken } = useContext(DoctorContext);
   const { setAToken } = useContext(AdminContext);
   const { setUToken } = useContext(UniversityContext);
-  const { setSMToken } = useContext(SupplyManagerContext)
+  const { setSMToken } = useContext(SupplyManagerContext);
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
 
-    const fakeToken = "dummy_token_1234567";
+    try {
+      if (state === "Admin") {
+        if (adminType === "University Admin") {
+          const fakeToken = "dummy_token_1234567";
+          setUToken(fakeToken);
+          localStorage.setItem("uToken", fakeToken);
+          toast.success("University Admin login successful");
+          navigate("/uni-dashboard");
+        }
+        else if (adminType === "Supply Manager") {
+          const { data } = await axios.post(backendUrl + "/api/supplymanager/login", { email, password });
 
-    if (state === "Admin") {
-      if (adminType === "University Admin") {
-        setUToken(fakeToken);
-        localStorage.setItem("uToken", fakeToken);
-        navigate("/uni-dashboard");
-      } else {
-        try {
-          const res = await fetch("http://localhost:4000/api/admin/login", {
+          if (data.success) {
+            setSMToken(data.token);
+            localStorage.setItem("smToken", data.token);
+            toast.success("Supply Manager login successful");
+            navigate("/supplier-dashboard");
+          } else {
+            toast.error(data.message || "Login failed");
+          }
+        }
+        else { // System Admin
+          const res = await fetch(backendUrl + "/api/admin/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
@@ -44,34 +57,19 @@ const Login = () => {
           const data = await res.json();
 
           if (!res.ok) {
-            alert(data.message || "Login failed");
+            toast.error(data.message || "Login failed");
             return;
           }
 
-          setAToken(fakeToken);
+          setAToken(data.token);
           localStorage.setItem("aToken", data.token);
           localStorage.setItem("adminType", adminType);
+          toast.success("System Admin login successful");
           navigate("/admin-dashboard");
-        } catch (err) {
-          console.error("Login error:", err);
-          alert("Something went wrong!");
         }
       }
-    } else if (state === 'Supply Manager') {
-      const { data } = await axios.post(backendUrl + '/api/supplymanager/login', { email, password })
-      if (data.success) {
-        console.log('Navigating to /s-dashboard');
-        setSMToken(data.token)
-        localStorage.setItem('smToken', data.token)
-        toast.success('Supply Manager login successful')
-        navigate('/supplier-dashboard')
-      } else {
-        toast.error(data.message)
-      }
-    }
-    else {
-      try {
-        const res = await fetch("http://localhost:4000/api/doctor/login", {
+      else if (state === "Doctor") {
+        const res = await fetch(backendUrl + "/api/doctor/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -80,17 +78,18 @@ const Login = () => {
         const data = await res.json();
 
         if (!res.ok) {
-          alert(data.message || "Login failed");
+          toast.error(data.message || "Login failed");
           return;
         }
 
-        setDToken(fakeToken);
+        setDToken(data.token);
         localStorage.setItem("dToken", data.token);
+        toast.success("Doctor login successful");
         navigate("/doctor-dashboard");
-      } catch (err) {
-        console.error("Login error:", err);
-        alert("Something went wrong!");
       }
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error("Something went wrong!");
     }
   };
 
@@ -138,10 +137,11 @@ const Login = () => {
           />
         </div>
 
+        {/* Admin Type Selection */}
         {state === "Admin" && (
           <div className="text-sm text-gray-700">
             <p>Select Admin Type:</p>
-            <div className="flex gap-4 mt-2">
+            <div className="flex flex-row flex-wrap gap-4 mt-2">
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
@@ -162,10 +162,21 @@ const Login = () => {
                 />
                 University Admin
               </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="adminType"
+                  value="Supply Manager"
+                  checked={adminType === "Supply Manager"}
+                  onChange={(e) => setAdminType(e.target.value)}
+                />
+                Supply Lead
+              </label>
             </div>
           </div>
         )}
 
+        {/* Login Button */}
         <button
           type="submit"
           className="w-full py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition"
@@ -173,27 +184,27 @@ const Login = () => {
           Login
         </button>
 
-        <div className="text-center text-sm text-gray-500">
-          {state === "Admin" ? (
-            <>
-              Doctor Login?{" "}
-              <span
-                onClick={() => setState("Doctor")}
-                className="text-primary underline cursor-pointer"
-              >
-                Click here
-              </span>
-            </>
-          ) : (
-            <>
-              Admin Login?{" "}
+        {/* Switch Login Type */}
+        <div className="text-center text-sm text-gray-500 flex flex-col gap-1">
+          {state !== "Admin" && (
+            <p>Admin Login?{" "}
               <span
                 onClick={() => setState("Admin")}
                 className="text-primary underline cursor-pointer"
               >
                 Click here
               </span>
-            </>
+            </p>
+          )}
+          {state !== "Doctor" && (
+            <p>Doctor Login?{" "}
+              <span
+                onClick={() => setState("Doctor")}
+                className="text-primary underline cursor-pointer"
+              >
+                Click here
+              </span>
+            </p>
           )}
         </div>
       </motion.form>

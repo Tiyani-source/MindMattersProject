@@ -41,7 +41,7 @@ const Navbar = () => {
       {/* Right Side: Icons */}
       <div className="flex items-center gap-4 ml-auto">
 
-        {token && userData ? (
+        {token  ? (
           <>
             {/* Wishlist Icon */}
             <FontAwesomeIcon

@@ -31,6 +31,7 @@ const Login = () => {
           return;
         }
 
+        alert( 'Login Successful');
         localStorage.setItem('token', data.token);
         navigate('/');
         window.location.reload();
