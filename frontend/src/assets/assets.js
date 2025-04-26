@@ -56,11 +56,13 @@ import General_physician from './General_physician.svg'
 import Gynecologist from './Gynecologist.svg'
 import Neurologist from './Neurologist.svg'
 import Pediatricians from './Pediatricians.svg'
+import DoctorImg from './doctorForm.webp'
+import shopping_cart from './shopping_cart.png'
 import logo11 from './logo11.png'
-
 
 export const assets = {
     appointment_img,
+    shopping_cart,
     header_img,
     group_profiles,
     logo,
@@ -77,7 +79,23 @@ export const assets = {
     upload_icon,
     stripe_logo,
     razorpay_logo,
-    logo11
+    doc1,
+    doc2,
+    doc3,
+    doc4,
+    doc5,
+    doc6,
+    doc7,
+    doc8,
+    doc9,
+    doc10,
+    doc11,
+    doc12,
+    doc13,
+    doc14,
+    doc15,
+    logo11,
+   
 }
 
 export const specialityData = [
@@ -319,7 +337,6 @@ export const doctors = [
         }
     },
 ]
-
 export const products = [
     {
       _id: 'prod1',
@@ -664,5 +681,6 @@ export const products = [
     
 
   ];
-  
-  
+
+
+   

@@ -52,6 +52,7 @@ const AdminContextProvider = (props) => {
         }
     }
 
+
     // Getting all appointment data from Database using API
     const getAllAppointments = async () => {
 
@@ -149,6 +150,7 @@ const AdminContextProvider = (props) => {
                 toast.error("Failed to fetch orders");
             }
         };
+
 
     const value = {
         aToken, setAToken,
