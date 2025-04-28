@@ -41,23 +41,26 @@ const AppContextProvider = (props) => {
 
     // Getting User Profile using API
     const loadUserProfileData = async () => {
-
         try {
-
-            const { data } = await axios.get(backendUrl + '/api/user/get-profile', { headers: { token } })
-
-            if (data.success) {
-                setUserData(data.userData)
-            } else {
-                toast.error(data.message)
-            }
-
+          const { data } = await axios.get(`${backendUrl}/api/student/profile`, {
+            headers: { token },
+          });
+      
+          console.log("DEBUG: /student/profile response =>", data); // 👈 Add this
+      
+          if (data.success) {
+            // Temporarily log all possible keys
+            setUserData(
+              data.student || data.userData || data.user || null
+            );
+          } else {
+            toast.error(data.message || "Failed to load user profile");
+          }
         } catch (error) {
-            console.log(error)
-            toast.error(error.message)
+          console.error("Profile load error:", error);
+          toast.error("Error loading profile");
         }
-
-    }
+      };
 
     // Create a new order
     const createOrder = async (orderData) => {

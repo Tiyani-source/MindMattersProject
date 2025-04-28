@@ -3,6 +3,7 @@ import { AppContext } from '../context/AppContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { assets } from '../assets/assets'
+import { motion } from 'framer-motion'
 
 const MyProfile = () => {
   const [isEdit, setIsEdit] = useState(false)
@@ -10,6 +11,7 @@ const MyProfile = () => {
   const [address, setAddress] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const {
     token,
@@ -20,9 +22,14 @@ const MyProfile = () => {
   } = useContext(AppContext)
 
   useEffect(() => {
-    if (!userData) {
-      loadUserProfileData()
+    const fetchData = async () => {
+      if (!userData) {
+        console.log('No userData found, loading profile...')
+        await loadUserProfileData();
+      }
+      setLoading(false)
     }
+    fetchData();
   }, [])
 
   useEffect(() => {
@@ -52,21 +59,21 @@ const MyProfile = () => {
         toast.error(data.message)
       }
     } catch (error) {
-      console.error(error)
+      console.error('Error updating profile:', error)
       toast.error(error.message)
     }
   }
 
   const handleConfirmDelete = async () => {
-    if (!deletePassword) return toast.error('Please enter your password')
-
+    if (!deletePassword) {
+      return toast.error('Please enter your password')
+    }
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/student/delete-profile`,
         { password: deletePassword },
         { headers: { token } }
       )
-
       if (data.success) {
         toast.success('Profile deleted successfully')
         localStorage.removeItem('token')
@@ -76,122 +83,145 @@ const MyProfile = () => {
         toast.error(data.message)
       }
     } catch (error) {
-      console.error(error)
+      console.error('Error deleting profile:', error)
       toast.error('Something went wrong while deleting profile')
     }
   }
 
-  return userData ? (
-    <div className='max-w-lg flex flex-col gap-2 text-sm pt-5'>
-      <img className='w-36 rounded' src={assets.profile_pic} alt="profile" />
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-gray-500 text-lg">Loading profile...</p>
+      </div>
+    )
+  }
 
-      <p className='font-medium text-3xl text-[#262626] mt-4'>
-        {userData.firstName} {userData.lastName}
-      </p>
+  if (!userData) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-500 text-lg">Failed to load profile.</p>
+      </div>
+    )
+  }
 
-      <hr className='bg-[#ADADAD] h-[1px] border-none' />
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-md mt-10 text-gray-700"
+    >
+      <div className="flex flex-col items-center">
+        <img className="w-28 h-28 rounded-full border-4 border-primary shadow-sm" src={assets.profile_pic} alt="Profile" />
+        <h2 className="text-2xl font-semibold text-gray-800 mt-4">{userData.firstName} {userData.lastName}</h2>
+        <p className="text-sm text-gray-500 mt-1">MindMatters User</p>
+      </div>
 
-      <div>
-        <p className='text-gray-600 underline mt-3'>CONTACT INFORMATION</p>
-        <div className='grid grid-cols-[1fr_3fr] gap-y-2.5 mt-3 text-[#363636]'>
-          <p className='font-medium'>Email id:</p>
-          <p className='text-blue-500'>{userData.email}</p>
-
-          <p className='font-medium'>Phone:</p>
-          {isEdit ? (
-            <input
-              className='bg-gray-50 max-w-52'
-              type="text"
-              onChange={(e) => setUserData(prev => ({ ...prev, phone: e.target.value }))}
-              value={userData.phone}
-            />
-          ) : (
-            <p className='text-blue-500'>{userData.phone}</p>
-          )}
-
-          <p className='font-medium'>Address:</p>
-          {isEdit ? (
-            <input
-              className='bg-gray-50'
-              type="text"
-              onChange={(e) => setAddress(e.target.value)}
-              value={address}
-              placeholder="e.g. 123, Street Name, City"
-            />
-          ) : (
-            <p className='text-gray-500'>{userData.address}</p>
-          )}
+      <div className="mt-8">
+        <h3 className="text-primary font-bold mb-2 border-b pb-1">Contact Information</h3>
+        <div className="space-y-3 mt-3">
+          <div className="flex gap-2">
+            <span className="font-medium w-24">Email:</span>
+            <span className="text-blue-600">{userData.email}</span>
+          </div>
+          <div className="flex gap-2 items-center">
+            <span className="font-medium w-24">Phone:</span>
+            {isEdit ? (
+              <input
+                type="text"
+                className="border rounded p-1 flex-1"
+                value={userData.phone}
+                onChange={(e) => setUserData(prev => ({ ...prev, phone: e.target.value }))}
+              />
+            ) : (
+              <span>{userData.phone}</span>
+            )}
+          </div>
+          <div className="flex gap-2 items-center">
+            <span className="font-medium w-24">Address:</span>
+            {isEdit ? (
+              <input
+                type="text"
+                className="border rounded p-1 flex-1"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            ) : (
+              <span>{userData.address || '-'}</span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div>
-        <p className='text-[#797979] underline mt-3'>BASIC INFORMATION</p>
-        <div className='grid grid-cols-[1fr_3fr] gap-y-2.5 mt-3 text-gray-600'>
-          <p className='font-medium'>Gender:</p>
-          <p className='text-gray-500'>{userData.gender}</p>
-
-          <p className='font-medium'>Birthday:</p>
-          <p className='text-gray-500'>{dob}</p>
+      <div className="mt-8">
+        <h3 className="text-primary font-bold mb-2 border-b pb-1">Basic Information</h3>
+        <div className="space-y-3 mt-3">
+          <div className="flex gap-2">
+            <span className="font-medium w-24">Gender:</span>
+            <span>{userData.gender}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="font-medium w-24">Birthday:</span>
+            <span>{dob}</span>
+          </div>
         </div>
       </div>
 
-      <div className='mt-10 flex gap-4'>
+      <div className="flex justify-center gap-4 mt-8">
         {isEdit ? (
           <button
             onClick={updateUserProfileData}
-            className='border border-primary px-8 py-2 rounded-full hover:bg-primary hover:text-white transition-all'
+            className="px-6 py-2 bg-primary text-white rounded-full hover:bg-primary-dark transition"
           >
-            Save information
+            Save
           </button>
         ) : (
           <button
             onClick={() => setIsEdit(true)}
-            className='border border-primary px-8 py-2 rounded-full hover:bg-primary hover:text-white transition-all'
+            className="px-6 py-2 border border-primary text-primary rounded-full hover:bg-primary hover:text-white transition"
           >
-            Edit
+            Edit Profile
           </button>
         )}
-
         <button
           onClick={() => setShowDeleteModal(true)}
-          className='border border-red-500 text-red-500 px-8 py-2 rounded-full hover:bg-red-500 hover:text-white transition-all'
+          className="px-6 py-2 border border-red-500 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition"
         >
-          Delete Profile
+          Delete Account
         </button>
       </div>
 
-
       {showDeleteModal && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
-          <div className='bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md'>
-            <h2 className='text-lg font-semibold mb-4'>Confirm Profile Deletion</h2>
-            <p className='text-sm mb-4 text-gray-700'>Please enter your password to confirm:</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white p-6 rounded-xl w-full max-w-sm shadow-lg">
+            <h2 className="text-lg font-bold mb-3 text-gray-800">Confirm Deletion</h2>
+            <p className="text-sm text-gray-500 mb-4">Please enter your password to continue:</p>
             <input
-              type='password'
-              placeholder='Enter password'
+              type="password"
+              placeholder="Password"
               value={deletePassword}
               onChange={(e) => setDeletePassword(e.target.value)}
-              className='border border-gray-300 rounded w-full p-2 mb-4'
+              className="border w-full p-2 rounded mb-4"
             />
-            <div className='flex justify-end gap-4'>
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className='px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300'
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className='px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600'
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
-                Confirm Delete
+                Confirm
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
-  ) : null
+    </motion.div>
+  )
 }
 
 export default MyProfile

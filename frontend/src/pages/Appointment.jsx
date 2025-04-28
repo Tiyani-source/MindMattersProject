@@ -88,6 +88,16 @@ const Appointment = () => {
     }
   };
 
+  const chatWithDoctor = () => {
+    if (!token) {
+      toast.warning("Login to start chat");
+      return navigate("/login");
+    }
+    
+    const chatUrl = `${window.location.origin}/chat/start/${docId}`;
+    window.open(chatUrl, '_blank');
+  }
+
   useEffect(() => {
     if (doctors.length > 0) fetchDocInfo();
   }, [doctors, docId]);
@@ -155,6 +165,10 @@ const Appointment = () => {
         <button onClick={bookAppointment}
           className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>
           Book an appointment
+        </button>
+        <button onClick={chatWithDoctor}
+          className='bg-green-500 text-white text-sm font-light px-20 py-3 rounded-full my-6'>
+          Chat with Doctor
         </button>
       </div>
 
