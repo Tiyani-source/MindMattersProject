@@ -1,11 +1,15 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
+import { toast } from 'react-toastify';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeart,faCartShopping} from '@fortawesome/free-solid-svg-icons';
 
 const ProductDetails = () => {
   const { prodId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [newReview, setNewReview] = useState('');
@@ -19,6 +23,20 @@ const ProductDetails = () => {
   const [error, setError] = useState(null);
   const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
   const { token } = useContext(AppContext)
+  const { addToCart, addToWishlist } = useContext(AppContext);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      toast.info(location.state.message, {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -151,20 +169,68 @@ const ProductDetails = () => {
       console.error('Error submitting review:', err);
     }
   };
-
+  // add to cart
   const handleAddToCart = async () => {
+    // Only validate color and size if the product has those options
+    if (product.colors && product.colors.length > 0 && !selectedColor) {
+      toast.error('Please select a color');
+      return;
+    }
+
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      toast.error('Please select a size');
+      return;
+    }
+
+    if (quantity < 1) {
+      toast.error('Please select a valid quantity');
+      return;
+    }
+
     try {
-      // Add to cart endpoint
-      await axios.post('${API_URL}/api/cart/add', {
+      await addToCart({
         productId: prodId,
         quantity,
-        color: selectedColor,
-        size: selectedSize
+        color: selectedColor || null,
+        size: selectedSize || null
       });
-      // Optionally show a success toast or modal
+      
+      // Check if we came from wishlist
+      const fromWishlist = location.state?.fromWishlist;
+      if (fromWishlist) {
+        toast.success('Product moved from wishlist to cart successfully!');
+      } else {
+        toast.success('Product added to cart successfully!');
+      }
     } catch (err) {
       console.error('Error adding to cart:', err);
-      // Optionally show an error message to the user
+      toast.error(err.response?.data?.message || 'Failed to add product to cart');
+    }
+  };
+
+  // add to wishlist
+  const handleAddToWishlist = async () => {
+    // Only validate color and size if the product has those options
+    if (product.colors && product.colors.length > 0 && !selectedColor) {
+      toast.error('Please select a color');
+      return;
+    }
+
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      toast.error('Please select a size');
+      return;
+    }
+
+    try {
+      await addToWishlist({
+        productId: prodId,
+        color: selectedColor || null,
+        size: selectedSize || null
+      });
+      toast.success('Product added to wishlist successfully!');
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+      toast.error(err.response?.data?.message || 'Failed to add product to wishlist');
     }
   };
 
@@ -292,12 +358,19 @@ const ProductDetails = () => {
 
           {/* Action Buttons */}
           <div className='mt-6 flex gap-3'>
-            <button className='bg-blue-500 text-white px-5 py-2 rounded-full text-sm'>Buy Now</button>
             <button 
               onClick={handleAddToCart}
-              className='bg-primary text-white px-4 py-2 rounded-full text-sm'
+              className='bg-primary text-white px-4 py-2 rounded-full text-sm flex items-center gap-2'
             >
+              <FontAwesomeIcon icon={faCartShopping} />
               Add to Cart
+            </button>
+            <button 
+              onClick={handleAddToWishlist}
+              className='bg-pink-500 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2'
+            >
+              <FontAwesomeIcon icon={faHeart} />
+              Add to Wishlist
             </button>
           </div>
         </div>

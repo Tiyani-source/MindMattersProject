@@ -4,10 +4,11 @@ import { AppContext } from '../context/AppContext';
 import OrderStatusCard from '../components/OrderStatusCard';
 import OrderInfo from '../components/OrderInfo';
 
+
 const MyOrders = () => {
   const navigate = useNavigate();
   const {
-    userData,
+    studentData,
     orders,
     fetchOrders,
     cancelOrder,
@@ -20,10 +21,10 @@ const MyOrders = () => {
 
   // Fetch user orders on load
   useEffect(() => {
-    if (userData?._id) {
-      fetchOrders(userData._id);
+    if (studentData?._id) {
+      fetchOrders(studentData._id);
     }
-  }, [userData]);
+  }, [studentData]);
 
   const [showOrderInfo, setShowOrderInfo] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -78,7 +79,7 @@ const MyOrders = () => {
         />
         <OrderStatusCard
           title="Completed Orders"
-          count={orders.filter(order => order.status === "Delivered").length}
+          count={orders.filter(order => order.status === "Delivered" && order.deliveryStatus === "Delivered").length}
           bgColor="bg-green-50"
           icon="✅"
           onClick={() => setFilter("Delivered")}
@@ -116,6 +117,13 @@ const MyOrders = () => {
                   }`}>
                   Status: {item.status}
                 </p>
+                <p className={`text-xs mt-1 font-semibold 
+                  ${item.deliveryStatus === "Delivered" ? "text-green-600" :
+                    item.deliveryStatus === "Assigned" ? "text-blue-600" :
+                    "text-gray-600"
+                  }`}>
+                  Delivery: {item.deliveryStatus}
+                </p>
               </div>
 
               {/* Action Buttons */}
@@ -135,30 +143,259 @@ const MyOrders = () => {
                           onClick={() => {
                             setSelectedOrder(item);
                             setTimeout(() => {
-                              if (printRef.current) {
-                                const printContents = printRef.current.innerHTML;
-                                const printWindow = window.open('', '', 'width=800,height=600');
-                                printWindow.document.write(`
-                                  <html>
-                                    <head>
-                                      <title>Invoice - ${item.orderId}</title>
-                                      <style>
-                                        body { font-family: Arial, sans-serif; padding: 20px; }
-                                        h2 { text-align: center; margin-bottom: 24px; }
-                                        .section { margin-bottom: 16px; }
-                                        p { margin: 4px 0; }
-                                      </style>
-                                    </head>
-                                    <body>
-                                      ${printContents}
-                                    </body>
-                                  </html>
-                                `);
-                                printWindow.document.close();
-                                printWindow.focus();
-                                printWindow.print();
-                                printWindow.close();
-                              }
+                                if (printRef.current) {
+                                    const printContents = printRef.current.innerHTML;
+                                    const printWindow = window.open('', '', 'width=800,height=600');
+                                    printWindow.document.write(`
+                                        <html>
+                                            <head>
+                                                <title>Invoice - ${item.orderId}</title>
+                                                <style>
+                                                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                                                    
+                                                    * {
+                                                        margin: 0;
+                                                        padding: 0;
+                                                        box-sizing: border-box;
+                                                    }
+                                                    
+                                                    body {
+                                                        font-family: 'Inter', Arial, sans-serif;
+                                                        color: #34495e;
+                                                        line-height: 1.5;
+                                                        padding: 0;
+                                                        margin: 0;
+                                                    }
+                                                    
+                                                    .invoice-container {
+                                                        max-width: 800px;
+                                                        margin: 0 auto;
+                                                        padding: 20px;
+                                                    }
+                                                    
+                                                    .header {
+                                                        background-color: #2c3e50;
+                                                        color: white;
+                                                        padding: 20px;
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                    }
+                                                    
+                                                    .header h1 {
+                                                        font-size: 24px;
+                                                        font-weight: 700;
+                                                    }
+                                                    
+                                                    .header .invoice-number {
+                                                        font-size: 16px;
+                                                        opacity: 0.9;
+                                                    }
+                                                    
+                                                    .invoice-details {
+                                                        display: grid;
+                                                        grid-template-columns: repeat(2, 1fr);
+                                                        gap: 20px;
+                                                        margin: 20px 0;
+                                                        padding: 20px;
+                                                        background-color: #f8f9fa;
+                                                        border-radius: 8px;
+                                                    }
+                                                    
+                                                    .section {
+                                                        margin-bottom: 20px;
+                                                    }
+                                                    
+                                                    .section-title {
+                                                        font-size: 16px;
+                                                        font-weight: 600;
+                                                        color: #2c3e50;
+                                                        margin-bottom: 10px;
+                                                        padding-bottom: 5px;
+                                                        border-bottom: 2px solid #e9ecef;
+                                                    }
+                                                    
+                                                    .info-row {
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        margin-bottom: 8px;
+                                                        font-size: 14px;
+                                                    }
+                                                    
+                                                    .info-label {
+                                                        color: #6c757d;
+                                                    }
+                                                    
+                                                    .info-value {
+                                                        font-weight: 500;
+                                                    }
+                                                    
+                                                    .items-table {
+                                                        width: 100%;
+                                                        border-collapse: collapse;
+                                                        margin: 20px 0;
+                                                    }
+                                                    
+                                                    .items-table th {
+                                                        background-color: #f8f9fa;
+                                                        padding: 10px;
+                                                        text-align: left;
+                                                        font-weight: 600;
+                                                        color: #2c3e50;
+                                                        border-bottom: 2px solid #e9ecef;
+                                                    }
+                                                    
+                                                    .items-table td {
+                                                        padding: 10px;
+                                                        border-bottom: 1px solid #e9ecef;
+                                                    }
+                                                    
+                                                    .items-table tr:nth-child(even) {
+                                                        background-color: #f8f9fa;
+                                                    }
+                                                    
+                                                    .total-section {
+                                                        margin-top: 20px;
+                                                        padding: 20px;
+                                                        background-color: #f8f9fa;
+                                                        border-radius: 8px;
+                                                    }
+                                                    
+                                                    .total-row {
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        margin-bottom: 10px;
+                                                        font-size: 14px;
+                                                    }
+                                                    
+                                                    .total-row:last-child {
+                                                        font-weight: 700;
+                                                        font-size: 16px;
+                                                        color: #2c3e50;
+                                                        border-top: 2px solid #e9ecef;
+                                                        padding-top: 10px;
+                                                        margin-top: 10px;
+                                                    }
+                                                    
+                                                    .footer {
+                                                        margin-top: 30px;
+                                                        padding: 20px;
+                                                        text-align: center;
+                                                        font-size: 12px;
+                                                        color: #6c757d;
+                                                        border-top: 1px solid #e9ecef;
+                                                    }
+                                                    
+                                                    @media print {
+                                                        body {
+                                                            -webkit-print-color-adjust: exact;
+                                                            print-color-adjust: exact;
+                                                        }
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body>
+                                                <div class="invoice-container">
+                                                    <div class="header">
+                                                        <h1>Mind Matters</h1>
+                                                        <div class="invoice-number">Invoice #${item.orderId}</div>
+                                                    </div>
+                                                    
+                                                    <div class="invoice-details">
+                                                        <div class="section">
+                                                            <div class="section-title">Order Details</div>
+                                                            <div class="info-row">
+                                                                <span class="info-label">Order Date:</span>
+                                                                <span class="info-value">${new Date(item.date).toLocaleString()}</span>
+                                                            </div>
+                                                            <div class="info-row">
+                                                                <span class="info-label">Status:</span>
+                                                                <span class="info-value">${item.status}</span>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="section">
+                                                            <div class="section-title">Bill To</div>
+                                                            <div class="info-row">
+                                                                <span class="info-label">Name:</span>
+                                                                <span class="info-value">${item.shippingInfo.firstName} ${item.shippingInfo.lastName}</span>
+                                                            </div>
+                                                            <div class="info-row">
+                                                                <span class="info-label">Email:</span>
+                                                                <span class="info-value">${item.shippingInfo.email}</span>
+                                                            </div>
+                                                            <div class="info-row">
+                                                                <span class="info-label">Phone:</span>
+                                                                <span class="info-value">${item.shippingInfo.phone}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="section">
+                                                        <div class="section-title">Shipping Address</div>
+                                                        <div style="margin-top: 10px;">
+                                                            ${item.shippingInfo.address}<br>
+                                                            ${item.shippingInfo.apartment ? item.shippingInfo.apartment + '<br>' : ''}
+                                                            ${item.shippingInfo.city}, ${item.shippingInfo.district}<br>
+                                                            ${item.shippingInfo.postalCode}, ${item.shippingInfo.country}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="section">
+                                                        <div class="section-title">Order Items</div>
+                                                        <table class="items-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Item</th>
+                                                                    <th>Attributes</th>
+                                                                    <th>Qty</th>
+                                                                    <th>Price</th>
+                                                                    <th>Total</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                ${item.items.map(item => `
+                                                                    <tr>
+                                                                        <td>${item.name}</td>
+                                                                        <td>${[item.color ? `Color: ${item.color}` : '', item.size ? `Size: ${item.size}` : ''].filter(Boolean).join(', ')}</td>
+                                                                        <td>${item.quantity}</td>
+                                                                        <td>LKR ${item.price.toFixed(2)}</td>
+                                                                        <td>LKR ${(item.price * item.quantity).toFixed(2)}</td>
+                                                                    </tr>
+                                                                `).join('')}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    
+                                                    <div class="total-section">
+                                                        <div class="total-row">
+                                                            <span>Subtotal:</span>
+                                                            <span>LKR ${(item.totalAmount - item.shippingCost).toFixed(2)}</span>
+                                                        </div>
+                                                        <div class="total-row">
+                                                            <span>Shipping Cost:</span>
+                                                            <span>LKR ${item.shippingCost.toFixed(2)}</span>
+                                                        </div>
+                                                        <div class="total-row">
+                                                            <span>Total Amount:</span>
+                                                            <span>LKR ${item.totalAmount.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="footer">
+                                                        <p>Thank you for shopping with Mind Matters!</p>
+                                                        <p>For any queries, please contact our support team.</p>
+                                                        <p>This is a computer-generated invoice. No signature required.</p>
+                                                    </div>
+                                                </div>
+                                            </body>
+                                        </html>
+                                    `);
+                                    printWindow.document.close();
+                                    printWindow.focus();
+                                    printWindow.print();
+                                    printWindow.close();
+                                }
                             }, 0);
                           }}
                         >

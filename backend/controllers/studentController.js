@@ -11,6 +11,43 @@ export const getAllStudents = async (req, res) => {
   }
 };
 
+// Get student profile
+export const getStudentProfile = async (req, res) => {
+  try {
+    const student = await StudentModel.findById(req.userId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    // Remove sensitive information before sending
+    const studentData = {
+      _id: student._id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      phone: student.phone,
+      address: student.address,
+      apartment: student.apartment,
+      city: student.city,
+      postalCode: student.postalCode,
+      district: student.district,
+      country: student.country,
+      universityId: student.universityId,
+      universityName: student.universityName,
+      degree: student.degree,
+      year: student.year,
+      semester: student.semester,
+      gender: student.gender,
+      status: student.status
+    };
+
+    res.json({ success: true, studentData });
+  } catch (error) {
+    console.error("Error fetching student profile:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch student profile" });
+  }
+};
+
 // Delete student by ID
 export const deleteStudent = async (req, res) => {
   try {

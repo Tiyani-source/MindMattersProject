@@ -41,17 +41,17 @@ const ShoppingCart = () => {
     }
   };
 
-  const handleClearCart = async () => {
-    try {
-      await clearCart();
-    } catch (error) {
-      console.error('Error clearing cart:', error);
-      toast.error('Failed to clear cart');
-    }
-  };
 
   const calculateTotal = () => {
     return cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+
+  const getShippingCost = () => {
+    return cart.shippingCost || 500; // Default to 500 if not set
+  };
+
+  const calculateGrandTotal = () => {
+    return calculateTotal() + getShippingCost();
   };
 
   const handleCheckout = () => {
@@ -89,6 +89,7 @@ const ShoppingCart = () => {
             <MDBTableHead>
               <tr>
                 <th style={styles.tableHeader}>Product</th>
+                <th style={styles.tableHeader}>Attributes</th>
                 <th style={styles.tableHeader}>Quantity</th>
                 <th style={styles.tableHeader}>Price</th>
                 <th style={styles.tableHeader}>Actions</th>
@@ -106,8 +107,58 @@ const ShoppingCart = () => {
           </MDBTable>
 
           <div style={styles.totalBox}>
-            <span style={styles.totalLabel}>Total:</span>
-            <span style={styles.totalAmount}>LKR {calculateTotal()}</span>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '15px', 
+              width: '100%', 
+              maxWidth: '100%',
+              padding: '20px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #e9ecef'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '8px 0'
+              }}>
+                <span style={{...styles.totalLabel, fontSize: '16px'}}>Subtotal:</span>
+                <span style={{...styles.totalAmount, fontSize: '16px'}}>LKR {calculateTotal()}</span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '8px 0'
+              }}>
+                <span style={{...styles.totalLabel, fontSize: '16px'}}>Shipping Cost:</span>
+                <span style={{...styles.totalAmount, fontSize: '16px'}}>LKR {getShippingCost()}</span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                borderTop: '2px solid #e9ecef',
+                paddingTop: '15px',
+                marginTop: '5px'
+              }}>
+                <span style={{
+                  ...styles.totalLabel, 
+                  fontWeight: 'bold',
+                  fontSize: '18px',
+                  color: '#2c3e50'
+                }}>Total:</span>
+                <span style={{
+                  ...styles.totalAmount, 
+                  fontWeight: 'bold',
+                  fontSize: '18px',
+                  color: '#2c3e50'
+                }}>LKR {calculateGrandTotal()}</span>
+              </div>
+            </div>
           </div>
 
           <div style={styles.actions}>

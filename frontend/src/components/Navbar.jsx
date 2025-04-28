@@ -82,8 +82,6 @@ const Navbar = () => {
           </button>
         )}
 
-        {/* Mobile cart icon (for non-logged-in users maybe) */}
-        <img className="w-8" src={assets.shopping_cart} alt="cart" />
 
         {/* Hamburger Menu Icon for mobile */}
         <img

@@ -1,327 +1,281 @@
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import { AppContext } from "../context/AppContext";
+import React, { useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AppContext } from '../context/AppContext';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-import {
-  MDBContainer,
-  MDBRow,
-  MDBCol,
-  MDBCard,
-  MDBCardBody,
-  MDBInput,
-  MDBBtn,
-} from "mdb-react-ui-kit";
-
-export default function Checkout() {
+const Checkout = () => {
   const navigate = useNavigate();
-
-    const {
-      createOrder
-    } = useContext(AppContext);
-
-  // State for user details
-  const [userData, setUserData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    address: "",
-    apartment: "",
-    city: "",
-    postalCode: "",
-    country: "Sri Lanka", 
-    district: "",
+  const { studentData, cart, createOrder, clearCart } = useContext(AppContext);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    apartment: '',
+    city: '',
+    postalCode: '',
+    district: '',
+    country: 'Sri Lanka'
   });
 
-    // Handle input change
-    const handleChange = (e) => {
-      setUserData({ ...userData, [e.target.name]: e.target.value });
-    };
+  // Initialize form with student data if available
+  useEffect(() => {
+    if (studentData) {
+      setFormData({
+        firstName: studentData.firstName || '',
+        lastName: studentData.lastName || '',
+        email: studentData.email || '',
+        phone: studentData.phone || '',
+        address: studentData.address || '',
+        apartment: studentData.apartment || '',
+        city: studentData.city || '',
+        postalCode: studentData.postalCode || '',
+        district: studentData.district || '',
+        country: studentData.country || 'Sri Lanka'
+      });
+    }
+  }, [studentData]);
 
-    // // Email validation 
-    // const isValidEmail = (email) => {
-    //   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    // };
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-    // // phone number validation: 10 digits, starts with 0
-    // const isValidPhone = (phone) => {
-    //   return /^0\d{9}$/.test(phone);
-    // };
+  const validateForm = () => {
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postalCode', 'district'];
+    for (const field of requiredFields) {
+      if (!formData[field]) {
+        toast.error(`Please fill in your ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+        return false;
+      }
+    }
+    return true;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Stop default form submission
-  
-  //   // email validation
-  // if (!isValidEmail(userData.email)) {
-  //   alert("Invalid email address.");
-  //   return; 
-  // }
-
-  // // phone validation
-  // if (!isValidPhone(userData.phone)) {
-  //   alert("Invalid phone number. Must be 10 digits and start with 0.");
-  //   return; 
-  // }
-  
+    e.preventDefault();
     
-    const sampleOrder = {
-      orderId: "ORD" + Date.now().toString(),
-      userId: "67e103c65fcd6a646d13c971",
-      products: 2,
-      shippingCost: 500,
-      totalAmount: 5000,
-      shippingInfo: {
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        phone: userData.phone,
-        address: userData.address,
-        apartment: userData.apartment,
-        city: userData.city,
-        postalCode: userData.postalCode,
-        district: userData.district,
-        country: userData.country
-      },
-      items: [
-        {
-          name: "Weighted Anxiety Relief Blanket",
-          quantity: 2,
-          price: 2600
-        },
-        {
-          name: "Mindfulness & Reflection Journal",
-          quantity: 1,
-          price: 2400
+    // Validate student data
+    if (!studentData || !studentData._id) {
+      toast.error('Student data is not available. Please try logging in again.');
+      return;
+    }
+
+    // Validate cart
+    if (!cart || !cart.items || cart.items.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
+
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      // Calculate total amount and shipping cost
+      const shippingCost = 500; // Fixed shipping cost
+      const subtotal = cart.items.reduce((sum, item) => {
+        if (!item.price || !item.quantity) {
+          throw new Error('Invalid cart item data');
         }
-      ]
-    };
-  
-    createOrder(sampleOrder);
-    navigate("/payment", { state: { order: sampleOrder } });
-  };
-  
-  const styles = {
-    checkoutHeader: {
-      textAlign: "center",
-      fontSize: "18px",
-      marginTop: "20px",
-      color: "#6b7280",
-    },
-    highlight: {
-      color: "#374151",
-      fontWeight: "bold",
-    },
-    checkoutLayout: {
-      display: "flex",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
-      padding: "20px",
-      alignItems: "flex-start",
-      marginTop: "30px",
-    },
-    checkoutFormContainer: {
-      flex: 1,
-      maxWidth: "100%",
-    },
-    checkoutCard: {
-      padding: "20px",
-      borderRadius: "10px",
-      boxShadow: "2px 2px 8px rgba(0, 0, 0, 0.1)",
-      backgroundColor: "#fff",
-    },
-    checkoutInput: {
-      width: "100%",
-      padding: "14px",
-      border: "1px solid #d1d5db",
-      borderRadius: "5px",
-      fontSize: "12px",
-      fontWeight: 300,
-      color: "#374151",
-      backgroundColor: "white",
-      transition: "all 0.2s ease-in-out",
-    },
-    checkoutLabel: {
-      display: "block",
-      fontSize: "12px",
-      fontWeight: 400,
-      color: "#6b7280",
-      marginBottom: "5px",
-    },
-    checkoutButtons: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: "15px",
-      marginTop: "20px",
-    },
-    goBackBtn: {
-      backgroundColor: "white",
-      color: "#6c63ff",
-      padding: "14px 25px",
-      borderRadius: "12px",
-      width: "50%",
-      border: "1px solid #6c63ff",
-      fontSize: "12px",
-      transition: "background 0.3s ease, color 0.3s ease",
-    },
-    checkoutBtn: {
-      backgroundColor: "#6c63ff",
-      color: "white",
-      fontWeight: "normal",
-      padding: "14px 25px",
-      borderRadius: "12px",
-      width: "50%",
-      border: "none",
-      fontSize: "12px",
-      transition: "background 0.3s ease",
+        return sum + (item.price * item.quantity);
+      }, 0);
+      const totalAmount = subtotal + shippingCost;
+
+      // Prepare order data
+      const orderData = {
+        orderId: `ORD${Date.now()}`,
+        userId: studentData._id,
+        products: cart.items.length,
+        shippingCost,
+        totalAmount,
+        shippingInfo: formData,
+        items: cart.items.map(item => ({
+          name: item.name || 'Unknown Product',
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+          color: item.color || null,
+          size: item.size || null,
+          image: item.image || null
+        }))
+      };
+
+      // Create order
+      const order = await createOrder(orderData);
+      
+      if (order) {
+        // Clear cart after successful order creation
+        await clearCart();
+        toast.success('Order created successfully!');
+        navigate('/order-confirmation', { state: { order } });
+      } else {
+        throw new Error('Order creation failed - no order returned');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Error status:', error.response.status);
+        toast.error(error.response.data?.message || 'Failed to create order. Please try again.');
+      } else if (error.request) {
+        console.error('Error request:', error.request);
+        toast.error('No response from server. Please check your connection.');
+      } else {
+        console.error('Error message:', error.message);
+        toast.error(error.message || 'An unexpected error occurred');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
+
   return (
-    <MDBContainer>
-      {/* Checkout Page Header */}
-      <div style={styles.checkoutHeader}>
-        <p>CHECK<span style={styles.highlight}>OUT</span></p>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
+        
+        <div className="bg-white shadow rounded-lg p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">First Name</label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+            </div>
 
-      <MDBRow style={styles.checkoutLayout}>
-        <MDBCol md="6" style={styles.checkoutFormContainer}>
-          <MDBCard style={styles.checkoutCard}>
-            <MDBCardBody>
-              <form onSubmit={handleSubmit}>
-                {/* First Name & Last Name */}
-                <MDBRow style={{ marginBottom: "15px" }}>
-                  <MDBCol md="6">
-                    <label style={styles.checkoutLabel}>First Name</label>
-                    <MDBInput
-                      type="text"
-                      name="firstName"
-                      value={userData.firstName}
-                      onChange={handleChange}
-                      style={styles.checkoutInput}
-                    />
-                  </MDBCol>
-                  <MDBCol md="6">
-                    <label style={styles.checkoutLabel}>Last Name</label>
-                    <MDBInput
-                      type="text"
-                      name="lastName"
-                      value={userData.lastName}
-                      onChange={handleChange}
-                      style={styles.checkoutInput}
-                    />
-                  </MDBCol>
-                </MDBRow>
-
-                <label style={styles.checkoutLabel}>Email</label>
-                <MDBInput
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input
                   type="email"
                   name="email"
-                  value={userData.email}
-                  onChange={handleChange}
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   required
-                  style={styles.checkoutInput}
                 />
-
-                <label style={styles.checkoutLabel}>Address</label>
-                <MDBInput
-                  type="text"
-                  name="address"
-                  value={userData.address}
-                  onChange={handleChange}
-                  required
-                  style={styles.checkoutInput}
-                />
-
-                <label style={styles.checkoutLabel}>
-                  Apartment, Suite, etc. (optional)
-                </label>
-                <MDBInput
-                  type="text"
-                  name="apartment"
-                  value={userData.apartment}
-                  onChange={handleChange}
-                  style={styles.checkoutInput}
-                />
-
-                <MDBRow style={{ marginBottom: "15px" }}>
-                  <MDBCol md="6">
-                    <label style={styles.checkoutLabel}>City</label>
-                    <MDBInput
-                      type="text"
-                      name="city"
-                      value={userData.city}
-                      onChange={handleChange}
-                      required
-                      style={styles.checkoutInput}
-                    />
-                  </MDBCol>
-                  <MDBCol md="6">
-                    <label style={styles.checkoutLabel}>Postal Code (optional)</label>
-                    <MDBInput
-                      type="text"
-                      name="postalCode"
-                      value={userData.postalCode}
-                      onChange={handleChange}
-                      style={styles.checkoutInput}
-                    />
-                  </MDBCol>
-                </MDBRow>
-
-                <label style={styles.checkoutLabel}>Province</label>
-                <select
-                  style={styles.checkoutInput}
-                  name="district"
-                  value={userData.district}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="" disabled>
-                    Select Province
-                  </option>
-                  <option value="Central">Central Province</option>
-                    <option value="Eastern">Eastern Province</option>
-                    <option value="North Central">North Central Province</option>
-                    <option value="Northern">Northern Province</option>
-                    <option value="North Western">North Western Province</option>
-                    <option value="Sabaragamuwa">Sabaragamuwa Province</option>
-                    <option value="Southern">Southern Province</option>
-                    <option value="Uva">Uva Province</option>
-                    <option value="Western">Western Province</option>
-                </select>
-
-                <label style={styles.checkoutLabel}>Phone</label>
-                <MDBInput
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <input
                   type="tel"
                   name="phone"
-                  value={userData.phone}
-                  onChange={handleChange}
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   required
-                  style={styles.checkoutInput}
                 />
+              </div>
+            </div>
 
-                           
-      <div className="checkout-buttons">
-        <MDBBtn style={styles.goBackBtn} onClick={() => navigate("/cart")}>
-           Go back to Cart
-        </MDBBtn>
-        <MDBBtn 
-        style={styles.checkoutBtn} 
-        type="Submit" 
-        onClick={async (e) => {
-          e.preventDefault();
-          const createdOrder = await handleSubmit(e); 
-          navigate("/payment", { state: { order: createdOrder } });
-        }}
-      >
-        Place Order
-      </MDBBtn>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Address</label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Apartment/Suite (Optional)</label>
+              <input
+                type="text"
+                name="apartment"
+                value={formData.apartment}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Postal Code</label>
+                <input
+                  type="text"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">District</label>
+                <input
+                  type="text"
+                  name="district"
+                  value={formData.district}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Country</label>
+              <input
+                type="text"
+                name="country"
+                value={formData.country}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                disabled
+              />
+            </div>
+
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              >
+                {isLoading ? 'Processing...' : 'Place Order'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-              </form>
-            </MDBCardBody>
-          </MDBCard>
-        </MDBCol> 
-
-      </MDBRow>
-     
-    </MDBContainer>
+    </div>
   );
-}
+};
+
+export default Checkout;

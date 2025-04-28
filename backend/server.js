@@ -18,6 +18,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import orderRouter from "./routes/orderRoute.js"
 import wishlistRouter from "./routes/wishlistRoutes.js"
 import shoppingCartRouter from "./routes/shoppingCartRoute.js"
+import deliveryPartnerRouter from "./routes/deliveryPartnerRoute.js";
 
 import productRoutes from './routes/productRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
@@ -56,6 +57,7 @@ app.use("/api/payments", paymentRoutes)
 app.use("/api/orders", orderRouter)
 app.use("/api/wishlist", wishlistRouter)
 app.use("/api/cart", shoppingCartRouter)
+app.use("/api/deliveryPartners", deliveryPartnerRouter);
 app.use("/api/supplymanager", smRouter)
 
 // test route

@@ -9,9 +9,17 @@ const orderSchema = new mongoose.Schema({
     enum: ["Pending", "Shipped", "Delivered", "Cancelled"],
     default: "Pending"
   },
+  deliveryStatus: {
+    type: String,
+    enum: ["UnAssigned", "Assigned", "Delivered"],
+    default: "UnAssigned"
+  },
+  cancelReason: { type: String },
   products: { type: Number, required: true },
-  shippingCost: { type: Number, required: true },
+  shippingCost: { type: Number, required: true, default: 500 },
   totalAmount: { type: Number, required: true },
+  deliveryPartner: { type: mongoose.Schema.Types.ObjectId, ref: 'DeliveryPartner' },
+  estimatedDelivery: { type: Date },
   shippingInfo: {
     firstName: String,
     lastName: String,
@@ -28,7 +36,10 @@ const orderSchema = new mongoose.Schema({
     {
       name: String,
       quantity: Number,
-      price: Number
+      price: Number,
+      color: String,
+      size: String,
+      image: String
     }
   ]
 })
