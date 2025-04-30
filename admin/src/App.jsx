@@ -1,5 +1,6 @@
 import React, { useContext } from "react";
 import { DoctorContext } from "./context/DoctorContext";
+import { TherapistContext } from "./context/TherapistContext";
 import { AdminContext } from "./context/AdminContext";
 import { UniversityContext } from "./context/UniversityContext";
 
@@ -17,6 +18,11 @@ import Login from "./pages/Login";
 import DoctorAppointments from "./pages/Doctor/DoctorAppointments";
 import DoctorDashboard from "./pages/Doctor/DoctorDashboard";
 import DoctorProfile from "./pages/Doctor/DoctorProfile";
+
+import MySchedule from './pages/Therapist/MySchedule'
+import TherapistAppointments from './pages/Therapist/TherapistAppointments'
+import TherapistSchedule from './pages/Therapist/TherapistSchedule'
+import OnlineLinkUpload from './pages/Therapist/OnlineLinkUpload'
 
 import PatientRequests from "./pages/Doctor/PatientRequests";
 import PatientFeedback from "./pages/Doctor/PatientFeedback";
@@ -39,47 +45,52 @@ import SupplierDashboard from './pages/supplyManager/supplyManagerDashboard.jsx'
 
 const App = () => {
   const { dToken } = useContext(DoctorContext);
+  const { dToken: therapistToken } = useContext(TherapistContext);
   const { aToken } = useContext(AdminContext);
   const { uToken } = useContext(UniversityContext);
   const { smToken } = useContext(SupplyManagerContext)
 
-  return dToken || aToken || uToken || smToken? (
+  return dToken || aToken || uToken || smToken || therapistToken ? (
     <PaymentProvider>
-    <div className="bg-[#F8F9FD]">
-      <ToastContainer />
-      <Navbar />
-      <div className="flex items-start mt-11 ">
-        <Sidebar />
-        <div className="ml-72 w-full">
-          <Routes>
-            <Route path="/" element={<></>} />
-            <Route path="/all-appointments" element={<AllAppointments />} />
-            <Route path="/add-doctor" element={<AddDoctor />} />
-            <Route path='/order-insights' element={<OrderInsights />} />
-            <Route path="/doctor-list" element={<DoctorsList />} />
-            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-            <Route  path="/doctor-appointments" element={<DoctorAppointments />}/>
-            <Route path="/doctor-profile" element={<DoctorProfile />} />
-            <Route path="/patient-requests" element={<PatientRequests />} />
-            <Route path="/patient-feedback" element={<PatientFeedback />} />
-            <Route path="/doctor-user-profile" element={<DoctorUserProfile />} />
-            <Route path="/admin-profile" element={<AdminProfile />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/requests" element={<Requests />} />
-            <Route path="/add-uni" element={<AddUni />} />
-            <Route path="/uni-dashboard" element={<UniversityDashboard />} />
-            <Route path="/student-list" element={<StudentList />} />
-            <Route path='/payment-dashboard' element={<PaymentDashboard />} />
-            <Route path="/product-management" element={<AdminProductManagement />} />
-            <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
-            <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
+      <div className="bg-[#F8F9FD]">
+        <ToastContainer />
+        <Navbar />
+        <div className="flex items-start mt-11 ">
+          <Sidebar />
+          <div className="ml-72 w-full">
+            <Routes>
+              <Route path="/" element={<></>} />
+              <Route path="/all-appointments" element={<AllAppointments />} />
+              <Route path="/add-doctor" element={<AddDoctor />} />
+              <Route path='/order-insights' element={<OrderInsights />} />
+              <Route path="/doctor-list" element={<DoctorsList />} />
+              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+              <Route path="/doctor-appointments" element={<DoctorAppointments />} />
+              <Route path="/doctor-profile" element={<DoctorProfile />} />
+              <Route path="/patient-requests" element={<PatientRequests />} />
+              <Route path="/patient-feedback" element={<PatientFeedback />} />
+              <Route path="/doctor-user-profile" element={<DoctorUserProfile />} />
+              <Route path="/admin-profile" element={<AdminProfile />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/requests" element={<Requests />} />
+              <Route path="/add-uni" element={<AddUni />} />
+              <Route path="/uni-dashboard" element={<UniversityDashboard />} />
+              <Route path="/student-list" element={<StudentList />} />
+              <Route path='/payment-dashboard' element={<PaymentDashboard />} />
+              <Route path="/product-management" element={<AdminProductManagement />} />
+              <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
+              <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
+              <Route path='/my-schedule' element={<MySchedule />} />
+              <Route path='/therapist-appointments' element={<TherapistAppointments />} />
+              <Route path='/therapist-schedule' element={<TherapistSchedule />} />
+              <Route path='/online-link-upload' element={<OnlineLinkUpload />} />
 
-            
 
-          </Routes>
+
+            </Routes>
+          </div>
         </div>
       </div>
-    </div>
     </PaymentProvider>
   ) : (
     <>

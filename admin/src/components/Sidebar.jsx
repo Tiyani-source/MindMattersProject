@@ -11,14 +11,17 @@ import {
   FileText,
   CreditCard,
   BarChart4,
+  Calendar,
 } from "lucide-react"; // Added relevant icons
 import { DoctorContext } from "../context/DoctorContext";
 import { AdminContext } from "../context/AdminContext";
 import { UniversityContext } from "../context/UniversityContext";
 import { SupplyManagerContext } from '../context/SupplyManagerContext';
+import { TherapistContext } from '../context/TherapistContext';
 
 export default function Sidebar() {
   const { dToken } = useContext(DoctorContext);
+  const { tToken } = useContext(TherapistContext);
   const { aToken } = useContext(AdminContext);
   const { uToken } = useContext(UniversityContext);
   const { smToken } = useContext(SupplyManagerContext);
@@ -41,15 +44,28 @@ export default function Sidebar() {
       {dToken && (
         <ul className="text-[#515151] mt-5 space-y-1">
           <NavItem to="/doctor-dashboard" label="Dashboard" Icon={Home} />
-          <NavItem to="/doctor-appointments" label="Appointments" Icon={CalendarCheck} />
+          <NavItem to="/therapist-appointments" label="Appointments" Icon={CalendarCheck} />
+          <NavItem to="/online-link-upload" label="Upload Online Links" Icon={FileText} />
+          <NavItem to="/my-schedule" label="My Availability" Icon={Calendar} />
+          <NavItem to="/therapist-schedule" label="My Schedule" Icon={Calendar} />
           <NavItem to="/patient-feedback" label="Patient Feedback" Icon={FileText} />
           <NavItem to="/patient-requests" label="Requests" Icon={ClipboardList} />
           <NavItem to="/doctor-user-profile" label="Profile" Icon={UserCircle} />
           <NavItem to="/student-list" label="Student List" Icon={UserPlus} />
+          
         </ul>
       )}
 
-      {uToken && !aToken && !dToken && (
+      {tToken && (
+        <ul className="text-[#515151] mt-5 space-y-1">
+          <NavItem to="/therapist-appointments" label="Appointments" Icon={CalendarCheck} />
+          <NavItem to="/online-link-upload" label="Upload Online Links" Icon={FileText} />
+          <NavItem to="/my-schedule" label="My Availability" Icon={Calendar} />
+          <NavItem to="/therapist-schedule" label="My Schedule" Icon={Calendar} />
+        </ul>
+      )}
+
+      {uToken && !aToken && !dToken && !tToken && (
         <ul className="text-[#515151] mt-5 space-y-1">
           <NavItem to="/uni-dashboard" label="Dashboard" Icon={Home} />
           <NavItem to="/university-appointments" label="Appointments" Icon={CalendarCheck} />
@@ -72,10 +88,9 @@ function NavItem({ to, label, Icon }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center gap-4 py-3 px-4 md:px-6 transition-colors duration-200 w-full ${
-          isActive
-            ? "bg-indigo-100 text-indigo-700 font-medium rounded-none"
-            : "hover:bg-gray-100 hover:text-indigo-600 hover:rounded-none"
+        `flex items-center gap-4 py-3 px-4 md:px-6 transition-colors duration-200 w-full ${isActive
+          ? "bg-indigo-100 text-indigo-700 font-medium rounded-none"
+          : "hover:bg-gray-100 hover:text-indigo-600 hover:rounded-none"
         }`
       }
     >

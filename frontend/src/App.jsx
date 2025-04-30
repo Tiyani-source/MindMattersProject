@@ -28,6 +28,7 @@ import DoctorSignUp from './pages/DoctorSignUp';
 import StudentSignUp from './SignUpForms/StudentSignUp';
 import PatientSignUp from './SignUpForms/PatientSignUpForm';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import Rechedule from './pages/Rechedule';
 
 const App = () => {
   return (
@@ -45,22 +46,22 @@ const App = () => {
           <Route path='/product/:prodId' element={<ProductDetails />} />
           <Route path='/about' element={<About />} />
           <Route path='/contact' element={<Contact />} />
-          <Route path='/appointment/:docId' element={<Appointment />} />
+          <Route path='/appointment/:therapistId' element={<Appointment />} />
           <Route path='/payment/:amount/:appointmentId' element={<PaymentForm />} />
           <Route path='/my-appointments' element={<MyAppointments />} />
           <Route path='/my-orders' element={<MyOrders />} />
           <Route path="/order-analytics" element={<OrderAnalytics />} />
           <Route path='/my-profile' element={<MyProfile />} />
           <Route path='/cart' element={<ShoppingCart />} />
-        <Route path='/checkout' element={<Checkout />} />
-        <Route path='/payment' element={<Payment />} />
-        <Route path='/wishlist' element={<Wishlist />} />
-        <Route path='/order-confirmation' element={<OrderConfirmation />} />
+          <Route path='/checkout' element={<Checkout />} />
+          <Route path='/payment' element={<Payment />} />
+          <Route path='/wishlist' element={<Wishlist />} />
+          <Route path='/order-confirmation' element={<OrderConfirmation />} />
           <Route path='/verify' element={<Verify />} />
           <Route path='/doctor-signup' element={<DoctorSignUp />} />
           <Route path='/student-signup' element={<StudentSignUp />} />
           <Route path='/patient-signup' element={<PatientSignUp />} />
-
+          <Route path='/reschedule/:therapistId' element={<Rechedule />} />
           <Route path='/support-desk' element={<SupportTicketsPage />} />
         </Routes>
         <Footer />

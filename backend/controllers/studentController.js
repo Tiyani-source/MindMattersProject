@@ -42,7 +42,7 @@ export const updateStudentProfile = async (req, res) => {
       student.phone = phone;
     }
 
-   
+
     if (address) {
       student.address = address;
     }

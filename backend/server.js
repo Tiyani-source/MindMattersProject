@@ -11,6 +11,7 @@ import universityRouter from "./routes/universityRoute.js"
 import studRequestRouter from "./routes/studReqRoute.js"
 import studentRouter from "./routes/studentRoute.js"
 import patientRouter from "./routes/patientRoute.js"
+import therapistRouter from "./routes/therapistRoute.js"
 
 import paymentRoutes from "./routes/paymentRoutes.js";
 
@@ -39,6 +40,7 @@ app.use("/api/user", userRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 app.use("/api/doctor-request", dRequestRouter)
+app.use("/api/therapist", therapistRouter)
 app.use("/api/university", universityRouter)
 app.use("/api/student-request", studRequestRouter)
 app.use("/api/student", studentRouter)

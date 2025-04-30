@@ -3,28 +3,39 @@ import Student from '../models/studentModel.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-export const authStudent = async (req, res) => {
-  const { email, password } = req.body;
-
+export const authStudent = async (req, res, next) => {
   try {
-  
-    const student = await Student.findOne({ email });
+    const { token } = req.headers;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. Please login."
+      });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find student by ID
+    const student = await Student.findById(decoded.id);
     if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
+      return res.status(404).json({
+        success: false,
+        message: "Student not found"
+      });
     }
 
-    
-    const isMatch = await bcrypt.compare(password, student.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password' });
-    }
+    // Add student info to request
+    req.student = student;
+    req.studentId = student._id;
 
-   
-    const token = jwt.sign({ id: student._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-
-    res.status(200).json({ token, student });
+    next();
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Auth error:", error);
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token"
+    });
   }
 };
