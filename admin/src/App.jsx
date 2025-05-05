@@ -36,7 +36,8 @@ import AdminProductManagement from './pages/supplyManager/ProductManagementDashb
 import { SupplyManagerContext } from './context/SupplyManagerContext.jsx';
 import SupplierProfileDashboard from './pages/supplyManager/supplierProfile.jsx';
 import SupplierDashboard from './pages/supplyManager/supplyManagerDashboard.jsx';
-import CartPaymentDashboard from './pages/Payment/cartPaymentDashboard.jsx';
+import OrderPaymentDashboard from "./pages/Payment/orderPaymentDashboard.jsx";
+
 
 const App = () => {
   const { dToken } = useContext(DoctorContext);
@@ -74,9 +75,8 @@ const App = () => {
             <Route path="/product-management" element={<AdminProductManagement />} />
             <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
             <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
-            <Route path='/cart-payment-dashboard' element={<CartPaymentDashboard />} />
             <Route path='/delivery-partners' element={<DeliveryPartners />} />
-
+            <Route path='/order-payment-dashboard' element={<OrderPaymentDashboard />} />
             
 
           </Routes>
