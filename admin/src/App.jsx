@@ -36,6 +36,7 @@ import { SupplyManagerContext } from './context/SupplyManagerContext.jsx';
 import SupplierProfileDashboard from './pages/supplyManager/supplierProfile.jsx';
 import SupplierDashboard from './pages/supplyManager/supplyManagerDashboard.jsx';
 
+import ChatEmbed from "./components/ChatEmbed";
 
 const App = () => {
   const { dToken } = useContext(DoctorContext);
@@ -73,6 +74,8 @@ const App = () => {
             <Route path="/product-management" element={<AdminProductManagement />} />
             <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
             <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
+            <Route path="/doctor-chat" element={<ChatEmbed />} />
+          
 
             
 

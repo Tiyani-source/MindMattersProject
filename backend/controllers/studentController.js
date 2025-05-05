@@ -1,4 +1,5 @@
 import StudentModel from "../models/studentModel.js";
+import bcrypt from "bcryptjs";
 
 // Get all students
 export const getAllStudents = async (req, res) => {
@@ -73,5 +74,41 @@ export const deleteStudentProfile = async (req, res) => {
   } catch (error) {
     console.error("Error deleting student profile:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const changeStudentPassword = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { oldPassword, newPassword } = req.body;
+
+    const student = await StudentModel.findById(userId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, student.password);
+    if (!isMatch) {
+      return res.json({ success: false, message: "Old password is incorrect" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    student.password = hashedPassword;
+    await student.save();
+
+    res.json({ success: true, message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Error changing password:", error.message);
+    res.status(500).json({ success: false, message: "Error changing password" });
+  }
+};
+
+export const getStudentCount = async (req, res) => {
+  try {
+    const count = await StudentModel.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    console.error('Error getting student count:', err);
+    res.status(500).json({ message: 'Failed to get student count' });
   }
 };
