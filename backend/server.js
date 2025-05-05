@@ -24,6 +24,8 @@ import feedbackRoutes from './routes/feedbackRoutes.js'
 import supportTicketRoutes from './routes/supportTicketRoutes.js'
 import smRouter from "./routes/supplyManager.js"
 
+import userOverviewRouter from "./routes/userOverview.route.js"
+
 // app config
 const app = express()
 const port = process.env.PORT || 4000
@@ -57,6 +59,8 @@ app.use("/api/orders", orderRouter)
 app.use("/api/wishlist", wishlistRouter)
 app.use("/api/cart", shoppingCartRouter)
 app.use("/api/supplymanager", smRouter)
+
+app.use("/api/user-overview", userOverviewRouter)
 
 // test route
 app.get("/", (req, res) => {

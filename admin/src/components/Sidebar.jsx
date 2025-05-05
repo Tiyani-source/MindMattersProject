@@ -1,5 +1,5 @@
-import React, { useContext } from "react";
-import { assets } from '../assets/assets';
+import React, { useContext, useEffect, useState } from "react";
+import { assets } from "../assets/assets";
 import { NavLink } from "react-router-dom";
 import {
   Home,
@@ -11,11 +11,14 @@ import {
   FileText,
   CreditCard,
   BarChart4,
-} from "lucide-react"; // Added relevant icons
+  MessageCircle,
+} from "lucide-react";
+
+import { jwtDecode } from "jwt-decode"; 
 import { DoctorContext } from "../context/DoctorContext";
 import { AdminContext } from "../context/AdminContext";
 import { UniversityContext } from "../context/UniversityContext";
-import { SupplyManagerContext } from '../context/SupplyManagerContext';
+import { SupplyManagerContext } from "../context/SupplyManagerContext";
 
 export default function Sidebar() {
   const { dToken } = useContext(DoctorContext);
@@ -23,8 +26,23 @@ export default function Sidebar() {
   const { uToken } = useContext(UniversityContext);
   const { smToken } = useContext(SupplyManagerContext);
 
+  const [doctorEmail, setDoctorEmail] = useState("");
+
+  useEffect(() => {
+    if (dToken) {
+      try {
+        const decoded = jwtDecode(dToken);
+        setDoctorEmail(decoded?.email || "");
+      } catch (err) {
+        console.error("Failed to decode token:", err);
+      }
+    }
+  }, [dToken]);
+
+  const chatUrl = `/doctor-chat?email=${encodeURIComponent(doctorEmail)}&userType=Doctor`;
+
   return (
-    <div className="min-h-screen w-64 bg-white border-r fixed">
+    <div className="min-h-screen w-64 bg-white border-r -mt-4 fixed">
       {aToken && (
         <ul className="text-[#515151] mt-5 space-y-1">
           <NavItem to="/admin-dashboard" label="Dashboard" Icon={Home} />
@@ -46,6 +64,7 @@ export default function Sidebar() {
           <NavItem to="/patient-requests" label="Requests" Icon={ClipboardList} />
           <NavItem to="/doctor-user-profile" label="Profile" Icon={UserCircle} />
           <NavItem to="/student-list" label="Student List" Icon={UserPlus} />
+          <NavItem to={chatUrl} label="MindConnect" Icon={MessageCircle} />
         </ul>
       )}
 
