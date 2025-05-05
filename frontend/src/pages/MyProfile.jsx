@@ -11,6 +11,10 @@ const MyProfile = () => {
   const [address, setAddress] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(true)
 
   const {
@@ -25,11 +29,11 @@ const MyProfile = () => {
     const fetchData = async () => {
       if (!userData) {
         console.log('No userData found, loading profile...')
-        await loadUserProfileData();
+        await loadUserProfileData()
       }
       setLoading(false)
     }
-    fetchData();
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -85,6 +89,35 @@ const MyProfile = () => {
     } catch (error) {
       console.error('Error deleting profile:', error)
       toast.error('Something went wrong while deleting profile')
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return toast.error('Please fill in all fields.')
+    }
+    if (newPassword !== confirmPassword) {
+      return toast.error('New passwords do not match.')
+    }
+
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/student/change-password`,
+        { oldPassword, newPassword },
+        { headers: { token } }
+      )
+      if (data.success) {
+        toast.success('Password changed successfully.')
+        setShowPasswordModal(false)
+        setOldPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      } else {
+        toast.error(data.message)
+      }
+    } catch (err) {
+      console.error('Password change error:', err)
+      toast.error('Failed to change password.')
     }
   }
 
@@ -167,7 +200,7 @@ const MyProfile = () => {
         </div>
       </div>
 
-      <div className="flex justify-center gap-4 mt-8">
+      <div className="flex justify-center gap-4 mt-8 flex-wrap">
         {isEdit ? (
           <button
             onClick={updateUserProfileData}
@@ -178,11 +211,17 @@ const MyProfile = () => {
         ) : (
           <button
             onClick={() => setIsEdit(true)}
-            className="px-6 py-2 border border-primary text-primary rounded-full hover:bg-primary hover:text-white transition"
+            className="px-6 py-2 border border-primary text-primary rounded-full hover:bg-primary hover:text-black transition"
           >
             Edit Profile
           </button>
         )}
+        <button
+          onClick={() => setShowPasswordModal(true)}
+          className="px-6 py-2 border border-yellow-500 text-yellow-600 rounded-full hover:bg-yellow-500 hover:text-white transition"
+        >
+          Change Password
+        </button>
         <button
           onClick={() => setShowDeleteModal(true)}
           className="px-6 py-2 border border-red-500 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition"
@@ -215,6 +254,49 @@ const MyProfile = () => {
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white p-6 rounded-xl w-full max-w-sm shadow-lg">
+            <h2 className="text-lg font-bold mb-3 text-gray-800">Change Password</h2>
+            <input
+              type="password"
+              placeholder="Old Password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className="border w-full p-2 rounded mb-3"
+            />
+            <input
+              type="password"
+              placeholder="New Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="border w-full p-2 rounded mb-3"
+            />
+            <input
+              type="password"
+              placeholder="Confirm New Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="border w-full p-2 rounded mb-4"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+              >
+                Update
               </button>
             </div>
           </div>

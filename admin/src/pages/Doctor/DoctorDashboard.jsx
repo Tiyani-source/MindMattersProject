@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
 import { BarChart } from '@mui/x-charts/BarChart';
-import { PieChart } from '@mui/x-charts/PieChart';
 import { useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Users, CalendarCheck, University, Activity } from 'lucide-react';
@@ -15,13 +14,6 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-
-const colorStyles = {
-  green: 'bg-green-100 text-green-800',
-  yellow: 'bg-yellow-100 text-yellow-800',
-  red: 'bg-red-100 text-red-800',
-  blue: 'bg-blue-100 text-blue-800',
-};
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <motion.div whileHover={{ scale: 1.05 }} className={`w-full shadow-md border-l-8 ${color} bg-white p-4 rounded-md`}>
@@ -50,9 +42,38 @@ export default function DoctorDashboard() {
   const primary = theme.palette.primary.main;
   const secondary = theme.palette.secondary.main;
 
-  const months = ['January', 'February', 'March', 'April', 'May', 'June'];
-  const patientCounts = [150, 170, 160, 180, 175, 190];
-  const activeUsers = [300, 320, 310, 340, 350, 370];
+  const [months, setMonths] = React.useState([]);
+  const [patientCounts, setPatientCounts] = React.useState([]);
+  const [activeUsers, setActiveUsers] = React.useState([]);
+  const [studentCount, setStudentCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const response = await fetch('http://localhost:4000/api/user-overview/userOverview');
+        const result = await response.json();
+        setMonths(result.months || []);
+        setPatientCounts(result.patientCounts || []);
+        setActiveUsers(result.activeUsers || []);
+      } catch (error) {
+        console.error('Failed to fetch chart data:', error);
+      }
+    };
+
+    const fetchStudentCount = async () => {
+      try {
+        const res = await fetch('http://localhost:4000/api/student/count');
+        const data = await res.json();
+        setStudentCount(data.count || 0);
+      } catch (err) {
+        console.error('Failed to fetch student count:', err);
+      }
+    };
+
+    fetchChartData();
+    fetchStudentCount();
+  }, []);
+
   const earningsData = months.map((month, index) => ({
     name: month.slice(0, 3),
     current: 800 + Math.floor(Math.random() * 500),
@@ -62,10 +83,10 @@ export default function DoctorDashboard() {
 
   return (
     <div className="p-6 grid gap-6 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold mb-4 text-black">Doctor Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-4 mt-10 text-black">Doctor Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total Patients" value="1,200" color="border-blue-500" />
+        <StatCard icon={Users} label="Total Patients" value={studentCount} color="border-blue-500" />
         <StatCard icon={Activity} label="Appointments" value="87" color="border-green-500" />
         <StatCard icon={University} label="Reports Filed" value="35" color="border-purple-500" />
         <StatCard icon={CalendarCheck} label="Sessions Scheduled" value="23" color="border-pink-500" />
@@ -73,20 +94,24 @@ export default function DoctorDashboard() {
 
       <div className="bg-white rounded-md shadow-md p-4">
         <h2 className="text-xl font-semibold mb-4">Monthly Patient & User Overview</h2>
-        <BarChart
-          height={300}
-          borderRadius={6}
-          series={[
-            { data: patientCounts, label: 'Patients', id: 'patientId', color: primary },
-            { data: activeUsers, label: 'Active Users', id: 'activeId', color: secondary },
-          ]}
-          xAxis={[{
-            data: months,
-            scaleType: 'band',
-            categoryGapRatio: 0.8,
-            barGapRatio: 0.8,
-          }]}
-        />
+        {months.length > 0 && patientCounts.length > 0 && activeUsers.length > 0 ? (
+          <BarChart
+            height={300}
+            borderRadius={6}
+            series={[
+              { data: patientCounts, label: 'Patients', id: 'patientId', color: primary },
+              { data: activeUsers, label: 'Active Users', id: 'activeId', color: secondary },
+            ]}
+            xAxis={[{
+              data: months,
+              scaleType: 'band',
+              categoryGapRatio: 0.8,
+              barGapRatio: 0.8,
+            }]}
+          />
+        ) : (
+          <p className="text-sm text-gray-400">Chart data not available.</p>
+        )}
       </div>
 
       <div className="bg-white rounded-md shadow-md p-4">
