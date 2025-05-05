@@ -6,9 +6,44 @@ import mongoose from 'mongoose';
 export const getAllDeliveryPartners = async (req, res) => {
     try {
         const deliveryPartners = await DeliveryPartner.find();
+        
+        // Get order counts for each delivery partner and update their status
+        const deliveryPartnersWithCounts = await Promise.all(
+            deliveryPartners.map(async (partner) => {
+                const assignedCount = await Order.countDocuments({
+                    deliveryPartner: partner._id,
+                    deliveryStatus: 'Assigned'
+                });
+                
+                const completedCount = await Order.countDocuments({
+                    deliveryPartner: partner._id,
+                    deliveryStatus: 'Delivered'
+                });
+                
+                // Update delivery partner's availability based on assigned orders count
+                const isAvailable = assignedCount < 3;
+                
+                // Update the delivery partner's status in the database if it has changed
+                if (partner.isAvailable !== isAvailable) {
+                    await DeliveryPartner.findByIdAndUpdate(
+                        partner._id,
+                        { isAvailable },
+                        { new: true }
+                    );
+                }
+                
+                return {
+                    ...partner.toObject(),
+                    assignedOrdersCount: assignedCount,
+                    completedOrdersCount: completedCount,
+                    isAvailable
+                };
+            })
+        );
+
         res.status(200).json({
             success: true,
-            data: deliveryPartners
+            data: deliveryPartnersWithCounts
         });
     } catch (error) {
         res.status(500).json({
@@ -22,16 +57,16 @@ export const getAllDeliveryPartners = async (req, res) => {
 // Get available delivery partners
 export const getAvailableDeliveryPartners = async (req, res) => {
     try {
-        console.log("Fetching available delivery partners...");
-        const deliveryPartners = await DeliveryPartner.find({ isAvailable: true });
+        console.log("Fetching all delivery partners...");
+        const deliveryPartners = await DeliveryPartner.find();
         console.log("Found delivery partners:", deliveryPartners);
 
         if (!deliveryPartners || deliveryPartners.length === 0) {
-            console.log("No available delivery partners found");
+            console.log("No delivery partners found");
             return res.status(200).json({
                 success: true,
                 data: [],
-                message: "No available delivery partners found"
+                message: "No delivery partners found"
             });
         }
 
@@ -43,7 +78,7 @@ export const getAvailableDeliveryPartners = async (req, res) => {
         console.error("Error in getAvailableDeliveryPartners:", error);
         res.status(500).json({
             success: false,
-            message: 'Error fetching available delivery partners',
+            message: 'Error fetching delivery partners',
             error: error.message
         });
     }
@@ -52,6 +87,11 @@ export const getAvailableDeliveryPartners = async (req, res) => {
 // Create new delivery partner
 export const createDeliveryPartner = async (req, res) => {
     try {
+        // Set default province if not provided
+        if (!req.body.province) {
+            req.body.province = 'Western Province';
+        }
+
         const deliveryPartner = await DeliveryPartner.create(req.body);
         res.status(201).json({
             success: true,
@@ -143,7 +183,7 @@ export const assignDeliveryPartner = async (req, res) => {
             });
         }
 
-        // Check if delivery partner exists and is available
+        // Check if delivery partner exists
         const deliveryPartner = await DeliveryPartner.findById(deliveryPartnerId);
         if (!deliveryPartner) {
             return res.status(404).json({
@@ -151,10 +191,18 @@ export const assignDeliveryPartner = async (req, res) => {
                 message: 'Delivery partner not found'
             });
         }
-        if (!deliveryPartner.isAvailable) {
+
+        // Get count of assigned orders for this delivery partner
+        const assignedOrdersCount = await Order.countDocuments({
+            deliveryPartner: deliveryPartnerId,
+            deliveryStatus: 'Assigned'
+        });
+
+        // Check if delivery partner has reached the maximum number of assigned orders (3)
+        if (assignedOrdersCount >= 3) {
             return res.status(400).json({
                 success: false,
-                message: 'Delivery partner is not available'
+                message: 'Delivery partner has reached the maximum number of assigned orders (3)'
             });
         }
 
@@ -175,13 +223,14 @@ export const assignDeliveryPartner = async (req, res) => {
             });
         }
 
-        // Update order with delivery partner and estimated delivery
+        // Update order with delivery partner, estimated delivery, and status
         const order = await Order.findByIdAndUpdate(
             orderId,
             {
                 deliveryPartner: deliveryPartnerId,
                 estimatedDelivery: new Date(estimatedDelivery),
-                deliveryStatus: 'Assigned'
+                deliveryStatus: 'Assigned',
+                status: 'Shipped' // Automatically update order status to Shipped
             },
             { 
                 new: true,
@@ -196,14 +245,16 @@ export const assignDeliveryPartner = async (req, res) => {
             });
         }
 
-        // Update delivery partner's availability
-        deliveryPartner.isAvailable = false;
+        // Update delivery partner's availability based on assigned orders count
+        // Set to busy if they have 3 or more assigned orders
+        deliveryPartner.isAvailable = assignedOrdersCount + 1 < 3;
         await deliveryPartner.save();
 
         console.log("Successfully assigned delivery partner:", {
             orderId: order._id,
             deliveryPartner: order.deliveryPartner,
-            estimatedDelivery: order.estimatedDelivery
+            estimatedDelivery: order.estimatedDelivery,
+            status: order.status
         });
 
         res.status(200).json({
@@ -225,6 +276,15 @@ export const assignDeliveryPartner = async (req, res) => {
 export const updateLocation = async (req, res) => {
     try {
         const { latitude, longitude } = req.body;
+        
+        // Validate coordinate ranges for Sri Lanka
+        if (longitude < 79.5 || longitude > 82.0 || latitude < 5.5 || latitude > 10.0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid coordinates. Must be within Sri Lanka boundaries.'
+            });
+        }
+
         const deliveryPartner = await DeliveryPartner.findByIdAndUpdate(
             req.params.id,
             {
