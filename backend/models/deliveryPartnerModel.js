@@ -1,5 +1,18 @@
 import mongoose from "mongoose";
 
+// Define valid provinces
+const validProvinces = [
+    'Western Province',
+    'Central Province',
+    'Southern Province',
+    'Northern Province',
+    'Eastern Province',
+    'North Western Province',
+    'North Central Province',
+    'Uva Province',
+    'Sabaragamuwa Province'
+];
+
 const deliveryPartnerSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -32,16 +45,11 @@ const deliveryPartnerSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-    currentLocation: {
-        type: {
-            type: String,
-            enum: ['Point'],
-            default: 'Point'
-        },
-        coordinates: {
-            type: [Number],
-            default: [0, 0]
-        }
+    province: {
+        type: String,
+        enum: validProvinces,
+        required: true,
+        default: 'Western Province'
     },
     rating: {
         type: Number,
@@ -58,9 +66,6 @@ const deliveryPartnerSchema = new mongoose.Schema({
         default: Date.now
     }
 });
-
-// Create index for geospatial queries
-deliveryPartnerSchema.index({ currentLocation: '2dsphere' });
 
 const DeliveryPartner = mongoose.model('DeliveryPartner', deliveryPartnerSchema);
 

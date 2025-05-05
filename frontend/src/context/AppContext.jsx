@@ -103,12 +103,12 @@ const AppContextProvider = (props) => {
     };
 
     //Cancel Order
-    const cancelOrder = async (userId, orderId) => {
+    const cancelOrder = async (userId, orderId, cancelReason) => {
         try {
             const { data } = await axios.patch(
-                `${backendUrl}/api/orders/user/${userId}/order/${orderId}/cancel`,
-                {}, 
-                { headers: { token } }
+                `${backendUrl}/api/orders/${orderId}/cancel`,
+                { cancelReason }, 
+                { headers: { Authorization: `Bearer ${token}` } }
             );
           
             if (data.success) {
@@ -117,10 +117,10 @@ const AppContextProvider = (props) => {
             } else {
                 toast.error(data.message);
             }
-            } catch (error) {
-              console.error("Failed to cancel order:", error);
-              toast.error("Something went wrong while cancelling the order");
-            }
+        } catch (error) {
+            console.error("Failed to cancel order:", error);
+            toast.error(error.response?.data?.message || "Something went wrong while cancelling the order");
+        }
     };
 
      // Generates and downloads a PDF invoice

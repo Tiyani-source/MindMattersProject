@@ -21,6 +21,19 @@ const Checkout = () => {
     country: 'Sri Lanka'
   });
 
+  // Sri Lankan districts
+  const districts = [
+    { group: 'Western Province', districts: ['Colombo', 'Gampaha', 'Kalutara'] },
+    { group: 'Central Province', districts: ['Kandy', 'Matale', 'Nuwara Eliya'] },
+    { group: 'Southern Province', districts: ['Galle', 'Matara', 'Hambantota'] },
+    { group: 'Northern Province', districts: ['Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya', 'Mullaitivu'] },
+    { group: 'Eastern Province', districts: ['Trincomalee', 'Batticaloa', 'Ampara'] },
+    { group: 'North Western Province', districts: ['Kurunegala', 'Puttalam'] },
+    { group: 'North Central Province', districts: ['Anuradhapura', 'Polonnaruwa'] },
+    { group: 'Uva Province', districts: ['Badulla', 'Monaragala'] },
+    { group: 'Sabaragamuwa Province', districts: ['Ratnapura', 'Kegalle'] }
+  ];
+
   // Initialize form with student data if available
   useEffect(() => {
     if (studentData) {
@@ -239,14 +252,24 @@ const Checkout = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">District</label>
-                <input
-                  type="text"
+                <select
                   name="district"
                   value={formData.district}
                   onChange={handleInputChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   required
-                />
+                >
+                  <option value="">Select District</option>
+                  {districts.map((province, index) => (
+                    <optgroup key={index} label={province.group}>
+                      {province.districts.map((district, dIndex) => (
+                        <option key={dIndex} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
             </div>
 

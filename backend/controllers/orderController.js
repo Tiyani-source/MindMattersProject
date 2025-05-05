@@ -112,7 +112,7 @@ export const cancelOrder = async (req, res) => {
     }
 
     order.status = "Cancelled";
-    order.deliveryStatus = "UnAssigned";
+    order.deliveryStatus = undefined;
     order.cancelReason = cancelReason;
     await order.save();
 
