@@ -11,7 +11,8 @@ import {
   FileText,
   CreditCard,
   BarChart4,
-} from "lucide-react"; // Added relevant icons
+  Truck,
+} from "lucide-react"; 
 import { DoctorContext } from "../context/DoctorContext";
 import { AdminContext } from "../context/AdminContext";
 import { UniversityContext } from "../context/UniversityContext";
@@ -36,6 +37,7 @@ export default function Sidebar() {
           <NavItem to="/payment-dashboard" label="Payment List" Icon={CreditCard} />
           <NavItem to="/cart-payment-dashboard" label="Cart Payment" Icon={CreditCard} />
           <NavItem to="/order-insights" label="Order Insights & Actions" Icon={BarChart4} />
+          <NavItem to="/delivery-partners" label="Delivery Partners" Icon={Truck} />
         </ul>
       )}
 

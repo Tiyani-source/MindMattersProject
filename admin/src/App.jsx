@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import DoctorAppointments from "./pages/Doctor/DoctorAppointments";
 import DoctorDashboard from "./pages/Doctor/DoctorDashboard";
 import DoctorProfile from "./pages/Doctor/DoctorProfile";
+import DeliveryPartners from "./pages/Admin/DeliveryPartners";
 
 import PatientRequests from "./pages/Doctor/PatientRequests";
 import PatientFeedback from "./pages/Doctor/PatientFeedback";
@@ -74,6 +75,8 @@ const App = () => {
             <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
             <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
             <Route path='/cart-payment-dashboard' element={<CartPaymentDashboard />} />
+            <Route path='/delivery-partners' element={<DeliveryPartners />} />
+
             
 
           </Routes>

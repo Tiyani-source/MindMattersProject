@@ -1,28 +1,34 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MDBTable,
   MDBTableHead,
   MDBTableBody,
-  MDBBtn,
-  MDBContainer,
   MDBTypography,
+  MDBSpinner,
 } from "mdb-react-ui-kit";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faHeart, faArrowLeft, faShoppingBag } from "@fortawesome/free-solid-svg-icons";
 import WishlistItem from "../components/WishlistItem";
 import { styles } from "../styles/WishlistStyles";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Wishlist = () => {
   const navigate = useNavigate();
-  const { token, wishlist, getWishlist, removeFromWishlist } = useContext(AppContext);
-  const [loading, setLoading] = useState(true);
+  const {
+    token,
+    wishlist,
+    getWishlist,
+    removeFromWishlist,
+    addToCart,
+    isLoading,
+  } = useContext(AppContext);
 
   useEffect(() => {
     if (!token) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
     fetchWishlist();
@@ -32,84 +38,103 @@ const Wishlist = () => {
     try {
       await getWishlist();
     } catch (error) {
-      console.error('Error fetching wishlist:', error);
-      toast.error('Failed to load wishlist');
-    } finally {
-      setLoading(false);
+      console.error("Error fetching wishlist:", error);
+      toast.error("Failed to load wishlist");
     }
   };
 
-  const handleRemoveFromWishlist = async (productId) => {
+  const handleAddToCart = async (item) => {
+    try {
+      // First remove from wishlist
+      await removeFromWishlist(item.productId);
+      // Then navigate to product details
+      navigate(`/product/${item.productId}`, { 
+        state: { 
+          message: 'Please select color and size before adding to cart',
+          fromWishlist: true // Add this flag to indicate coming from wishlist
+        } 
+      });
+    } catch (error) {
+      console.error("Error handling add to cart:", error);
+      toast.error("Failed to process your request");
+    }
+  };
+
+  const handleRemove = async (productId) => {
+    console.log("Clicked to remove:", productId);
     try {
       await removeFromWishlist(productId);
+      // Refresh wishlist after successful removal
+      await fetchWishlist();
     } catch (error) {
-      console.error('Error removing from wishlist:', error);
-      toast.error('Failed to remove item from wishlist');
+      console.error("Error removing from wishlist:", error);
+      toast.error(error.message || "Failed to remove item from wishlist");
     }
   };
-
-  const addToCart = async (item) => {
-    try {
-      const response = await axios.post(`${backendUrl}/api/cart`, 
-        { ...item, quantity: 1 }, 
-        { headers: { token } }
-      );
-      if (response.data.success) {
-        handleRemoveFromWishlist(item.id);
-        toast.success('Item added to cart');
-      } else {
-        toast.error(response.data.message || 'Failed to add to cart');
-      }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error(error.response?.data?.message || 'Failed to add to cart');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
-    <MDBContainer style={styles.container}>
-      <MDBTypography tag="h2" style={styles.header}>
-        WISH<span style={styles.highlight}> LIST</span>
-      </MDBTypography>
+    <section style={styles.container}>
+      <div style={styles.header}>
+        <MDBTypography tag="h2">
+          WISH<span style={styles.highlight}>LIST</span>
+        </MDBTypography>
+      </div>
 
-      {wishlist.length === 0 ? (
-        <p style={styles.emptyText}>Your wishlist is empty</p>
+      {isLoading ? (
+        <div style={styles.emptyWishlist}>
+          <MDBSpinner grow size="lg" style={{ marginBottom: "1rem" }} />
+          <p style={styles.emptyWishlistText}>Loading your wishlist...</p>
+        </div>
+      ) : wishlist.items.length === 0 ? (
+        <div style={styles.emptyWishlist}>
+          <p style={styles.emptyWishlistText}>
+            <FontAwesomeIcon icon={faHeart} /> Your wishlist is empty
+          </p>
+          <button
+            style={styles.continueBtn}
+            onClick={() => navigate("/store")}
+            disabled={isLoading}
+          >
+            <FontAwesomeIcon icon={faShoppingBag} /> Continue Shopping
+          </button>
+        </div>
       ) : (
-        <MDBTable align="middle" style={styles.table}>
-          <MDBTableHead>
-            <tr>
-              <th style={styles.th}>Product Name</th>
-              <th style={styles.th}>Unit Price</th>
-              <th style={styles.th}></th>
-              <th style={styles.th}></th>
-            </tr>
-          </MDBTableHead>
-          <MDBTableBody>
-            {wishlist.map((item) => (
-              <WishlistItem
-                key={item.id}
-                item={item}
-                onRemove={handleRemoveFromWishlist}
-                onAddToCart={addToCart}
-                styles={styles}
-              />
-            ))}
-          </MDBTableBody>
-        </MDBTable>
-      )}
+        <>
+          <MDBTable align="middle" style={styles.table}>
+            <MDBTableHead>
+              <tr>
+                <th style={styles.tableHeader}>Product</th>
+                <th style={styles.tableHeader}>Price</th>
+                <th style={styles.tableHeader}>Actions</th>
+                <th style={styles.tableHeader}>Delete</th>
+              </tr>
+            </MDBTableHead>
+            <MDBTableBody>
+              {wishlist.items.map((item) => (
+                <WishlistItem
+                  key={`${item.productId}-${item.color || 'no-color'}-${item.size || 'no-size'}`}
+                  item={item}
+                  styles={styles}
+                  onRemove={handleRemove}
+                  onAddToCart={handleAddToCart}
+                  isLoading={isLoading}
+                />
+              ))}
+            </MDBTableBody>
+          </MDBTable>
 
-      <MDBBtn style={styles.backBtn} onClick={() => navigate("/store")}>
-        <FontAwesomeIcon icon={faArrowLeft} /> Back to Store
-      </MDBBtn>
-    </MDBContainer>
+          <div style={styles.actions}>
+            <button
+              style={styles.continueBtn}
+              onClick={() => navigate("/store")}
+              disabled={isLoading}
+            >
+              <FontAwesomeIcon icon={faArrowLeft} /> Continue Shopping
+            </button>
+          </div>
+        </>
+      )}
+    </section>
   );
 };
 

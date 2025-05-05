@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllStudents, deleteStudent, updateStudentProfile,deleteStudentProfile } from '../controllers/studentController.js';
+import { getAllStudents, deleteStudent, updateStudentProfile, deleteStudentProfile, getStudentProfile } from '../controllers/studentController.js';
 import { authStudent } from '../middleware/authStudent.js';
 import { verifyToken } from '../middleware/verifyToken.js';
 import upload from '../middleware/uploadMiddleware.js';
@@ -15,6 +15,7 @@ studentRouter.delete("/delete/:id", deleteStudent);
 studentRouter.post('/login', authStudent);
 studentRouter.post('/update-profile', verifyToken, upload.none(), updateStudentProfile)
 studentRouter.post('/delete-profile', verifyToken, deleteStudentProfile);
+studentRouter.get('/get-profile', verifyToken, getStudentProfile);
 studentRouter.get('/profile', verifyToken, async (req, res) => {
   try {
     const student = await Student.findById(req.userId);
