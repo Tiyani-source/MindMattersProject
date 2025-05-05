@@ -10,7 +10,7 @@ const timeSlotSchema = new mongoose.Schema({
 const appointmentSchema = new mongoose.Schema({
     clientID: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Student",
         required: true
     },
     therapistID: {

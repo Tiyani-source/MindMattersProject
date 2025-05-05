@@ -9,6 +9,7 @@ import AppContextProvider from './context/AppContext.jsx'
 import UniversityContextProvider from './context/UniversityContext.jsx'
 import SupplyManagerProvider from './context/SupplyManagerContext.jsx';
 import TherapistContextProvider from './context/TherapistContext.jsx';
+import { TemplateProvider } from './context/TemplateContext';
 
 console.log("In main.jsx..."),  // Debugging
 
@@ -20,7 +21,9 @@ console.log("In main.jsx..."),  // Debugging
             <TherapistContextProvider>
               <SupplyManagerProvider>
                 <AppContextProvider>
-                  <App />
+                  <TemplateProvider>
+                    <App />
+                  </TemplateProvider>
                 </AppContextProvider>
               </SupplyManagerProvider>
             </TherapistContextProvider>

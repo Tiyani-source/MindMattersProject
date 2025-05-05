@@ -23,6 +23,10 @@ import MySchedule from './pages/Therapist/MySchedule'
 import TherapistAppointments from './pages/Therapist/TherapistAppointments'
 import TherapistSchedule from './pages/Therapist/TherapistSchedule'
 import OnlineLinkUpload from './pages/Therapist/OnlineLinkUpload'
+import Clients from './pages/Therapist/Clients'
+import NoteEditor from './components/NoteEditor'
+import ClientDetail from './pages/Therapist/ClientDetail'
+import TemplateEditor from './pages/Therapist/TemplateEditor'
 
 import PatientRequests from "./pages/Doctor/PatientRequests";
 import PatientFeedback from "./pages/Doctor/PatientFeedback";
@@ -41,7 +45,6 @@ import AdminProductManagement from './pages/supplyManager/ProductManagementDashb
 import { SupplyManagerContext } from './context/SupplyManagerContext.jsx';
 import SupplierProfileDashboard from './pages/supplyManager/supplierProfile.jsx';
 import SupplierDashboard from './pages/supplyManager/supplyManagerDashboard.jsx';
-
 
 const App = () => {
   const { dToken } = useContext(DoctorContext);
@@ -84,9 +87,12 @@ const App = () => {
               <Route path='/therapist-appointments' element={<TherapistAppointments />} />
               <Route path='/therapist-schedule' element={<TherapistSchedule />} />
               <Route path='/online-link-upload' element={<OnlineLinkUpload />} />
-
-
-
+              <Route path='/client-view' element={<Clients />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/client-detail/:id" element={<ClientDetail />} />
+              <Route path="/client/:id/note/new" element={<NoteEditor />} />
+              <Route path="/template/new" element={<TemplateEditor />} />
+              <Route path="/template/:id/edit" element={<TemplateEditor />} />
             </Routes>
           </div>
         </div>

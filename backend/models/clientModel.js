@@ -23,5 +23,5 @@ const clientSchema = new mongoose.Schema({
 // Ensure uniqueness of the therapist-client relationship (1-to-1 mapping)
 clientSchema.index({ therapistID: 1, clientID: 1 }, { unique: true });
 
-const clientModel = mongoose.models.client || mongoose.model("User", clientSchema);
+const clientModel = mongoose.models.client || mongoose.model("client", clientSchema);
 export default clientModel;

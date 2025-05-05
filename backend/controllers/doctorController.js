@@ -5,8 +5,60 @@ import appointmentModel from "../models/appointmentModel.js";
 import appointmentsModel from "../models/appointmentsModel.js";
 import clientModel from "../models/clientModel.js";
 import therapistAvailabilityModel from "../models/therapistAvailabilityModel.js";
+import RecurringScheduleModel from "../models/recurringScheduleModel.js";
+import mongoose from "mongoose";
+import ClientNote from '../models/clientNoteModel.js';
+import NoteTemplate from '../models/noteTemplateModel.js';
+import ClientProgress from '../models/clientProgressModel.js';
+import studentModel from "../models/studentModel.js";
 
+// Add a progress note
+export const addClientProgress = async (req, res) => {
+    try {
+        const { therapistID, clientID, appointmentID, progressNote, tags } = req.body;
+        const note = await ClientProgress.create({ therapistID, clientID, appointmentID, progressNote, tags });
+        res.status(201).json({ success: true, note });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
+// Get all progress notes for a client
+export const getClientProgress = async (req, res) => {
+    try {
+        const { clientID, therapistID } = req.query;
+        const notes = await ClientProgress.find({ clientID, therapistID }).sort({ createdAt: -1 });
+        res.json({ success: true, notes });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Pin/unpin a progress note
+export const pinClientProgress = async (req, res) => {
+    try {
+        const { noteId } = req.params;
+        const { pinned } = req.body;
+        const note = await ClientProgress.findByIdAndUpdate(noteId, { pinned }, { new: true });
+        res.json({ success: true, note });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Search progress notes
+export const searchClientProgress = async (req, res) => {
+    try {
+        const { query, clientID } = req.query;
+        const notes = await ClientProgress.find({
+            clientID,
+            progressNote: { $regex: query, $options: 'i' }
+        }).sort({ createdAt: -1 });
+        res.json({ success: true, notes });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 // API for therapist dashboard details
 export const getTherapistDashboard = async (req, res) => {
     try {
@@ -22,19 +74,19 @@ export const getTherapistDashboard = async (req, res) => {
         }
 
         // Fetch appointments for this therapist
-        const appointments = await appointmentsModel.find({ therapistID: docId }).populate('clientID', 'name');
+        const appointments = await appointmentsModel.find({ therapistID: docId }).populate('clientID', 'firstName lastName email');
 
         // Fetch ongoing clients - Add null check for clientID
         const ongoingClients = await clientModel
             .find({ therapistID: docId, clientStatus: "ongoing" })
-            .populate("clientID", "name") // Get client name
+            .populate("clientID", "firstName lastName email") // Get client name
             .lean();
 
         // Format the ongoing clients with null checks
         const formattedOngoingClients = ongoingClients.map(client => ({
             id: client._id,
             clientId: client.clientID?._id || 'Unknown',
-            client: client.clientID?.name || "Unknown",
+            client: client.clientID ? `${client.clientID.firstName} ${client.clientID.lastName}` : "Unknown",
             status: client.clientStatus,
             date: client.updatedAt ? new Date(client.updatedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : 'N/A'
         }));
@@ -85,7 +137,7 @@ export const getTherapistDashboard = async (req, res) => {
 
         // Format appointments with null checks
         const formattedAppointments = appointments
-            .filter(app => app.statusOfAppointment !== "cancelled" && app.timeSlot)
+            .filter(app => app.statusOfAppointment !== "cancelled" && app.timeSlot && app.clientID && app.clientID.firstName)
             .map((appointment) => {
                 try {
                     const formattedDate = appointment.date ? new Date(appointment.date).toISOString().split("T")[0] : null;
@@ -131,7 +183,7 @@ export const getTherapistDashboard = async (req, res) => {
 
                     return {
                         Id: appointment._id?.toString() || 'Unknown',
-                        Subject: `Session with ${appointment.clientID?.name || 'Unknown Client'}`,
+                        Subject: `Session with ${appointment.clientID ? `${appointment.clientID.firstName} ${appointment.clientID.lastName}` : 'Unknown Client'}`,
                         StartTime: startDateTime,
                         EndTime: endDateTime,
                         Location: appointment.typeOfAppointment === 'online' ? (appointment.meetingLink || 'Online') : 'Therapist Office',
@@ -294,21 +346,24 @@ function convertTo24Hour(timeStr) {
 
 export const appointmentsTherapist = async (req, res) => {
     try {
-        const docId = req.body.userId; // From authDoctor middleware
+        const docId = req.userId || req.body.userId; // Use both for compatibility
+        console.log("appointmentsTherapist: docId from req.userId or req.body.userId:", docId);
 
         if (!docId) {
+            console.error("appointmentsTherapist: therapist ID missing");
             return res.status(400).json({ success: false, message: "Invalid therapist ID" });
         }
 
         const currentDate = new Date();
 
         // Fetch appointments for this therapist and populate client details
-        const appointments = await appointmentsModel.find({ therapistID: docId }).populate("clientID", "name");
+        const appointments = await appointmentsModel.find({ therapistID: docId }).populate("clientID", "firstName lastName email");
+        console.log("appointmentsTherapist: appointments found:", appointments.length);
 
         // Categorize appointments into current and past
         const formattedAppointments = appointments.map(app => ({
             id: app._id,
-            client: app.clientID?.name || "Unknown",
+            client: app.clientID ? `${app.clientID.firstName} ${app.clientID.lastName}` : "Unknown",
             type: app.typeOfAppointment || "Online",
             date: new Date(app.date).toISOString().split("T")[0], // Keep date as YYYY-MM-DD
             time: app.timeSlot?.startTime || "00:00", // ✅ use actual start time from timeSlot
@@ -640,6 +695,50 @@ const doctorProfile = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+// In doctorController.js
+
+export const getTherapistClientsByAppointments = async (req, res) => {
+    try {
+        const therapistId = req.userId || req.body.userId;
+        const therapistObjectId = typeof therapistId === 'string' ? new mongoose.Types.ObjectId(therapistId) : therapistId;
+        const pipeline = [
+            { $match: { therapistID: therapistObjectId } },
+            { $sort: { date: -1 } },
+            {
+                $group: {
+                    _id: "$clientID",
+                    latestAppointment: { $first: "$date" },
+                    totalSessions: { $sum: 1 }
+                }
+            },
+            { $sort: { latestAppointment: -1 } }
+        ];
+        const clients = await appointmentsModel.aggregate(pipeline);
+
+        // Populate client info
+        const populated = await Promise.all(clients.map(async c => {
+            let client;
+            try {
+                client = await mongoose.model("Student").findById(c._id).select("name email");
+            } catch (err) {
+                console.error("Error populating client:", c._id, err);
+                client = null;
+            }
+            return {
+                _id: c._id,
+                name: client?.name || "Unknown",
+                email: client?.email || "",
+                latestAppointment: c.latestAppointment,
+                totalSessions: c.totalSessions
+            };
+        }));
+
+        res.json({ success: true, clients: populated });
+    } catch (err) {
+        console.error("Error in getTherapistClientsByAppointments:", err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
 
 // API to update doctor profile data from  Doctor Panel
 const updateDoctorProfile = async (req, res) => {
@@ -728,6 +827,265 @@ const deleteDoctor = async (req, res) => {
     }
 };
 
+export const getRecurringSchedules = async (req, res) => {
+    try {
+        const therapistId = req.body.userId;
+        const schedules = await RecurringScheduleModel.find({
+            therapistId,
+            isActive: true
+        }).sort({ createdAt: -1 });
+
+        res.json({ success: true, schedules });
+    } catch (error) {
+        console.error('Error fetching recurring schedules:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const deleteRecurringSchedule = async (req, res) => {
+    try {
+        const therapistId = req.body.userId;
+        const { scheduleId } = req.params;
+
+        // First, find the schedule to get its details
+        const schedule = await RecurringScheduleModel.findOne({
+            _id: scheduleId,
+            therapistId
+        });
+
+        if (!schedule) {
+            return res.status(404).json({ success: false, message: 'Schedule not found' });
+        }
+
+        // Mark the schedule as inactive instead of deleting
+        await RecurringScheduleModel.findByIdAndUpdate(scheduleId, {
+            isActive: false
+        });
+
+        // Delete the corresponding availability slots
+        await therapistAvailabilityModel.deleteMany({
+            therapistId,
+            days: { $in: schedule.days },
+            startTime: schedule.startTime,
+            endTime: schedule.endTime
+        });
+
+        res.json({ success: true, message: 'Schedule deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting recurring schedule:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const saveRecurringAvailability = async (req, res) => {
+    try {
+        const { name, days, startTime, endTime, interval, types, startDate, endDate, breaks } = req.body;
+        const therapistId = req.body.userId;
+
+        // Validate required fields
+        if (!days || !days.length || !startTime || !endTime || !interval || !types || !types.length) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields',
+                received: { days, startTime, endTime, interval, types }
+            });
+        }
+
+        // Validate interval is one of the allowed values
+        const allowedIntervals = [60, 120];
+        if (!allowedIntervals.includes(interval)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Interval must be one of: 60, 120 minutes (see session rules)'
+            });
+        }
+
+        // Check for overlapping schedules
+        const overlappingSchedule = await RecurringScheduleModel.findOne({
+            therapistId,
+            days: { $in: days },
+            isActive: true,
+            $or: [
+                {
+                    startTime: { $lte: startTime },
+                    endTime: { $gt: startTime }
+                },
+                {
+                    startTime: { $lt: endTime },
+                    endTime: { $gte: endTime }
+                },
+                {
+                    startTime: { $gte: startTime },
+                    endTime: { $lte: endTime }
+                }
+            ]
+        });
+
+        if (overlappingSchedule) {
+            // Deactivate the overlapping schedule
+            await RecurringScheduleModel.findByIdAndUpdate(overlappingSchedule._id, {
+                isActive: false
+            });
+
+            // Delete its availability slots
+            await therapistAvailabilityModel.deleteMany({
+                therapistId,
+                days: { $in: overlappingSchedule.days },
+                startTime: overlappingSchedule.startTime,
+                endTime: overlappingSchedule.endTime
+            });
+        }
+
+        // Create new recurring schedule
+        const newSchedule = await RecurringScheduleModel.create({
+            therapistId,
+            name: name || '',
+            days,
+            startTime,
+            endTime,
+            interval,
+            types,
+            breaks,
+            startDate: new Date(startDate),
+            endDate: endDate ? new Date(endDate) : undefined
+        });
+
+        // Generate availability slots
+        const slots = [];
+        const currentDate = new Date(startDate);
+        const endDateTime = endDate ? new Date(endDate) : new Date(currentDate.getTime() + (90 * 24 * 60 * 60 * 1000));
+
+        while (currentDate <= endDateTime) {
+            if (days.includes(currentDate.getDay())) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const [startHour, startMinute] = startTime.split(':').map(Number);
+                const [endHour, endMinute] = endTime.split(':').map(Number);
+                const scheduleStart = startHour * 60 + startMinute;
+                const scheduleEnd = endHour * 60 + endMinute;
+
+                for (let time = scheduleStart; time < scheduleEnd; time += interval) {
+                    const hour = Math.floor(time / 60);
+                    const minute = time % 60;
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+                    const isBreakTime = (breaks || []).some(breakTime => {
+                        const [breakStartHour, breakStartMinute] = breakTime.start.split(':').map(Number);
+                        const [breakEndHour, breakEndMinute] = breakTime.end.split(':').map(Number);
+                        const breakStart = breakStartHour * 60 + breakStartMinute;
+                        const breakEnd = breakEndHour * 60 + breakEndMinute;
+                        return time >= breakStart && time < breakEnd;
+                    });
+
+                    if (!isBreakTime) {
+                        for (const type of types) {
+                            slots.push({
+                                therapistId,
+                                date: dateStr,
+                                time: timeStr,
+                                type,
+                                isBooked: false,
+                                duration: 60,
+                                recurringScheduleId: newSchedule._id
+                            });
+                        }
+                    }
+                }
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Save availability slots in batches
+        if (slots.length > 0) {
+            await therapistAvailabilityModel.insertMany(slots);
+        }
+
+        res.json({
+            success: true,
+            message: 'Recurring availability saved successfully',
+            schedule: newSchedule
+        });
+
+    } catch (error) {
+        console.error('Error saving recurring availability:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const updateRecurringSchedule = async (req, res) => {
+    try {
+        const { scheduleId } = req.params;
+        const therapistId = req.body.userId;
+        const { name, days, startTime, endTime, interval, types, breaks, startDate, endDate } = req.body;
+
+        // Find the schedule
+        const schedule = await RecurringScheduleModel.findOne({ _id: scheduleId, therapistId });
+        if (!schedule) {
+            return res.status(404).json({ success: false, message: 'Schedule not found' });
+        }
+
+        // Update the schedule fields
+        schedule.name = name || '';
+        schedule.days = days;
+        schedule.startTime = startTime;
+        schedule.endTime = endTime;
+        schedule.interval = interval;
+        schedule.types = types;
+        schedule.breaks = breaks;
+        schedule.startDate = new Date(startDate);
+        schedule.endDate = endDate ? new Date(endDate) : undefined;
+        await schedule.save();
+
+        // Delete old availability slots for this schedule
+        await therapistAvailabilityModel.deleteMany({ recurringScheduleId: scheduleId });
+
+        // Generate new availability slots
+        const slots = [];
+        let currentDate = new Date(startDate);
+        const endDateTime = endDate ? new Date(endDate) : new Date(currentDate.getTime() + (90 * 24 * 60 * 60 * 1000));
+        while (currentDate <= endDateTime) {
+            if (days.includes(currentDate.getDay())) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const [startHour, startMinute] = startTime.split(':').map(Number);
+                const [endHour, endMinute] = endTime.split(':').map(Number);
+                const scheduleStart = startHour * 60 + startMinute;
+                const scheduleEnd = endHour * 60 + endMinute;
+                for (let time = scheduleStart; time < scheduleEnd; time += interval) {
+                    const hour = Math.floor(time / 60);
+                    const minute = time % 60;
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    const isBreakTime = (breaks || []).some(breakTime => {
+                        const [breakStartHour, breakStartMinute] = breakTime.start.split(':').map(Number);
+                        const [breakEndHour, breakEndMinute] = breakTime.end.split(':').map(Number);
+                        const breakStart = breakStartHour * 60 + breakStartMinute;
+                        const breakEnd = breakEndHour * 60 + breakEndMinute;
+                        return time >= breakStart && time < breakEnd;
+                    });
+                    if (!isBreakTime) {
+                        for (const type of types) {
+                            slots.push({
+                                therapistId,
+                                date: dateStr,
+                                time: timeStr,
+                                type,
+                                isBooked: false,
+                                duration: 60,
+                                recurringScheduleId: scheduleId
+                            });
+                        }
+                    }
+                }
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        if (slots.length > 0) {
+            await therapistAvailabilityModel.insertMany(slots);
+        }
+        res.json({ success: true, message: 'Schedule updated successfully', schedule });
+    } catch (error) {
+        console.error('Error updating recurring schedule:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
 export {
     loginDoctor,
@@ -740,3 +1098,159 @@ export {
     updateDoctorProfile,
     deleteDoctor
 }
+
+// --- Client Notes ---
+export const addClientNote = async (req, res) => {
+    try {
+        const { therapistID, clientID, appointmentID, content, templateUsed } = req.body;
+        const note = await ClientNote.create({ therapistID, clientID, appointmentID, content, templateUsed });
+        res.status(201).json({ success: true, note });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getClientNotes = async (req, res) => {
+    try {
+        const { clientID, therapistID } = req.query;
+        const notes = await ClientNote.find({ clientID, therapistID }).sort({ createdAt: -1 });
+        res.json({ success: true, notes });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const searchClientNotes = async (req, res) => {
+    try {
+        const { query, clientID } = req.query;
+        const notes = await ClientNote.find({
+            clientID,
+            content: { $regex: query, $options: 'i' }
+        }).sort({ createdAt: -1 });
+        res.json({ success: true, notes });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const pinClientNote = async (req, res) => {
+    try {
+        const { noteId } = req.params;
+        const { pinned } = req.body;
+        const note = await ClientNote.findByIdAndUpdate(noteId, { pinned }, { new: true });
+        res.json({ success: true, note });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// --- Note Templates ---
+export const addNoteTemplate = async (req, res) => {
+    try {
+        const therapistID = req.body.userId;
+        if (!therapistID) {
+            return res.status(401).json({ success: false, message: 'Unauthorized: therapistID missing' });
+        }
+
+        const { name, description, category, fields, isDefault = false } = req.body;
+
+        if (!name || !category || !fields || !Array.isArray(fields) || fields.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: name, category, or fields'
+            });
+        }
+
+        const template = await NoteTemplate.create({
+            therapistID,
+            name,
+            description,
+            category,
+            fields,
+            isDefault
+        });
+
+        res.status(201).json({ success: true, template });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getNoteTemplates = async (req, res) => {
+    try {
+        const therapistID = req.body.userId;
+        if (!therapistID) {
+            return res.status(401).json({ success: false, message: 'Unauthorized: therapistID missing' });
+        }
+        console.log('Fetching templates for therapistID:', therapistID);
+        const templates = await NoteTemplate.find({ therapistID });
+        res.json({ success: true, templates });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const deleteNoteTemplate = async (req, res) => {
+    try {
+        const { templateId } = req.params;
+        await NoteTemplate.findByIdAndDelete(templateId);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Get all clients for a therapist
+export const getTherapistClients = async (req, res) => {
+    try {
+        const therapistId = req.body.userId; // from authTherapist
+        const status = req.query.status || 'ongoing';
+        // Get all client relationships for this therapist with the given status
+        const clientLinks = await clientModel.find({ therapistID: therapistId, clientStatus: status }).lean();
+        // For each client, use appointmentsModel to get info and session count
+        const formatted = await Promise.all(clientLinks.map(async link => {
+            if (!link.clientID) return null;
+            // Find all appointments for this therapist/client
+            const appointments = await appointmentsModel.find({
+                therapistID: therapistId,
+                clientID: link.clientID
+            }).populate('clientID', 'firstName lastName email');
+            if (!appointments.length) {
+                // If no appointments, try to get client name/email from a fallback (optional)
+                return null;
+            }
+            // Use the first appointment to get client info
+            const clientInfo = appointments[0].clientID;
+            const sessionCount = appointments.length;
+            console.log('Client:', clientInfo, 'Total sessions:', sessionCount);
+            return {
+                _id: clientInfo?._id,
+                name: clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : 'Unknown',
+                email: clientInfo?.email || '',
+                category: '',
+                totalSessions: sessionCount,
+                clientStatus: link.clientStatus
+            };
+        }));
+        // Filter out nulls (clients with no appointments or missing info)
+        res.json({ success: true, clients: formatted.filter(Boolean) });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// Get all appointments for a client for the logged-in therapist
+export const getClientAppointments = async (req, res) => {
+    try {
+        const therapistId = req.userId || req.body.userId; // middleware should attach req.userId // from authTherapist
+        const clientId = req.query.clientID;
+        if (!clientId) return res.status(400).json({ success: false, message: 'Missing clientID' });
+        const appointments = await appointmentsModel.find({
+            therapistID: therapistId,
+            clientID: clientId
+        }).sort({ date: -1 });
+        res.json({ success: true, appointments });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};

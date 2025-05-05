@@ -4,6 +4,8 @@ import { TherapistContext } from '../../context/TherapistContext';
 import { FaCalendarCheck, FaClipboardList, FaStar, FaDollarSign } from "react-icons/fa";
 import { ScheduleComponent, ViewsDirective, ViewDirective, Inject, Agenda } from '@syncfusion/ej2-react-schedule';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer, CartesianGrid } from 'recharts';
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 // ✅ Import Syncfusion Styles
 import '@syncfusion/ej2-base/styles/material.css';
@@ -31,6 +33,7 @@ const TherapistAppointments = () => {
   const [filter, setFilter] = useState('current');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
   const [formattedAppointments, setFormattedAppointments] = useState([]);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   // Extract data
   const activeAppointments = appointments?.current?.length || 0;
@@ -76,6 +79,7 @@ const TherapistAppointments = () => {
 
   const COLORS = ["#1E3A8A", "#4C5AE3"];
   const pageTopRef = useRef(null);
+  const reportRef = useRef(null);
 
   const handleViewRating = (appointment) => {
     if (!appointment) return;
@@ -217,7 +221,7 @@ const TherapistAppointments = () => {
     }
   }, [filter]);
   const columns = [
-    { label: "Booking ID", key: "id" },
+    // { label: "Booking ID", key: "id" },
     { label: "Client", key: "client" },
     { label: "Type", key: "type" },
     { label: "Date", key: "date" },
@@ -249,288 +253,370 @@ const TherapistAppointments = () => {
   console.log("Booking Trends:", dashData.bookingTrendsData);
   console.log("New Clients:", dashData.newClientsData);
   console.log("Therapist Dashboard API Response", dashData);
+
+  const handleDownloadPDF = async () => {
+    // Render charts for PDF
+    // (You may need to use React Portals or render the charts in the hidden divs above)
+
+    // Wait a tick for charts to render
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const input = reportRef.current;
+    const canvas = await html2canvas(input, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "pt",
+      format: "a4"
+    });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save("appointments-dashboard-report.pdf");
+  };
+
   return (
-    <div className='w-full max-w-full px-8 overflow-auto h-[calc(100vh-4rem)]'>
-      <div ref={pageTopRef}></div>
-      <p className='pb-3 text-lg font-medium'></p>
-
-      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
-        {cardData.map((card, index) => (
-          <div
-            key={index}
-            className={`shadow-xl rounded-xl p-6 flex flex-col items-center justify-center ${card.bg} transition-all transform hover:scale-105 hover:shadow-2xl`}
-          >
-            <div className="w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-md mb-3">
-              {card.icon}
-            </div>
-            <h3 className='text-md font-semibold text-white mb-1'>{card.label}</h3>
-            <p className={`text-3xl font-bold ${card.textColor}`}>{card.value}</p>
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {/* Bookings Chart */}
-        <div className="bg-white shadow-lg rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Booking Trends</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={dashData?.bookingTrendsData ?? []} margin={{ top: 20, right: 50, left: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="1 1" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="total" stroke="#E3165B" strokeWidth={3} dot={{ r: 5 }} />
-              <Line type="monotone" dataKey="online" stroke="#1E3A8A" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="inPerson" stroke="#4C5AE3" strokeWidth={2} dot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        {/* New Clients Gained Chart */}
-        <div className="p-8 bg-white shadow-lg rounded-lg flex flex-col ">
-          <h3 className="text-lg font-semibold mb-4">New Clients Gained</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={dashData?.newClientsData ?? []} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip formatter={(value) => `${value} Clients`} />
-              <Legend />
-              <Bar dataKey="newClients" fill="#4C5AE3" name="New Clients" barSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Pie Chart */}
-        <div className="p-6 bg-white  shadow-lg rounded-lg flex items-center">
-          <div className="w-1/2 flex justify-center p-5">
-            <PieChart width={200} height={250}>
-              <Pie
-                data={cancellationBreakdown}
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                fill="#8884d8"
-                label
-              >
-                {cancellationBreakdown.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </div>
-          <div className="w-1/2 text-left space-y-2">
-            <h3 className="text-lg font-semibold">Cancellations Breakdown</h3>
-            <p className="font-bold text-gray-700">Total: {cancellationBreakdown.reduce((sum, entry) => sum + entry.value, 0)}</p>
-            <p className="text-gray-600">Client Cancellations: {cancellationBreakdown[0]?.value || 0}</p>
-            <p className="text-gray-600">Therapist Cancellations: {cancellationBreakdown[1]?.value || 0}</p>
-          </div>
-        </div>
-      </div>
-
-      <h2 className="text-lg font-bold pt-2 pb-4">All Appointments</h2>
-      {/* Filter Tabs */}
-      <div className='flex flex-row items-start gap-5 mb-4'>
-        <div className='flex gap-4 text-sm text-gray-600'>
-
-          <p
-
-            className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'current' ? 'bg-primary text-white' : ''}`}
-            onClick={() => handleFilterChange('current')}
-          >Current Appointments</p>
-          <p
-            className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'past' ? 'bg-primary text-white' : ''}`}
-            onClick={() => handleFilterChange('past')}
-          >Past Appointments</p>
-          <p
-            className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'all' ? 'bg-primary text-white' : ''}`}
-            onClick={() => handleFilterChange('all')}
-          >All Appointments</p>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <input
-        type='text'
-        placeholder='Search by date, client, or appointment ID'
-        className='w-full p-2 mb-4 border rounded'
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-
-      {/* Appointments List */}
-      <div ref={tableRef} className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-
-        <div className='grid grid-cols-7 gap-4 py-3 px-6 border-b font-medium text-center'>
-          {columns.map(({ label, key }) => (
-            <p
-              key={key}
-              className="flex justify-center items-center gap-1 cursor-pointer"
-              onClick={() => handleSort(key)}
+    <div className="w-full min-h-screen bg-gray-50">
+      <div className="w-full max-w-5xl mx-auto px-6 py-8">
+        {/* Tabs */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex gap-2 bg-white rounded-xl shadow p-2">
+            <button
+              className={`px-6 py-2 rounded-lg font-semibold transition ${activeTab === "dashboard" ? "bg-indigo-600 text-white shadow" : "text-gray-700 hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("dashboard")}
             >
-              {label}
-              {sortConfig.key === key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
-            </p>
-          ))}
-          <p>Action</p>
+              Dashboard
+            </button>
+            <button
+              className={`px-6 py-2 rounded-lg font-semibold transition ${activeTab === "appointments" ? "bg-indigo-600 text-white shadow" : "text-gray-700 hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("appointments")}
+            >
+              Appointments
+            </button>
+          </div>
+          {activeTab === "dashboard" && (
+            <button
+              className="px-6 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+              onClick={handleDownloadPDF}
+            >
+              Download PDF Report
+            </button>
+          )}
         </div>
-        {paginatedAppointments.map((item, index) => (
-          <div className={`grid grid-cols-7 gap-4 py-3 px-6  border-b text-gray-500 text-center  ${sortedAppointments.length > 6 ? 'max-h-[80vh] overflow-y-auto' : ''}`} key={index}>
-            <p>{item.id}</p>
-            <p>{item.client}</p>
-            <p>{item.type}</p>
-            <p>{item.date}</p>
-            <p>{formatTo12Hour(item.time)}</p>
-            <p className={item.status === 'cancelled' ? 'text-red-400' : item.status === 'completed' ? 'text-green-500' : 'text-yellow-500'}>
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-            </p>
-            <p>
-              {(() => {
-                const fullDate = new Date(`${item.date}T${item.time}`);
-                const now = new Date();
 
-                const isPast = fullDate < now;
-                const isCancelled = item.status === 'cancelled';
-                const isCompleted = item.status === 'completed';
-
-                if (isPast || isCancelled || isCompleted) {
-                  return (
-                    <button
-                      className="px-3 py-1.5 rounded bg-primary text-white hover:opacity-90 transition"
-                      onClick={() => handleViewRating(item)}
-                    >
-                      View Session Ratings
-                    </button>
-                  );
-                }
-
-                // If it's upcoming and not cancelled
-                return (
-                  <button
-                    className="px-3 py-1.5 rounded bg-primary text-white hover:opacity-90 transition"
-                    onClick={() => handleModifyAppointment(item)}
+        {/* Dashboard Tab */}
+        {activeTab === "dashboard" && (
+          <>
+            <div ref={reportRef}>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                {cardData.map((card, index) => (
+                  <div
+                    key={index}
+                    className="relative group bg-gradient-to-br from-indigo-50 to-white shadow-lg rounded-2xl p-6 flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-2xl"
                   >
-                    Modify Appointment
-                  </button>
-                );
-              })()}
-            </p>
-          </div>
-        ))}
+                    <div className="absolute top-4 right-4 opacity-10 text-6xl pointer-events-none">{card.icon}</div>
+                    <div className="w-14 h-14 flex items-center justify-center bg-indigo-100 rounded-full shadow mb-4">
+                      {card.icon}
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-700 mb-1">{card.label}</h3>
+                    <p className="text-4xl font-extrabold text-indigo-700 mb-1">{card.value}</p>
+                  </div>
+                ))}
+              </div>
 
-        {showPopup && selectedAppointment && (
-          <div
-            className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50"
-            onClick={handleClosePopup} // Close when clicking outside
-          >
-            <div
-              className="bg-white p-6 rounded-lg shadow-lg w-96"
-              onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside
-            >
-              <h2 className="text-lg font-semibold text-primary mb-3">Modify Appointment</h2>
+              {/* Booking Trends Chart */}
+              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px]">
+                <div className="flex items-center mb-4">
+                  <CalendarCheck className="text-indigo-500 w-6 h-6 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">Booking Trends</h3>
+                </div>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={dashData?.bookingTrendsData ?? []} margin={{ top: 20, right: 50, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="1 1" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="total" stroke="#E3165B" strokeWidth={3} dot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="online" stroke="#1E3A8A" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="inPerson" stroke="#4C5AE3" strokeWidth={2} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
 
-              {/* Show Meeting Link only for Online Appointments */}
-              {selectedAppointment.type === 'online' && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Meeting Link:</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded text-sm text-gray-700"
-                    placeholder="Enter or modify meeting link..."
-                    value={meetingLink}
-                    onChange={(e) => setMeetingLink(e.target.value)}
-                  />
+              {/* New Clients Gained Chart */}
+              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px]">
+                <div className="flex items-center mb-4">
+                  <ClipboardList className="text-indigo-500 w-6 h-6 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">New Clients Gained</h3>
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={dashData?.newClientsData ?? []} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => `${value} Clients`} />
+                    <Legend />
+                    <Bar dataKey="newClients" fill="#4C5AE3" name="New Clients" barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Cancellations Breakdown Pie Chart */}
+              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px] flex flex-col items-center border border-indigo-100">
+                <div className="flex items-center mb-2">
+                  <XCircle className="text-indigo-500 w-6 h-6 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">Cancellations Breakdown</h3>
+                </div>
+                <p className="text-gray-500 mb-4">See who cancelled sessions this month</p>
+                <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-center">
+                  <PieChart width={180} height={180}>
+                    <Pie
+                      data={cancellationBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={70}
+                      fill="#8884d8"
+                      label
+                    >
+                      {cancellationBreakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                  <div className="flex flex-col justify-center items-start gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-4 h-4 rounded-full" style={{ background: COLORS[0] }}></span>
+                      <span className="text-gray-700 font-medium">Client Cancellations: {cancellationBreakdown[0]?.value || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-4 h-4 rounded-full" style={{ background: COLORS[1] }}></span>
+                      <span className="text-gray-700 font-medium">Therapist Cancellations: {cancellationBreakdown[1]?.value || 0}</span>
+                    </div>
+                    <div className="mt-4 font-bold text-indigo-700">Total: {cancellationBreakdown.reduce((sum, entry) => sum + entry.value, 0)}</div>
+                  </div>
+                </div>
+                <div className="mt-4 text-sm text-gray-500 text-center w-full">
+                  <span>
+                    Most cancellations this month were by <b>{cancellationBreakdown[0]?.value >= cancellationBreakdown[1]?.value ? 'clients' : 'therapists'}</b>.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Appointments Tab */}
+        {activeTab === "appointments" && (
+          <div className="bg-white shadow-lg rounded-2xl p-8">
+            <h2 className="text-lg font-bold pt-2 pb-4">All Appointments</h2>
+            {/* Filter Tabs */}
+            <div className='flex flex-row items-start gap-5 mb-4'>
+              <div className='flex gap-4 text-sm text-gray-600'>
+
+                <p
+
+                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'current' ? 'bg-primary text-white' : ''}`}
+                  onClick={() => handleFilterChange('current')}
+                >Current Appointments</p>
+                <p
+                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'past' ? 'bg-primary text-white' : ''}`}
+                  onClick={() => handleFilterChange('past')}
+                >Past Appointments</p>
+                <p
+                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'all' ? 'bg-primary text-white' : ''}`}
+                  onClick={() => handleFilterChange('all')}
+                >All Appointments</p>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <input
+              type='text'
+              placeholder='Search by date, client, or appointment ID'
+              className='w-full p-2 mb-4 border rounded'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+
+            {/* Appointments List */}
+            <div ref={tableRef} className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
+
+              <div className='grid grid-cols-6 gap-4 py-3 px-6 border-b font-medium text-center'>
+                {columns.map(({ label, key }) => (
+                  <p
+                    key={key}
+                    className="flex justify-center items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort(key)}
+                  >
+                    {label}
+                    {sortConfig.key === key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+                  </p>
+                ))}
+                <p>Action</p>
+              </div>
+              {paginatedAppointments.map((item, index) => (
+                <div className={`grid grid-cols-6 gap-4 py-3 px-6  border-b text-gray-500 text-center  ${sortedAppointments.length > 6 ? 'max-h-[80vh] overflow-y-auto' : ''}`} key={index}>
+                  {/* <p>{item.id}</p> */}
+                  <p>{item.client}</p>
+                  <p>{item.type}</p>
+                  <p>{item.date}</p>
+                  <p>{formatTo12Hour(item.time)}</p>
+                  <p className={item.status === 'cancelled' ? 'text-red-400' : item.status === 'completed' ? 'text-green-500' : 'text-yellow-500'}>
+                    {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                  </p>
+                  <p>
+                    {(() => {
+                      const fullDate = new Date(`${item.date}T${item.time}`);
+                      const now = new Date();
+
+                      const isPast = fullDate < now;
+                      const isCancelled = item.status === 'cancelled';
+                      const isCompleted = item.status === 'completed';
+
+                      if (isPast || isCancelled || isCompleted) {
+                        return (
+                          <button
+                            className="px-3 py-1.5 rounded bg-primary text-white hover:opacity-90 transition"
+                            onClick={() => handleViewRating(item)}
+                          >
+                            View Session Ratings
+                          </button>
+                        );
+                      }
+
+                      // If it's upcoming and not cancelled
+                      return (
+                        <button
+                          className="px-3 py-1.5 rounded bg-primary text-white hover:opacity-90 transition"
+                          onClick={() => handleModifyAppointment(item)}
+                        >
+                          Modify Appointment
+                        </button>
+                      );
+                    })()}
+                  </p>
+                </div>
+              ))}
+
+              {showPopup && selectedAppointment && (
+                <div
+                  className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50"
+                  onClick={handleClosePopup} // Close when clicking outside
+                >
+                  <div
+                    className="bg-white p-6 rounded-lg shadow-lg w-96"
+                    onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside
+                  >
+                    <h2 className="text-lg font-semibold text-primary mb-3">Modify Appointment</h2>
+
+                    {/* Show Meeting Link only for Online Appointments */}
+                    {selectedAppointment.type === 'online' && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">Meeting Link:</label>
+                        <input
+                          type="text"
+                          className="w-full p-2 border rounded text-sm text-gray-700"
+                          placeholder="Enter or modify meeting link..."
+                          value={meetingLink}
+                          onChange={(e) => setMeetingLink(e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Buttons Section */}
+                    <div className="flex flex-col gap-3">
+                      {/* Save Meeting Link Button */}
+                      {selectedAppointment.type === 'online' && (
+                        <button
+                          className="text-sm bg-primary text-white px-4 py-2 rounded hover:opacity-90 transition"
+                          onClick={handleSaveMeetingLink}
+                        >
+                          Save Meeting Link
+                        </button>
+                      )}
+
+                      {/* Cancel Appointment Button */}
+                      <button
+                        className="text-sm text-red-600 border px-4 py-2 rounded hover:bg-red-100 transition"
+                        onClick={() => cancelAppointment(selectedAppointment.id)}
+                      >
+                        Cancel Appointment
+                      </button>
+
+                      {/* Close Button */}
+                      <button
+                        className="text-sm text-gray-600 border px-4 py-2 rounded hover:bg-gray-200 transition"
+                        onClick={handleClosePopup}
+                      >
+                        Go Back
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Buttons Section */}
-              <div className="flex flex-col gap-3">
-                {/* Save Meeting Link Button */}
-                {selectedAppointment.type === 'online' && (
-                  <button
-                    className="text-sm bg-primary text-white px-4 py-2 rounded hover:opacity-90 transition"
-                    onClick={handleSaveMeetingLink}
-                  >
-                    Save Meeting Link
-                  </button>
-                )}
 
-                {/* Cancel Appointment Button */}
-                <button
-                  className="text-sm text-red-600 border px-4 py-2 rounded hover:bg-red-100 transition"
-                  onClick={() => cancelAppointment(selectedAppointment.id)}
+              {showRatingPopup && selectedRating && (
+                <div
+                  className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+                  onClick={() => setShowRatingPopup(false)} // Close when clicking outside
                 >
-                  Cancel Appointment
+                  <div
+                    className="bg-white w-96 p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
+                    onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside
+                  >
+                    <h2 className="text-lg font-bold">Session Rating</h2>
+                    <p className="mt-2 font-medium">Client: {selectedRating.client}</p>
+
+                    {/* Rating & Review Display */}
+                    {selectedRating.rating && selectedRating.review ? (
+                      <>
+                        <p className="mt-2 text-xl">⭐ {selectedRating.rating}/5</p>
+                        <p className="mt-2 italic">"{selectedRating.review}"</p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-gray-500">Client has not rated or left a review.</p>
+                    )}
+
+                    <button
+                      className="mt-4 px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                      onClick={() => setShowRatingPopup(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center py-4 gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                  className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200"
+                  disabled={currentPage === 1}
+                >
+                  Prev
                 </button>
 
-                {/* Close Button */}
+                <span className="text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+
                 <button
-                  className="text-sm text-gray-600 border px-4 py-2 rounded hover:bg-gray-200 transition"
-                  onClick={handleClosePopup}
+                  onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                  className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200"
+                  disabled={currentPage === totalPages}
                 >
-                  Go Back
+                  Next
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-
-        {showRatingPopup && selectedRating && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-            onClick={() => setShowRatingPopup(false)} // Close when clicking outside
-          >
-            <div
-              className="bg-white w-96 p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside
-            >
-              <h2 className="text-lg font-bold">Session Rating</h2>
-              <p className="mt-2 font-medium">Client: {selectedRating.client}</p>
-
-              {/* Rating & Review Display */}
-              {selectedRating.rating && selectedRating.review ? (
-                <>
-                  <p className="mt-2 text-xl">⭐ {selectedRating.rating}/5</p>
-                  <p className="mt-2 italic">"{selectedRating.review}"</p>
-                </>
-              ) : (
-                <p className="mt-2 text-gray-500">Client has not rated or left a review.</p>
-              )}
-
-              <button
-                className="mt-4 px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                onClick={() => setShowRatingPopup(false)}
-              >
-                Close
-              </button>
-            </div>
+            )}
           </div>
         )}
       </div>
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center py-4 gap-2">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-            className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200"
-            disabled={currentPage === 1}
-          >
-            Prev
-          </button>
-
-          <span className="text-gray-600">
-            Page {currentPage} of {totalPages}
-          </span>
-
-          <button
-            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-            className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200"
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
-        </div>
-      )}
     </div>
   );
 

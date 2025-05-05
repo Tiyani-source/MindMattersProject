@@ -10,22 +10,25 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fortawesome/react-fontawesome": "^0.2.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@mui/material": "^6.4.8",
     "@mui/x-charts": "^7.28.0",
     "@mui/x-date-pickers": "^7.28.0",
+    "@syncfusion/ej2-react-schedule": "^28.2.11",
     "axios": "^1.7.2",
     "bootstrap": "^5.3.5",
-    "file-saver": "^2.0.5",
-    "papaparse": "^5.5.2",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "file-saver": "^2.0.5",
     "framer-motion": "^12.5.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
     "lucide-react": "^0.483.0",
+    "papaparse": "^5.5.2",
     "react-bootstrap": "^2.10.9",
-    "react-feather": "^2.0.10",
-    "@syncfusion/ej2-react-schedule": "^28.2.11"
+    "react-feather": "^2.0.10"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

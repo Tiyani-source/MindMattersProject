@@ -53,10 +53,10 @@ const App = () => {
           <Route path="/order-analytics" element={<OrderAnalytics />} />
           <Route path='/my-profile' element={<MyProfile />} />
           <Route path='/cart' element={<ShoppingCart />} />
-          <Route path='/checkout' element={<Checkout />} />
-          <Route path='/payment' element={<Payment />} />
-          <Route path='/wishlist' element={<Wishlist />} />
-          <Route path='/order-confirmation' element={<OrderConfirmation />} />
+        <Route path='/checkout' element={<Checkout />} />
+        <Route path='/payment' element={<Payment />} />
+        <Route path='/wishlist' element={<Wishlist />} />
+        <Route path='/order-confirmation' element={<OrderConfirmation />} />
           <Route path='/verify' element={<Verify />} />
           <Route path='/doctor-signup' element={<DoctorSignUp />} />
           <Route path='/student-signup' element={<StudentSignUp />} />

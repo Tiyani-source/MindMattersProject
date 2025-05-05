@@ -52,7 +52,7 @@ export default function Sidebar() {
           <NavItem to="/patient-requests" label="Requests" Icon={ClipboardList} />
           <NavItem to="/doctor-user-profile" label="Profile" Icon={UserCircle} />
           <NavItem to="/student-list" label="Student List" Icon={UserPlus} />
-          
+          <NavItem to="/client-view" label="Client Notes" Icon={ClipboardList} />
         </ul>
       )}
 
@@ -62,6 +62,8 @@ export default function Sidebar() {
           <NavItem to="/online-link-upload" label="Upload Online Links" Icon={FileText} />
           <NavItem to="/my-schedule" label="My Availability" Icon={Calendar} />
           <NavItem to="/therapist-schedule" label="My Schedule" Icon={Calendar} />
+          <NavItem to="/clients" label="Clients" Icon={UserCircle} />
+          <NavItem to="/client-notes" label="Client Notes" Icon={ClipboardList} />
         </ul>
       )}
 

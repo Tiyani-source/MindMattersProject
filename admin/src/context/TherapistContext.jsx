@@ -28,6 +28,8 @@ const TherapistContextProvider = (props) => {
         ]
     });
 
+    const [recurringSchedules, setRecurringSchedules] = useState([]);
+
     function convertTo24Hour(timeStr) {
         // Convert '08:30 PM' -> '20:30'
         const [time, modifier] = timeStr.split(" ");
@@ -72,16 +74,15 @@ const TherapistContextProvider = (props) => {
                 });
             } else {
                 console.error('Dashboard API error:', data.message);
-                toast.error(data.message);
+                toast.error(data.message || 'Failed to load dashboard data.');
             }
         } catch (error) {
-            console.error('Dashboard API error details:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status,
-                headers: error.response?.headers
-            });
-            toast.error("Failed to load dashboard data.");
+            let msg = "Failed to load dashboard data.";
+            if (error.response && error.response.data && error.response.data.message) {
+                msg = error.response.data.message;
+            }
+            toast.error(msg);
+            console.error('Dashboard API error details:', error);
         }
     };
 
@@ -119,9 +120,17 @@ const TherapistContextProvider = (props) => {
             console.log('Appointments API response status:', response.status);
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Appointments API error response:', errorText);
-                throw new Error(`Server Error: ${response.status} - ${errorText}`);
+                let errorMsg = `Server Error: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData && errorData.message) errorMsg = errorData.message;
+                } catch (e) {
+                    // fallback to text
+                    const errorText = await response.text();
+                    errorMsg = errorText;
+                }
+                console.error('Appointments API error response:', errorMsg);
+                throw new Error(errorMsg);
             }
 
             const data = await response.json();
@@ -148,15 +157,17 @@ const TherapistContextProvider = (props) => {
                 setAppointments(categorizedAppointments);
             } else {
                 console.error('Appointments API error:', data.message);
-                toast.error(data.message);
+                toast.error(data.message || 'Failed to fetch appointments.');
             }
         } catch (error) {
-            console.error("Error fetching appointments:", {
-                message: error.message,
-                cause: error.cause,
-                stack: error.stack
-            });
-            toast.error("Failed to fetch appointments.");
+            let msg = "Failed to fetch appointments.";
+            if (error.response && error.response.data && error.response.data.message) {
+                msg = error.response.data.message;
+            } else if (error.message) {
+                msg = error.message;
+            }
+            toast.error(msg);
+            console.error("Error fetching appointments:", error);
         }
     };
 
@@ -237,6 +248,230 @@ const TherapistContextProvider = (props) => {
         }
     };
 
+    const fetchRecurringSchedules = async () => {
+        try {
+            console.log('Fetching recurring schedules');
+            const response = await axios.get(`${backendUrl}/api/therapist/recurring-schedules`, {
+                headers: { ttoken: dToken }
+            });
+
+            if (response.data.success) {
+                console.log('Fetched recurring schedules:', response.data.schedules);
+                setRecurringSchedules(response.data.schedules.filter(s => s.isActive));
+            }
+        } catch (error) {
+            console.error('Error fetching recurring schedules:', error);
+            toast.error('Failed to load recurring schedules');
+        }
+    };
+
+    const deleteRecurringSchedule = async (scheduleId) => {
+        try {
+            console.log('Deleting recurring schedule:', scheduleId);
+            const response = await axios.delete(
+                `${backendUrl}/api/therapist/recurring-schedules/${scheduleId}`,
+                { headers: { ttoken: dToken } }
+            );
+
+            if (response.data.success) {
+                toast.success('Schedule deleted successfully');
+                fetchRecurringSchedules();
+                fetchAvailability(); // Refresh availability after deleting schedule
+            }
+        } catch (error) {
+            console.error('Error deleting recurring schedule:', error);
+            toast.error('Failed to delete schedule');
+        }
+    };
+
+    const saveRecurringAvailability = async (recurringSchedule) => {
+        try {
+            console.log('Saving recurring schedule:', recurringSchedule);
+            const response = await axios.post(
+                `${backendUrl}/api/therapist/recurring-availability`,
+                recurringSchedule,
+                { headers: { ttoken: dToken } }
+            );
+
+            if (response.data.success) {
+                toast.success('Schedule saved successfully');
+                fetchRecurringSchedules();
+                fetchAvailability(); // Refresh availability after saving new schedule
+            }
+        } catch (error) {
+            console.error('Error saving recurring schedule:', error);
+            toast.error(error.response?.data?.message || 'Failed to save schedule');
+        }
+    };
+
+    // Helper to check if a time is within any break
+    function isTimeInBreaks(timeStr, breaks) {
+        if (!breaks || breaks.length === 0) return false;
+        const [h, m] = timeStr.split(":").map(Number);
+        const timeMinutes = h * 60 + m;
+        return breaks.some(b => {
+            const [startH, startM] = b.start.split(":").map(Number);
+            const [endH, endM] = b.end.split(":").map(Number);
+            const startMin = startH * 60 + startM;
+            const endMin = endH * 60 + endM;
+            return timeMinutes >= startMin && timeMinutes < endMin;
+        });
+    }
+
+    const generateSlotsFromRecurringSchedule = (recurringSchedule) => {
+        const slots = {};
+        const startDate = new Date(recurringSchedule.startDate);
+        const endDate = recurringSchedule.endDate ? new Date(recurringSchedule.endDate) : null;
+        const breaks = recurringSchedule.breaks || [];
+
+        recurringSchedule.days.forEach(day => {
+            let currentDate = new Date(startDate);
+            while (currentDate.getDay() !== day) {
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            while (!endDate || currentDate <= endDate) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                slots[dateStr] = {};
+                const [startHour, startMinute] = recurringSchedule.startTime.split(':').map(Number);
+                const [endHour, endMinute] = recurringSchedule.endTime.split(':').map(Number);
+                let currentTime = new Date();
+                currentTime.setHours(startHour, startMinute, 0, 0);
+                const endTime = new Date();
+                endTime.setHours(endHour, endMinute, 0, 0);
+                while (currentTime < endTime) {
+                    const timeStr = currentTime.toTimeString().slice(0, 5);
+                    // Skip if this time is in a break
+                    if (!isTimeInBreaks(timeStr, breaks)) {
+                        slots[dateStr][timeStr] = recurringSchedule.types.map(type => ({
+                            type,
+                            isBooked: false
+                        }));
+                    }
+                    currentTime.setMinutes(currentTime.getMinutes() + recurringSchedule.interval);
+                }
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+        });
+        return slots;
+    };
+
+    const updateRecurringSchedule = async (scheduleId, updatedSchedule) => {
+        try {
+            console.log('Updating recurring schedule:', { scheduleId, updatedSchedule });
+            const response = await axios.put(
+                `${backendUrl}/api/therapist/recurring-schedules/${scheduleId}`,
+                updatedSchedule,
+                { headers: { ttoken: dToken } }
+            );
+
+            if (response.data.success) {
+                toast.success('Schedule updated successfully');
+                fetchRecurringSchedules();
+            }
+        } catch (error) {
+            console.error('Error updating recurring schedule:', error);
+            toast.error('Failed to update schedule');
+        }
+    };
+
+    // --- Client Notes & Templates API ---
+    const fetchClientNotes = async (clientID, search = "") => {
+        try {
+            const url = search
+                ? `${backendUrl}/api/therapist/client-notes/search?query=${encodeURIComponent(search)}&clientID=${clientID}`
+                : `${backendUrl}/api/therapist/client-notes?clientID=${clientID}&therapistID=${therapistID}`;
+            const { data } = await axios.get(url, { headers: { ttoken: dToken } });
+            return data.notes || [];
+        } catch (err) {
+            return [];
+        }
+    };
+
+    const addClientNote = async (note) => {
+        try {
+            // Defensive: ensure required fields are present
+            const payload = {
+                therapistID,
+                clientID: note.clientID,
+                appointmentID: note.appointmentID || undefined,
+                content: note.content,
+                templateUsed: note.templateUsed || undefined,
+                title: note.title || '',
+                type: note.type || 'custom',
+                tags: note.tags || []
+            };
+            console.log('Sending client note to backend:', payload);
+            await axios.post(`${backendUrl}/api/therapist/client-notes`, payload, { headers: { ttoken: dToken } });
+        } catch (err) {
+            console.error('Error saving client note:', err?.response?.data || err.message);
+        }
+    };
+    const pinClientNote = async (noteId, pin) => {
+        try {
+            await axios.patch(`${backendUrl}/api/therapist/client-notes/${noteId}/pin`, { pinned: pin }, { headers: { ttoken: dToken } });
+        } catch (err) { }
+    };
+    const searchClientNotes = async (clientID, query) => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/therapist/client-notes/search?query=${encodeURIComponent(query)}&clientID=${clientID}`, { headers: { ttoken: dToken } });
+            return data.notes || [];
+        } catch (err) { return []; }
+    };
+    const fetchNoteTemplates = async () => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/therapist/note-templates`, {
+                headers: { ttoken: dToken }
+            });
+            return data.templates || [];
+        } catch (err) { return []; }
+    };
+    const addNoteTemplate = async (template) => {
+        try {
+            // Defensive: ensure category is present and valid
+            const allowedCategories = ['assessment', 'formulation', 'session', 'progress', 'custom'];
+            let safeTemplate = { ...template };
+            if (!safeTemplate.category || !allowedCategories.includes(safeTemplate.category)) {
+                safeTemplate.category = 'custom';
+            }
+            console.log('Sending template to backend:', safeTemplate);
+            await axios.post(`${backendUrl}/api/therapist/note-templates`, safeTemplate, { headers: { ttoken: dToken } });
+        } catch (err) {
+            console.error('Error saving template:', err?.response?.data || err.message);
+        }
+    };
+    const deleteNoteTemplate = async (templateId) => {
+        try {
+            await axios.delete(`${backendUrl}/api/therapist/note-templates/${templateId}`, { headers: { ttoken: dToken } });
+        } catch (err) { }
+    };
+
+    // Fetch clients
+    const fetchClients = async (status = 'ongoing') => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/therapist/clients?status=${status}`, {
+                headers: { ttoken: dToken }
+            });
+            // totalSessions now reflects ALL sessions, not just completed
+            console.log('Fetched clients from backend (with totalSessions = all sessions):', data.clients);
+            return data.clients;
+        } catch (err) {
+            toast.error('Failed to fetch clients');
+            console.error('Error fetching clients:', err);
+            return [];
+        }
+    };
+
+    const fetchClientsByAppointments = async () => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/therapist/clients-by-appointments`, {
+                headers: { ttoken: dToken }
+            });
+            return data.clients;
+        } catch (err) {
+            toast.error('Failed to fetch clients');
+            return [];
+        }
+    };
 
     return (
         <TherapistContext.Provider value={{
@@ -252,7 +487,23 @@ const TherapistContextProvider = (props) => {
             updateMeetingLink,
             availability,
             fetchAvailability,
-            saveAvailability
+            saveAvailability,
+            saveRecurringAvailability,
+            generateSlotsFromRecurringSchedule,
+            recurringSchedules,
+            fetchRecurringSchedules,
+            updateRecurringSchedule,
+            deleteRecurringSchedule,
+            // --- Client Notes ---
+            fetchClientNotes,
+            addClientNote,
+            pinClientNote,
+            searchClientNotes,
+            fetchNoteTemplates,
+            addNoteTemplate,
+            deleteNoteTemplate,
+            fetchClients,
+            fetchClientsByAppointments
         }}>
             {props.children}
         </TherapistContext.Provider>
