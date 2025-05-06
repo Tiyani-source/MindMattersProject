@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from "axios";
+import {
+    TextField,
+    Button,
+    Box,
+    Typography,
+    InputAdornment,
+    Paper
+} from '@mui/material';
+import { FaUser, FaEnvelope, FaCreditCard, FaCalendarAlt, FaLock } from 'react-icons/fa';
 
 const PaymentForm = () => {
     const { amount, appointmentId } = useParams();
@@ -56,62 +65,128 @@ const PaymentForm = () => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="payment-form flex flex-col gap-4 p-6 max-w-md mx-auto bg-white shadow-md rounded-md">
-            <h2 className="text-2xl font-bold text-center mb-4">Payment Form</h2>
-            <input
-                type="text"
+        <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+                maxWidth: 400,
+                margin: 'auto',
+                mt: 6,
+                p: 4,
+                boxShadow: 3,
+                borderRadius: 2,
+                backgroundColor: '#fff'
+            }}
+        >
+            <Typography variant="h5" align="center" gutterBottom>
+                Payment Form
+            </Typography>
+
+            <TextField
+                fullWidth
+                label="Name"
                 name="name"
-                placeholder="Name"
                 onChange={handleChange}
-                className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                margin="normal"
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <FaUser />
+                        </InputAdornment>
+                    )
+                }}
             />
-            <input
-                type="email"
+
+            <TextField
+                fullWidth
+                label="Email"
                 name="email"
-                placeholder="Email"
+                type="email"
                 onChange={handleChange}
+                margin="normal"
                 required
-                className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <FaEnvelope />
+                        </InputAdornment>
+                    )
+                }}
             />
-            <input
-                type="number"
+
+            <TextField
+                fullWidth
+                label="Amount"
                 name="amount"
-                placeholder="Amount"
-                readOnly
                 value={amount}
-                className="border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed"
+                margin="normal"
+                InputProps={{
+                    readOnly: true,
+                    startAdornment: (
+                        <InputAdornment position="start">₹</InputAdornment>
+                    )
+                }}
             />
-            <input
-                type="text"
+
+            <TextField
+                fullWidth
+                label="Card Number"
                 name="cardNumber"
-                placeholder="Card Number"
                 onChange={handleChange}
+                margin="normal"
                 required
-                className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <FaCreditCard />
+                        </InputAdornment>
+                    )
+                }}
             />
-            <input
-                type="text"
+
+            <TextField
+                fullWidth
+                label="Expiry Date (MM/YY)"
                 name="expiryDate"
-                placeholder="Expiry Date (MM/YY)"
                 onChange={handleChange}
+                margin="normal"
                 required
-                className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <FaCalendarAlt />
+                        </InputAdornment>
+                    )
+                }}
             />
-            <input
-                type="password"
+
+            <TextField
+                fullWidth
+                label="CVV"
                 name="cvv"
-                placeholder="CVV"
+                type="password"
                 onChange={handleChange}
+                margin="normal"
                 required
-                className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <FaLock />
+                        </InputAdornment>
+                    )
+                }}
             />
-            <button
+
+            <Button
+                variant="contained"
+                color="primary"
                 type="submit"
-                className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200"
+                fullWidth
+                sx={{ mt: 3 }}
             >
                 Pay Now
-            </button>
-        </form>
+            </Button>
+        </Box>
     );
 };
 

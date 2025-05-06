@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Line } from 'react-chartjs-2';
 
 const OrderPaymentDashboard = () => {
   // State for search, filter, and data
@@ -8,6 +9,8 @@ const OrderPaymentDashboard = () => {
   const [paymentData, setPaymentData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refundData, setRefundData] = useState([]);
+  const [revenueData, setRevenueData] = useState([]);
   
   // Table pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,6 +50,36 @@ const OrderPaymentDashboard = () => {
     };
     
     fetchOrders();
+  }, []);
+
+  // Fetch refund and revenue data
+  useEffect(() => {
+    // Fetch refund data
+    const fetchRefunds = async () => {
+      try {
+        const response = await axios.get('http://localhost:4000/api/refunds');
+        if (response.data.success) {
+          setRefundData(response.data.refunds);
+        }
+      } catch (err) {
+        console.error('Error fetching refund data:', err);
+      }
+    };
+
+    // Fetch revenue data
+    const fetchRevenue = async () => {
+      try {
+        const response = await axios.get('http://localhost:4000/api/revenue');
+        if (response.data.success) {
+          setRevenueData(response.data.revenue);
+        }
+      } catch (err) {
+        console.error('Error fetching revenue data:', err);
+      }
+    };
+
+    fetchRefunds();
+    fetchRevenue();
   }, []);
   
   // Map order status to payment status
@@ -334,6 +367,90 @@ const OrderPaymentDashboard = () => {
     );
   };
 
+  // RefundTable component
+  const RefundTable = () => {
+    return (
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <h4 className="font-medium text-gray-700 mb-4">Refund Details</h4>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Refund ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {refundData.length > 0 ? (
+                refundData.map((refund, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.refundId}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.orderId}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${refund.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.date}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">No refunds available</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // LineGraph component
+  const LineGraph = () => {
+    const chartData = {
+      labels: revenueData.map(item => item.date),
+      datasets: [
+        {
+          label: 'Revenue',
+          data: revenueData.map(item => item.revenue),
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          fill: true,
+        },
+      ],
+    };
+
+    const options = {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+        },
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Date',
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Revenue ($)',
+          },
+        },
+      },
+    };
+
+    return (
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <h4 className="font-medium text-gray-700 mb-4">Revenue Over Time</h4>
+        <Line data={chartData} options={options} />
+      </div>
+    );
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -479,6 +596,16 @@ const OrderPaymentDashboard = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+        
+        {/* Additional Components: RefundTable and LineGraph */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <RefundTable />
+          </div>
+          <div>
+            <LineGraph />
           </div>
         </div>
       </div>
