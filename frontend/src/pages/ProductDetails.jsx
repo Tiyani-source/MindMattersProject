@@ -26,7 +26,7 @@ const ProductDetails = () => {
   const { addToCart, addToWishlist } = useContext(AppContext);
 
   useEffect(() => {
-    if (location.state?.message) {
+    if (location.state?.message && !location.state?.message.includes('cart')) {
       toast.info(location.state.message, {
         position: "top-center",
         autoClose: 5000,
@@ -195,12 +195,10 @@ const ProductDetails = () => {
         size: selectedSize || null
       });
       
-      // Check if we came from wishlist
+      // Only show message if coming from wishlist
       const fromWishlist = location.state?.fromWishlist;
       if (fromWishlist) {
         toast.success('Product moved from wishlist to cart successfully!');
-      } else {
-        toast.success('Product added to cart successfully!');
       }
     } catch (err) {
       console.error('Error adding to cart:', err);
@@ -227,7 +225,6 @@ const ProductDetails = () => {
         color: selectedColor || null,
         size: selectedSize || null
       });
-      toast.success('Product added to wishlist successfully!');
     } catch (err) {
       console.error('Error adding to wishlist:', err);
       toast.error(err.response?.data?.message || 'Failed to add product to wishlist');

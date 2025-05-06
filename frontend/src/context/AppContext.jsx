@@ -317,6 +317,13 @@ const getWishlist = async () => {
 // Add item to wishlist
 const addToWishlist = async (itemData) => {
     try {
+        // Check if product already exists in wishlist
+        const isDuplicate = wishlist.items.some(item => item.productId === itemData.productId);
+        if (isDuplicate) {
+            toast.info('Product is already in your wishlist');
+            return;
+        }
+
         setIsLoading(true);
         const { data } = await axios.post(
             `${backendUrl}/api/wishlist`,
@@ -330,9 +337,19 @@ const addToWishlist = async (itemData) => {
 
         if (data.success) {
             setWishlist(data.wishlist || { items: [] });
-            toast.success('Item added to wishlist successfully');
+            // Check if the backend response indicates a duplicate
+            if (data.message && data.message.toLowerCase().includes('already in wishlist')) {
+                toast.info('Product is already in your wishlist');
+            } else {
+                toast.success('Product added to wishlist successfully');
+            }
         } else {
-            toast.error(data.message || 'Failed to add item to wishlist');
+            // If the backend indicates it's a duplicate
+            if (data.message && data.message.toLowerCase().includes('already in wishlist')) {
+                toast.info('Product is already in your wishlist');
+            } else {
+                toast.error(data.message || 'Failed to add item to wishlist');
+            }
         }
     } catch (error) {
         console.error('Error adding to wishlist:', error);

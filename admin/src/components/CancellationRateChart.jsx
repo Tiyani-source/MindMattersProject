@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
     BarChart,
     Bar,
@@ -14,57 +15,84 @@ import {
 } from 'recharts';
 
 const CancellationRateChart = () => {
-    // Sample data - replace with actual data from your backend
+    const [orders, setOrders] = useState([]);
     const [timeRange, setTimeRange] = useState('month');
+    const token = localStorage.getItem('token');
 
-    const monthlyData = [
-        { name: 'Jan', cancellations: 12, total: 400, rate: 3.0 },
-        { name: 'Feb', cancellations: 15, total: 450, rate: 3.3 },
-        { name: 'Mar', cancellations: 8, total: 500, rate: 1.6 },
-        { name: 'Apr', cancellations: 10, total: 480, rate: 2.1 },
-        { name: 'May', cancellations: 14, total: 520, rate: 2.7 },
-        { name: 'Jun', cancellations: 9, total: 510, rate: 1.8 },
+    const cancelReasons = [
+        "Incorrect delivery address",
+        "Duplicate order",
+        "Payment issue",
+        "Ordered by mistake",
+        "Product or service unavailable",
+        "Delayed delivery or service",
+        "Customer no longer needs the order",
+        "Invalid or suspicious order activity",
+        "Unable to reach customer",
+        "Other"
     ];
 
-    const weeklyData = [
-        { name: 'Week 1', cancellations: 3, total: 120, rate: 2.5 },
-        { name: 'Week 2', cancellations: 4, total: 130, rate: 3.1 },
-        { name: 'Week 3', cancellations: 2, total: 125, rate: 1.6 },
-        { name: 'Week 4', cancellations: 3, total: 135, rate: 2.2 },
-    ];
+    useEffect(() => {
+        axios.get('http://localhost:4000/api/orders/all', token ? { headers: { Authorization: `Bearer ${token}` } } : {})
+            .then(res => {
+                if (res.data.success) setOrders(res.data.orders || []);
+                else setOrders([]);
+            })
+            .catch(err => {
+                setOrders([]);
+                console.error('Order fetch error:', err);
+            });
+    }, [token]);
 
-    const dailyData = [
-        { name: 'Mon', cancellations: 1, total: 40, rate: 2.5 },
-        { name: 'Tue', cancellations: 2, total: 45, rate: 4.4 },
-        { name: 'Wed', cancellations: 0, total: 42, rate: 0.0 },
-        { name: 'Thu', cancellations: 1, total: 38, rate: 2.6 },
-        { name: 'Fri', cancellations: 2, total: 50, rate: 4.0 },
-        { name: 'Sat', cancellations: 1, total: 35, rate: 2.9 },
-        { name: 'Sun', cancellations: 0, total: 30, rate: 0.0 },
-    ];
+    // Process data for charts
+    const processData = () => {
+        const now = new Date();
+        const filteredOrders = orders.filter(order => {
+            const orderDate = new Date(order.date);
+            if (timeRange === 'month') {
+                return orderDate >= new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            } else if (timeRange === 'week') {
+                return orderDate >= new Date(now.setDate(now.getDate() - 7));
+            } else {
+                return orderDate >= new Date(now.setDate(now.getDate() - 1));
+            }
+        });
 
-    const data = timeRange === 'month' ? monthlyData : timeRange === 'week' ? weeklyData : dailyData;
+        // Calculate cancellation rates
+        const totalOrders = filteredOrders.length;
+        const cancelledOrders = filteredOrders.filter(order => order.status === "Cancelled");
+        const cancellationRate = totalOrders > 0 ? (cancelledOrders.length / totalOrders) * 100 : 0;
 
-    const cancellationReasons = [
-        { name: 'Price Issues', value: 35 },
-        { name: 'Delivery Time', value: 25 },
-        { name: 'Product Issues', value: 20 },
-        { name: 'Customer Changed Mind', value: 15 },
-        { name: 'Other', value: 5 },
-    ];
+        // Group by reason
+        const reasonCounts = {};
+        cancelledOrders.forEach(order => {
+            const reason = order.cancelReason || "Other";
+            reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+        });
 
-    const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD'];
+        const reasonData = Object.entries(reasonCounts).map(([reason, count]) => ({
+            name: reason,
+            value: count
+        }));
+
+        return {
+            totalOrders,
+            cancelledOrders: cancelledOrders.length,
+            cancellationRate,
+            reasonData
+        };
+    };
+
+    const data = processData();
+    const COLORS = ['#005F73', '#0A9396', '#94D2BD', '#E9D8A6', '#EE9B00', '#CA6702', '#BB3E03', '#001219', '#9B2226', '#AE2012'];
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                    <p className="font-semibold text-gray-800">{label}</p>
-                    <p className="text-sm text-gray-600">Cancellations: {payload[0].value}</p>
-                    <p className="text-sm text-gray-600">Total Orders: {payload[1].value}</p>
-                    <p className="text-sm font-semibold text-red-600">
-                        Cancellation Rate: {payload[2].value}%
-                    </p>
+                <div className="bg-white p-2 rounded shadow border border-gray-200 text-xs">
+                    <p className="font-medium">{label}</p>
+                    <p className="text-gray-600">Count: {payload[0].value}</p>
+                    <p className="text-gray-600">Percentage: {((payload[0].value / data.cancelledOrders) * 100).toFixed(1)}%</p>
                 </div>
             );
         }
@@ -72,124 +100,101 @@ const CancellationRateChart = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-800">Cancellation Analysis</h3>
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => setTimeRange('day')}
-                        className={`px-3 py-1 rounded-md text-sm ${
-                            timeRange === 'day'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                    >
-                        Daily
-                    </button>
-                    <button
-                        onClick={() => setTimeRange('week')}
-                        className={`px-3 py-1 rounded-md text-sm ${
-                            timeRange === 'week'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                    >
-                        Weekly
-                    </button>
-                    <button
-                        onClick={() => setTimeRange('month')}
-                        className={`px-3 py-1 rounded-md text-sm ${
-                            timeRange === 'month'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                    >
-                        Monthly
-                    </button>
-                </div>
+        <div className="space-y-4">
+            {/* Time Range Selector */}
+            <div className="flex justify-end">
+                <select 
+                    value={timeRange} 
+                    onChange={(e) => setTimeRange(e.target.value)}
+                    className="text-xs border rounded px-2 py-1"
+                >
+                    <option value="day">Last 24 Hours</option>
+                    <option value="week">Last 7 Days</option>
+                    <option value="month">Last 30 Days</option>
+                </select>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Cancellation Trend Chart */}
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700 mb-4">Cancellation Trend</h4>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={data}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                            <XAxis dataKey="name" stroke="#6b7280" />
-                            <YAxis stroke="#6b7280" />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend />
-                            <Bar
-                                dataKey="cancellations"
-                                name="Cancellations"
-                                fill="#FF6B6B"
-                                radius={[4, 4, 0, 0]}
-                            />
-                            <Bar
-                                dataKey="total"
-                                name="Total Orders"
-                                fill="#4ECDC4"
-                                radius={[4, 4, 0, 0]}
-                            />
-                            <Bar
-                                dataKey="rate"
-                                name="Cancellation Rate (%)"
-                                fill="#45B7D1"
-                                radius={[4, 4, 0, 0]}
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
                 {/* Cancellation Reasons Pie Chart */}
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700 mb-4">Cancellation Reasons</h4>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                            <Pie
-                                data={cancellationReasons}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            >
-                                {cancellationReasons.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                        </PieChart>
-                    </ResponsiveContainer>
+                <div className="lg:col-span-7 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                    <h4 className="text-xs font-medium text-gray-700 mb-2">Cancellation Reasons</h4>
+                    <div style={{ height: '300px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={data.reasonData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={100}
+                                    label={({ name, percent }) => {
+                                        // Truncate long names and show percentage
+                                        const truncatedName = name.length > 20 ? name.substring(0, 17) + '...' : name;
+                                        return `${truncatedName} (${(percent * 100).toFixed(0)}%)`;
+                                    }}
+                                    labelLine={{ strokeWidth: 0.5 }}
+                                >
+                                    {data.reasonData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip 
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white p-2 rounded shadow border border-gray-200 text-[10px]">
+                                                    <p className="font-medium">{label}</p>
+                                                    <p className="text-gray-600">Count: {payload[0].value}</p>
+                                                    <p className="text-gray-600">Percentage: {((payload[0].value / data.cancelledOrders) * 100).toFixed(1)}%</p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    {/* Stats below chart */}
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                        <div className="grid grid-cols-3 gap-2 text-[10px]">
+                            <div>
+                                <span className="text-gray-500">Cancellation Rate</span>
+                                <p className="font-semibold text-red-600">{data.cancellationRate.toFixed(1)}%</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Total Cancellations</span>
+                                <p className="font-semibold text-red-600">{data.cancelledOrders}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Total Orders</span>
+                                <p className="font-semibold text-gray-800">{data.totalOrders}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {/* Summary Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700">Average Cancellation Rate</h4>
-                    <p className="text-2xl font-bold text-red-600 mt-1">
-                        {data.reduce((acc, curr) => acc + curr.rate, 0) / data.length}%
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">↓ 1.2% from last period</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700">Total Cancellations</h4>
-                    <p className="text-2xl font-bold text-red-600 mt-1">
-                        {data.reduce((acc, curr) => acc + curr.cancellations, 0)}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">↓ 15% from last period</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700">Most Common Reason</h4>
-                    <p className="text-2xl font-bold text-red-600 mt-1">
-                        {cancellationReasons[0].name}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">{cancellationReasons[0].value}% of cancellations</p>
+                {/* Top Reasons List */}
+                <div className="lg:col-span-3 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                    <h4 className="text-xs font-medium text-gray-700 mb-2">Top Cancellation Reasons</h4>
+                    <div className="space-y-1.5">
+                        {data.reasonData
+                            .sort((a, b) => b.value - a.value)
+                            .slice(0, 5)
+                            .map((reason, index) => (
+                                <div key={index} className="flex items-center justify-between text-[10px]">
+                                    <span className="text-gray-600 truncate">{reason.name}</span>
+                                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                                        <span className="font-medium text-gray-800">{reason.value}</span>
+                                        <span className="text-gray-500">
+                                            ({((reason.value / data.cancelledOrders) * 100).toFixed(1)}%)
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, X, TrendingUp, Users, Package, Clock, Star } from 'lucide-react';
 
 const DeliveryPartnersReport = ({ reportData, onDownload, onClose }) => {
   useEffect(() => {
@@ -11,116 +11,104 @@ const DeliveryPartnersReport = ({ reportData, onDownload, onClose }) => {
     return null;
   }
 
-  // Simple bar chart using divs
-  const SimpleBarChart = ({ data, title, color = 'blue' }) => {
-    const maxValue = Math.max(...Object.values(data));
-    const colorClasses = {
-      blue: 'bg-blue-500',
-      green: 'bg-green-500',
-      yellow: 'bg-yellow-500',
-      purple: 'bg-purple-500'
-    };
-    
-    return (
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-gray-700">{title}</h4>
-        <div className="space-y-2">
-          {Object.entries(data).map(([label, value]) => (
-            <div key={label} className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-600">{label}</span>
-                <span className="text-gray-900">{value}</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${colorClasses[color]} rounded-full transition-all duration-500`}
-                  style={{ width: `${(value / maxValue) * 100}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // Enhanced ProvinceBarChart: horizontal bars, axis, grid, tooltip, highlight
+  // Enhanced ProvinceBarChart with more metrics and better styling
   const ProvinceBarChart = ({ data, title, color = 'blue' }) => {
     const [hovered, setHovered] = React.useState(null);
     const maxValue = Math.max(...Object.values(data));
+    const total = Object.values(data).reduce((a, b) => a + b, 0);
     const colorClasses = {
       blue: 'bg-blue-500',
       blueHighlight: 'bg-blue-700',
     };
-    const barHeight = 28;
-    const barGap = 18;
+    const barHeight = 24;
+    const barGap = 12;
     const barCount = Object.keys(data).length;
     const chartHeight = barCount * (barHeight + barGap);
-    const gridStep = Math.ceil(maxValue / 5);
-    const gridLines = Array.from({ length: 6 }, (_, i) => i * gridStep);
+
+    // Sort data by value in descending order
+    const sortedData = Object.entries(data).sort(([, a], [, b]) => b - a);
 
     return (
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">{title}</h4>
-        <div className="relative" style={{ height: chartHeight + 40 }}>
-          {/* Grid lines */}
-          <div className="absolute left-36 right-4 top-0 bottom-8 z-0">
-            {gridLines.map((val, i) => (
-              <div
-                key={val}
-                className="absolute border-t border-gray-200"
-                style={{
-                  left: `${(val / maxValue) * 100}%`,
-                  top: 0,
-                  width: 1,
-                  height: '100%',
-                  borderLeft: '1px solid #e5e7eb',
-                  borderTop: 'none',
-                  zIndex: 0,
-                }}
-              >
-                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-gray-400">{val}</span>
-              </div>
-            ))}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800">{title}</h4>
+            <p className="text-xs text-gray-500">Geographic distribution</p>
           </div>
+          <div className="text-right">
+            <div className="text-lg font-bold text-gray-900">{total}</div>
+            <div className="text-xs text-gray-500">Total</div>
+          </div>
+        </div>
+
+        <div className="relative" style={{ height: chartHeight + 20 }}>
           {/* Bars and labels */}
           <div className="absolute left-0 right-0 top-0 z-10">
-            {Object.entries(data).map(([label, value], idx) => (
-              <div key={label} style={{ height: barHeight, marginBottom: barGap, display: 'flex', alignItems: 'center' }}>
-                {/* Y-axis label */}
-                <div className="w-36 text-right pr-4 text-sm text-gray-600" style={{ flexShrink: 0 }}>{label}</div>
-                {/* Bar */}
-                <div className="flex-1 relative">
-                  <div
-                    className={`h-6 rounded transition-all duration-300 cursor-pointer ${hovered === idx ? colorClasses.blueHighlight : colorClasses.blue}`}
-                    style={{ width: `${(value / maxValue) * 100}%` }}
-                    onMouseEnter={() => setHovered(idx)}
-                    onMouseLeave={() => setHovered(null)}
-                  />
-                  {/* Tooltip */}
-                  {hovered === idx && (
-                    <div className="absolute left-1/2 -top-8 -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg z-20 whitespace-nowrap">
-                      {label}: {value}
-                    </div>
-                  )}
+            {sortedData.map(([label, value], idx) => {
+              const percentage = ((value / total) * 100).toFixed(1);
+              return (
+                <div key={label} style={{ height: barHeight, marginBottom: barGap, display: 'flex', alignItems: 'center' }}>
+                  {/* Y-axis label */}
+                  <div className="w-32 text-right pr-3" style={{ flexShrink: 0 }}>
+                    <div className="text-xs font-medium text-gray-700 truncate" title={label}>{label}</div>
+                    <div className="text-xs text-gray-500">{percentage}%</div>
+                  </div>
+                  {/* Bar */}
+                  <div className="flex-1 relative">
+                    <div
+                      className={`h-5 rounded transition-all duration-300 cursor-pointer ${
+                        hovered === idx ? colorClasses.blueHighlight : colorClasses.blue
+                      }`}
+                      style={{ 
+                        width: `${(value / maxValue) * 100}%`,
+                        boxShadow: hovered === idx ? '0 2px 4px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                      }}
+                      onMouseEnter={() => setHovered(idx)}
+                      onMouseLeave={() => setHovered(null)}
+                    />
+                    {/* Tooltip */}
+                    {hovered === idx && (
+                      <div className="absolute left-1/2 -top-8 -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg z-20 whitespace-nowrap">
+                        <div className="font-medium">{label}</div>
+                        <div className="text-gray-300">
+                          {value} partners ({percentage}%)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {/* Value at end of bar */}
+                  <div className="w-12 text-right">
+                    <div className="text-xs font-semibold text-gray-900">{value}</div>
+                  </div>
                 </div>
-                {/* Value at end of bar */}
-                <div className="w-10 text-xs text-gray-700 pl-2">{value}</div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Additional Stats */}
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="flex justify-between">
+            <div className="text-xs">
+              <span className="text-gray-500">Most Active: </span>
+              <span className="font-medium text-gray-700">{sortedData[0]?.[0]}</span>
+            </div>
+            <div className="text-xs">
+              <span className="text-gray-500">Coverage: </span>
+              <span className="font-medium text-gray-700">{sortedData.length} Provinces</span>
+            </div>
           </div>
         </div>
       </div>
     );
   };
 
-  // Simple pie chart using a single conic-gradient div
-  const SimplePieChart = ({ data }) => {
-    // Only deliveries for the center total
-    const totalDeliveries = (data['Active Deliveries'] || 0) + (data['Completed Deliveries'] || 0);
+  // Enhanced Pie Chart with better styling and more information
+  const EnhancedPieChart = ({ data, title }) => {
+    const total = Object.values(data).reduce((sum, v) => sum + v, 0);
     let lastAngle = 0;
     const segments = Object.entries(data).map(([label, value], index) => {
-      const percentage = (value / Object.values(data).reduce((sum, v) => sum + v, 0)) * 100;
+      const percentage = (value / total) * 100;
       const angle = (percentage / 100) * 360;
       const start = lastAngle;
       const end = lastAngle + angle;
@@ -135,50 +123,154 @@ const DeliveryPartnersReport = ({ reportData, onDownload, onClose }) => {
       };
     });
 
-    // Build the conic-gradient string
     const gradient = segments.map((seg, i) => {
       return `${seg.color} ${seg.start}deg ${seg.end}deg`;
     }).join(', ');
 
     return (
-      <div className="relative w-48 h-48 mx-auto mb-4">
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{ background: `conic-gradient(${gradient})` }}
-        />
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-2xl font-bold text-gray-900">{totalDeliveries}</div>
-          <div className="text-sm text-gray-600">Total Deliveries</div>
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800">{title}</h4>
+            <p className="text-xs text-gray-500 mt-1">Distribution of delivery partners by status</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          {/* Pie Chart */}
+          <div className="relative w-48 h-48">
+            <div
+              className="absolute inset-0 rounded-full shadow-inner transform transition-transform duration-500 hover:scale-105"
+              style={{ 
+                background: `conic-gradient(${gradient})`,
+                boxShadow: 'inset 0 0 20px rgba(0,0,0,0.1)'
+              }}
+            />
+          </div>
+
+          {/* Legend with enhanced styling */}
+          <div className="flex-1 ml-8 space-y-4">
+            {segments.map((seg, i) => (
+              <div key={seg.label} className="flex items-center group">
+                <div 
+                  className="w-4 h-4 rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"
+                  style={{ backgroundColor: seg.color }}
+                />
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">{seg.label}</span>
+                    <span className="text-sm font-semibold text-gray-900">{seg.value}</span>
+                  </div>
+                  <div className="mt-1">
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${seg.percentage}%`,
+                          backgroundColor: seg.color,
+                          opacity: 0.8
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs text-gray-500">Percentage</span>
+                      <span className="text-xs font-medium text-gray-700">{seg.percentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Additional Stats */}
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500">Available Rate</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {((data['Available Partners'] / total) * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500">Delivery Efficiency</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {((data['Completed Deliveries'] / (data['Active Deliveries'] + data['Completed Deliveries'])) * 100).toFixed(1)}%
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   };
 
-  // Helper function to get colors for pie chart
+  // Enhanced Performance Metrics Chart
+  const PerformanceMetricsChart = ({ data }) => {
+    const metrics = data.map(metric => ({
+      name: metric.name,
+      totalDeliveries: metric.totalDeliveries,
+      activeDeliveries: metric.activeDeliveries,
+      completedDeliveries: metric.completedDeliveries,
+      rating: metric.rating
+    }));
+
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <h4 className="text-sm font-semibold text-gray-800 mb-4">Performance Metrics</h4>
+        <div className="space-y-4">
+          {metrics.map((metric, index) => (
+            <div key={index} className="border-b last:border-b-0 pb-4 last:pb-0">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium text-gray-700">{metric.name}</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500">Rating:</span>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={14}
+                        className={star <= metric.rating ? "text-yellow-400 fill-current" : "text-gray-300"}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-2 bg-blue-50 rounded">
+                  <div className="text-sm font-medium text-blue-700">{metric.totalDeliveries}</div>
+                  <div className="text-xs text-blue-500">Total</div>
+                </div>
+                <div className="text-center p-2 bg-yellow-50 rounded">
+                  <div className="text-sm font-medium text-yellow-700">{metric.activeDeliveries}</div>
+                  <div className="text-xs text-yellow-500">Active</div>
+                </div>
+                <div className="text-center p-2 bg-green-50 rounded">
+                  <div className="text-sm font-medium text-green-700">{metric.completedDeliveries}</div>
+                  <div className="text-xs text-green-500">Completed</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to get colors for charts
   const getColor = (index) => {
     const colors = [
       'rgb(59, 130, 246)', // blue
       'rgb(16, 185, 129)', // green
       'rgb(245, 158, 11)', // yellow
-      'rgb(139, 92, 246)'  // purple
+      'rgb(139, 92, 246)', // purple
+      'rgb(239, 68, 68)',  // red
+      'rgb(14, 165, 233)'  // sky
     ];
     return colors[index % colors.length];
   };
 
-  // Prepare performance data for the chart
-  const preparePerformanceData = () => {
-    const data = {};
-    reportData.performanceMetrics.forEach(metric => {
-      data[metric.name] = metric.totalDeliveries;
-    });
-    return data;
-  };
-
-  // Prepare summary data for pie chart using actual backend data
+  // Prepare summary data for pie chart
   const prepareSummaryData = () => {
-    // Calculate total deliveries (active + completed)
-    const totalDeliveries = reportData.activeDeliveries + reportData.completedDeliveries;
-    
     return {
       'Available Partners': reportData.availablePartners,
       'Active Deliveries': reportData.activeDeliveries,
@@ -187,169 +279,90 @@ const DeliveryPartnersReport = ({ reportData, onDownload, onClose }) => {
     };
   };
 
-  // Simple Line Chart for Performance Metrics
-  const PerformanceLineChart = ({ data, title }) => {
-    const entries = Object.entries(data);
-    const values = entries.map(([, v]) => v);
-    const labels = entries.map(([k]) => k);
-    const maxValue = Math.max(...values, 1);
-    const minValue = Math.min(...values, 0);
-    const chartWidth = 400;
-    const chartHeight = 180;
-    const padding = 40;
-    const pointRadius = 4;
-    const stepX = (chartWidth - 2 * padding) / (values.length - 1 || 1);
-    const scaleY = v => chartHeight - padding - ((v - minValue) / (maxValue - minValue || 1)) * (chartHeight - 2 * padding);
-    const scaleX = i => padding + i * stepX;
-    const linePath = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${scaleX(i)},${scaleY(v)}`).join(' ');
-    const gridCount = 4;
-    const gridVals = Array.from({ length: gridCount + 1 }, (_, i) => minValue + (i * (maxValue - minValue) / gridCount));
-
-    return (
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">{title}</h4>
-        <svg width={chartWidth} height={chartHeight + 30} className="block w-full h-auto">
-          {/* Grid lines and Y labels */}
-          {gridVals.map((v, i) => (
-            <g key={i}>
-              <line
-                x1={padding}
-                x2={chartWidth - padding}
-                y1={scaleY(v)}
-                y2={scaleY(v)}
-                stroke="#f3f4f6"
-                strokeWidth={1}
-              />
-              <text
-                x={padding - 8}
-                y={scaleY(v) + 4}
-                fontSize={12}
-                fill="#a3a3a3"
-                textAnchor="end"
-              >
-                {Math.round(v)}
-              </text>
-            </g>
-          ))}
-          {/* X labels, rotated 45deg with tooltip */}
-          {labels.map((label, i) => (
-            <g key={label}>
-              <title>{label}</title>
-              <text
-                x={scaleX(i)}
-                y={chartHeight - padding + 28}
-                fontSize={12}
-                fill="#6b7280"
-                textAnchor="end"
-                transform={`rotate(-45,${scaleX(i)},${chartHeight - padding + 18})`}
-                style={{ cursor: 'pointer' }}
-              >
-                {label.length > 10 ? label.slice(0, 10) + '…' : label}
-              </text>
-            </g>
-          ))}
-          {/* Line path */}
-          <polyline
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth={4}
-            points={values.map((v, i) => `${scaleX(i)},${scaleY(v)}`).join(' ')}
-          />
-          {/* Points */}
-          {values.map((v, i) => (
-            <circle
-              key={i}
-              cx={scaleX(i)}
-              cy={scaleY(v)}
-              r={pointRadius}
-              fill="#3b82f6"
-              stroke="#fff"
-              strokeWidth={2}
-            />
-          ))}
-        </svg>
-      </div>
-    );
-  };
-
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
-        onClick={onClose}
-      />
-      
-      {/* Side Panel */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
-        <div className="h-full flex flex-col">
-          {/* Header */}
-          <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="text-xl font-bold text-gray-900">Delivery Partners Report</h2>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <X size={20} className="text-gray-500" />
-            </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-6xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">Delivery Partners Report</h2>
+            <div className="flex space-x-2">
+              <button
+                onClick={onDownload}
+                className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                <Download size={16} className="mr-2" />
+                Download Report
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            {/* Summary Pie Chart */}
-            <div className="bg-white p-4 rounded-lg border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Delivery Partners Overview</h3>
-              <SimplePieChart data={prepareSummaryData()} />
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                {Object.entries(prepareSummaryData()).map(([label, value], index) => (
-                  <div key={label} className="flex items-center space-x-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: getColor(index) }}
-                    />
-                    <span className="text-sm text-gray-600">{label}: {value}</span>
-                  </div>
-                ))}
+          {/* Summary Cards */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-50 rounded-full">
+                  <Users size={20} className="text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Total Partners</div>
+                  <div className="text-xl font-semibold text-gray-800">{reportData.totalPartners}</div>
+                </div>
               </div>
             </div>
-
-            {/* Province Distribution */}
-            <div className="bg-white p-4 rounded-lg border">
-              <ProvinceBarChart 
-                data={reportData.provinceDistribution} 
-                title="Province Distribution"
-                color="blue"
-              />
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-50 rounded-full">
+                  <Package size={20} className="text-green-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Active Deliveries</div>
+                  <div className="text-xl font-semibold text-gray-800">{reportData.activeDeliveries}</div>
+                </div>
+              </div>
             </div>
-
-            {/* Vehicle Type Distribution */}
-            <div className="bg-white p-4 rounded-lg border">
-              <SimpleBarChart 
-                data={reportData.vehicleTypeDistribution} 
-                title="Vehicle Type Distribution"
-                color="green"
-              />
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-yellow-50 rounded-full">
+                  <Clock size={20} className="text-yellow-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Completed Deliveries</div>
+                  <div className="text-xl font-semibold text-gray-800">{reportData.completedDeliveries}</div>
+                </div>
+              </div>
             </div>
-
-            {/* Performance Metrics */}
-            <div className="bg-white p-4 rounded-lg border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
-              <PerformanceLineChart 
-                data={preparePerformanceData()} 
-                title="Total Deliveries by Partner"
-              />
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-purple-50 rounded-full">
+                  <TrendingUp size={20} className="text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Available Partners</div>
+                  <div className="text-xl font-semibold text-gray-800">{reportData.availablePartners}</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t">
-            <button
-              onClick={onDownload}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Download size={18} />
-              Download Report
-            </button>
+          {/* Charts Grid */}
+          <div className="grid grid-cols-2 gap-6">
+            <ProvinceBarChart
+              data={reportData.provinceDistribution}
+              title="Partner Distribution by Province"
+            />
+            <EnhancedPieChart
+              data={prepareSummaryData()}
+              title="Partner Status Distribution"
+            />
+            <div className="col-span-2">
+              <PerformanceMetricsChart data={reportData.performanceMetrics} />
+            </div>
           </div>
         </div>
       </div>

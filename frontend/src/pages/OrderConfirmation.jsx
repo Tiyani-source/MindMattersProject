@@ -47,7 +47,7 @@ const OrderConfirmation = () => {
             </div>
             <div className="mt-4">
               <Link
-                to="/"
+                to="/store"
                 className="inline-block bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors duration-200"
               >
                 Continue Shopping

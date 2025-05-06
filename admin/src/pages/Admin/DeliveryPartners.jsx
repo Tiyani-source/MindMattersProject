@@ -32,6 +32,9 @@ const DeliveryPartners = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingPartner, setEditingPartner] = useState(null);
+  const [showOrdersPopup, setShowOrdersPopup] = useState(false);
+  const [selectedPartnerOrders, setSelectedPartnerOrders] = useState([]);
+  const [selectedPartnerType, setSelectedPartnerType] = useState(''); // 'active' or 'completed'
   const [newPartner, setNewPartner] = useState({
     name: '',
     email: '',
@@ -248,6 +251,88 @@ Partner: ${p.name}
     URL.revokeObjectURL(url);
   };
 
+  const handleViewOrders = async (partnerId, type) => {
+    try {
+      const response = await axios.get(`http://localhost:4000/api/orders/all`, {
+        headers: {
+          Authorization: `Bearer ${aToken}`
+        }
+      });
+
+      if (response.data.success) {
+        const allOrders = response.data.orders;
+        const partnerOrders = allOrders.filter(order => {
+          if (order.deliveryPartner && order.deliveryPartner._id === partnerId) {
+            if (type === 'active') {
+              return order.deliveryStatus === 'Assigned';
+            } else if (type === 'completed') {
+              return order.deliveryStatus === 'Delivered';
+            }
+          }
+          return false;
+        });
+
+        setSelectedPartnerOrders(partnerOrders);
+        setSelectedPartnerType(type);
+        setShowOrdersPopup(true);
+      }
+    } catch (error) {
+      console.error('Error fetching partner orders:', error);
+    }
+  };
+
+  const OrdersPopup = () => {
+    if (!showOrdersPopup) return null;
+
+    const partner = deliveryPartners.find(p => p._id === selectedPartnerOrders[0]?.deliveryPartner?._id);
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">
+              {selectedPartnerType === 'active' ? 'Active' : 'Completed'} Orders for {partner?.name}
+            </h2>
+            <button
+              onClick={() => setShowOrdersPopup(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {selectedPartnerOrders.length > 0 ? (
+              selectedPartnerOrders.map(order => (
+                <div key={order._id} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Order ID: {order.orderId}</p>
+                      <p className="text-sm text-gray-600">Date: {new Date(order.date).toLocaleDateString()}</p>
+                      <p className="text-sm text-gray-600">Status: {order.status}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Customer: {order.shippingInfo.firstName} {order.shippingInfo.lastName}</p>
+                      <p className="text-sm text-gray-600">Location: {order.shippingInfo.district}</p>
+                      <p className="text-sm text-gray-600">Amount: LKR {order.totalAmount}</p>
+                    </div>
+                  </div>
+                  {order.estimatedDelivery && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Estimated Delivery: {new Date(order.estimatedDelivery).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-500">No {selectedPartnerType} orders found</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -396,13 +481,21 @@ Partner: ${p.name}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-sm text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewOrders(partner._id, 'active')}
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          <Activity className="w-3 h-3" />
                           Active: {partner.assignedOrdersCount || 0}
-                        </span>
-                        <span className="text-xs text-gray-500">
+                        </button>
+                        <button
+                          onClick={() => handleViewOrders(partner._id, 'completed')}
+                          className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800"
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
                           Completed: {partner.completedOrdersCount || 0}
-                        </span>
+                        </button>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -650,6 +743,9 @@ Partner: ${p.name}
             </div>
           </div>
         )}
+
+        {/* Add OrdersPopup component */}
+        <OrdersPopup />
       </div>
     </div>
   );

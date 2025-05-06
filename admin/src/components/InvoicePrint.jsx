@@ -2,8 +2,7 @@ import React from 'react';
 
 const InvoicePrint = ({ order }) => {
     const handlePrint = () => {
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(`
+        const printContents = `
             <html>
                 <head>
                     <title>Invoice - ${order.orderId}</title>
@@ -247,11 +246,13 @@ const InvoicePrint = ({ order }) => {
                     </div>
                 </body>
             </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
+        `;
+        
+        const newWindow = window.open('', '_blank');
+        newWindow.document.write(printContents);
+        newWindow.document.close();
+        newWindow.focus();
+        newWindow.print();
     };
 
     return (
