@@ -14,7 +14,7 @@ const AdminContextProvider = (props) => {
     const [appointments, setAppointments] = useState([])
     const [doctors, setDoctors] = useState([])
     const [dashData, setDashData] = useState(false)
-    const [orders, setOrders] = useState([]); // orders state
+    const [orders, setOrders] = useState([])
 
     // Getting all Doctors data from Database using API
     const getAllDoctors = async () => {
@@ -113,44 +113,74 @@ const AdminContextProvider = (props) => {
     }
 
     const changeOrderStatus = async (orderId, status) => {
-
-        console.log(orderId, status);
-        
-
         try {
-            const { data } = await axios.post(backendUrl + '/api/admin/change-status', { orderId, status }, { headers: { aToken } })
+            const { data } = await axios.post(
+                `${backendUrl}/api/admin/change-status`,
+                { orderId, status },
+                { headers: { aToken } }
+            )
 
             if (data.success) {
                 toast.success(data.message)
-                getAllAppointments()
+                setOrders(prevOrders => 
+                    prevOrders.map(order => 
+                        order._id === orderId ? { ...order, status } : order
+                    )
+                )
             } else {
                 toast.error(data.message)
             }
-
         } catch (error) {
             toast.error(error.message)
-            console.log(error)
+            console.error("Failed to update order status:", error)
         }
-
     }
 
     const fetchOrders = async () => {
         try {
-            const { data } = await axios.get(`${backendUrl}/api/orders/all`, {
-                headers: { aToken }
-                });
-
-                console.log(data);
-                
-                setOrders(data);
-
-            
-        } catch (error) {
-                console.log(error);
-                toast.error("Failed to fetch orders");
+            const { data } = await axios.get(
+                `${backendUrl}/api/orders/all`,
+                { headers: { aToken } }
+            )
+            if (data.success) {
+                setOrders(data.orders)
+            } else {
+                toast.error(data.message)
             }
-        };
+        } catch (error) {
+            toast.error(error.message)
+            console.error("Failed to fetch orders:", error)
+        }
+    }
 
+    const cancelOrder = async (orderId, reason) => {
+        try {
+            const { data } = await axios.patch(
+                `${backendUrl}/api/orders/${orderId}/cancel`,
+                { cancelReason: reason },
+                { 
+                    headers: { 
+                       'Content-Type': 'application/json'
+                    } 
+                }
+            )
+            if (data.success) {
+                toast.success(data.message)
+                setOrders(prevOrders => 
+                    prevOrders.map(order => 
+                        order._id === orderId 
+                            ? { ...order, status: "Cancelled", cancelReason: reason }
+                            : order
+                    )
+                )
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.error("Failed to cancel order:", error)
+        }
+    }
 
     const value = {
         aToken, setAToken,
@@ -163,7 +193,8 @@ const AdminContextProvider = (props) => {
         cancelAppointment,
         changeOrderStatus,
         fetchOrders,
-        sampleOrders: orders,
+        cancelOrder,
+        orders,
         setOrders,
         dashData
     }

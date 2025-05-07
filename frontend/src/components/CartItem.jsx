@@ -6,14 +6,16 @@ import PropTypes from 'prop-types';
 import { AppContext } from '../context/AppContext';
 
 const CartItem = ({ item, styles }) => {
-  const { removeFromCart, addToWishlist, isLoading } = useContext(AppContext);
+  const { removeFromCart, addToWishlist, updateCartItemQuantity, isLoading } = useContext(AppContext);
 
   const handleQuantityChange = async (delta) => {
     if (isLoading) return;
+    
+    const newQuantity = item.quantity + delta;
+    if (newQuantity < 1) return; // Prevent quantity from going below 1
+
     try {
-      const newQuantity = Math.max(1, item.quantity + delta);
-      await removeFromCart(item.productId);
-      await addToCart(item.productId, item.name, item.price, newQuantity);
+      await updateCartItemQuantity(item.productId, newQuantity);
     } catch (error) {
       console.error('Error updating quantity:', error);
     }
@@ -22,7 +24,13 @@ const CartItem = ({ item, styles }) => {
   const handleMoveToWishlist = async () => {
     if (isLoading) return;
     try {
-      await addToWishlist(item.productId, item.name, item.price);
+      await addToWishlist({
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        color: item.color,
+        size: item.size
+      });
       await removeFromCart(item.productId);
     } catch (error) {
       console.error('Error moving to wishlist:', error);
@@ -39,13 +47,29 @@ const CartItem = ({ item, styles }) => {
   };
 
   return (
-    <tr>
-      <td>
-        <div style={styles.productCell}>
+    <tr style={styles.cartItemRow}>
+      <td style={styles.productCell}>
+        <div style={styles.productInfo}>
           <span style={styles.productName}>{item.name}</span>
         </div>
       </td>
-      <td>
+      <td style={styles.attributesCell}>
+        <div style={styles.attributes}>
+          {item.color && (
+            <div style={styles.attributeContainer}>
+              Color: 
+              <div style={{ ...styles.colorBlock, backgroundColor: item.color }} />
+            </div>
+          )}
+          {item.size && (
+            <div style={styles.attributeContainer}>
+              Size: 
+              <span style={styles.attributeValue}>{item.size}</span>
+            </div>
+          )}
+        </div>
+      </td>
+      <td style={styles.quantityCell}>
         <div style={styles.quantityControl}>
           <MDBBtn
             style={styles.quantityBtn}
@@ -69,9 +93,14 @@ const CartItem = ({ item, styles }) => {
           </MDBBtn>
         </div>
       </td>
-      <td>LKR {item.price * item.quantity}</td>
-      <td>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+      <td style={styles.priceCell}>
+        <div style={styles.priceContainer}>
+          <span style={styles.priceLabel}>Total</span>
+          <span style={styles.priceValue}>LKR {item.price * item.quantity}</span>
+        </div>
+      </td>
+      <td style={styles.actionsCell}>
+        <div style={styles.actionsContainer}>
           <button
             style={styles.actionBtn}
             onClick={handleMoveToWishlist}
@@ -98,6 +127,8 @@ CartItem.propTypes = {
     name: PropTypes.string.isRequired,
     price: PropTypes.number.isRequired,
     quantity: PropTypes.number.isRequired,
+    color: PropTypes.string,
+    size: PropTypes.string,
   }).isRequired,
   styles: PropTypes.object.isRequired,
 };
