@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllStudents, deleteStudent, updateStudentProfile,deleteStudentProfile } from '../controllers/studentController.js';
+import { getAllStudents, deleteStudent, updateStudentProfile,deleteStudentProfile,changeStudentPassword,getStudentProfile,getStudentCount } from '../controllers/studentController.js';
 import { authStudent } from '../middleware/authStudent.js';
 import { verifyToken } from '../middleware/verifyToken.js';
 import upload from '../middleware/uploadMiddleware.js';
