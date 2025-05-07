@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import DoctorAppointments from "./pages/Doctor/DoctorAppointments";
 import DoctorDashboard from "./pages/Doctor/DoctorDashboard";
 import DoctorProfile from "./pages/Doctor/DoctorProfile";
+import DeliveryPartners from "./pages/Admin/DeliveryPartners";
 
 import PatientRequests from "./pages/Doctor/PatientRequests";
 import PatientFeedback from "./pages/Doctor/PatientFeedback";
@@ -35,6 +36,7 @@ import AdminProductManagement from './pages/supplyManager/ProductManagementDashb
 import { SupplyManagerContext } from './context/SupplyManagerContext.jsx';
 import SupplierProfileDashboard from './pages/supplyManager/supplierProfile.jsx';
 import SupplierDashboard from './pages/supplyManager/supplyManagerDashboard.jsx';
+import OrderPaymentDashboard from "./pages/Payment/orderPaymentDashboard.jsx";
 
 
 const App = () => {
@@ -73,7 +75,8 @@ const App = () => {
             <Route path="/product-management" element={<AdminProductManagement />} />
             <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
             <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
-
+            <Route path='/delivery-partners' element={<DeliveryPartners />} />
+            <Route path='/order-payment-dashboard' element={<OrderPaymentDashboard />} />
             
 
           </Routes>

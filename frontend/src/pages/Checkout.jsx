@@ -1,57 +1,72 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AppContext } from '../context/AppContext';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+// src/components/Checkout.jsx
+import React, { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { studentData, cart, createOrder, clearCart } = useContext(AppContext);
+  const { studentData, cart, clearCart } = useContext(AppContext);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    apartment: '',
-    city: '',
-    postalCode: '',
-    district: '',
-    country: 'Sri Lanka'
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    apartment: "",
+    city: "",
+    postalCode: "",
+    district: "",
+    country: "Sri Lanka",
   });
+
+  // Sri Lankan districts
+  const districts = [
+    { group: "Western Province", districts: ["Colombo", "Gampaha", "Kalutara"] },
+    { group: "Central Province", districts: ["Kandy", "Matale", "Nuwara Eliya"] },
+    { group: "Southern Province", districts: ["Galle", "Matara", "Hambantota"] },
+    { group: "Northern Province", districts: ["Jaffna", "Kilinochchi", "Mannar", "Vavuniya", "Mullaitivu"] },
+    { group: "Eastern Province", districts: ["Trincomalee", "Batticaloa", "Ampara"] },
+    { group: "North Western Province", districts: ["Kurunegala", "Puttalam"] },
+    { group: "North Central Province", districts: ["Anuradhapura", "Polonnaruwa"] },
+    { group: "Uva Province", districts: ["Badulla", "Monaragala"] },
+    { group: "Sabaragamuwa Province", districts: ["Ratnapura", "Kegalle"] },
+  ];
 
   // Initialize form with student data if available
   useEffect(() => {
     if (studentData) {
       setFormData({
-        firstName: studentData.firstName || '',
-        lastName: studentData.lastName || '',
-        email: studentData.email || '',
-        phone: studentData.phone || '',
-        address: studentData.address || '',
-        apartment: studentData.apartment || '',
-        city: studentData.city || '',
-        postalCode: studentData.postalCode || '',
-        district: studentData.district || '',
-        country: studentData.country || 'Sri Lanka'
+        firstName: studentData.firstName || "",
+        lastName: studentData.lastName || "",
+        email: studentData.email || "",
+        phone: studentData.phone || "",
+        address: studentData.address || "",
+        apartment: studentData.apartment || "",
+        city: studentData.city || "",
+        postalCode: studentData.postalCode || "",
+        district: studentData.district || "",
+        country: studentData.country || "Sri Lanka",
       });
     }
   }, [studentData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const validateForm = () => {
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postalCode', 'district'];
+    const requiredFields = ["firstName", "lastName", "email", "phone", "address", "city", "postalCode", "district"];
     for (const field of requiredFields) {
       if (!formData[field]) {
-        toast.error(`Please fill in your ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+        toast.error(`Please fill in your ${field.replace(/([A-Z])/g, " $1").toLowerCase()}`);
         return false;
       }
     }
@@ -60,16 +75,16 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate student data
     if (!studentData || !studentData._id) {
-      toast.error('Student data is not available. Please try logging in again.');
+      toast.error("Student data is not available. Please try logging in again.");
       return;
     }
 
     // Validate cart
     if (!cart || !cart.items || cart.items.length === 0) {
-      toast.error('Your cart is empty');
+      toast.error("Your cart is empty");
       return;
     }
 
@@ -81,9 +96,9 @@ const Checkout = () => {
       const shippingCost = 500; // Fixed shipping cost
       const subtotal = cart.items.reduce((sum, item) => {
         if (!item.price || !item.quantity) {
-          throw new Error('Invalid cart item data');
+          throw new Error("Invalid cart item data");
         }
-        return sum + (item.price * item.quantity);
+        return sum + item.price * item.quantity;
       }, 0);
       const totalAmount = subtotal + shippingCost;
 
@@ -95,40 +110,32 @@ const Checkout = () => {
         shippingCost,
         totalAmount,
         shippingInfo: formData,
-        items: cart.items.map(item => ({
-          name: item.name || 'Unknown Product',
+        items: cart.items.map((item) => ({
+          name: item.name || "Unknown Product",
           quantity: item.quantity || 1,
           price: item.price || 0,
           color: item.color || null,
           size: item.size || null,
-          image: item.image || null
-        }))
+          image: item.image || null,
+        })),
       };
 
-      // Create order
-      const order = await createOrder(orderData);
-      
-      if (order) {
-        // Clear cart after successful order creation
-        await clearCart();
-        toast.success('Order created successfully!');
-        navigate('/order-confirmation', { state: { order } });
+      // Create temporary order
+      const response = await axios.post("http://localhost:4000/api/orders/create", orderData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (response.data.success) {
+        const order = response.data.order;
+        // Navigate to PaymentForm with order data
+        navigate(`/payment/${order.orderId}`, {
+          state: { totalAmount, orderData: order },
+        });
       } else {
-        throw new Error('Order creation failed - no order returned');
+        throw new Error("Order creation failed");
       }
     } catch (error) {
-      console.error('Checkout error:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-        toast.error(error.response.data?.message || 'Failed to create order. Please try again.');
-      } else if (error.request) {
-        console.error('Error request:', error.request);
-        toast.error('No response from server. Please check your connection.');
-      } else {
-        console.error('Error message:', error.message);
-        toast.error(error.message || 'An unexpected error occurred');
-      }
+      console.error("Checkout error:", error);
+      toast.error(error.response?.data?.message || "Failed to process checkout. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -138,7 +145,7 @@ const Checkout = () => {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
-        
+
         <div className="bg-white shadow rounded-lg p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -239,14 +246,24 @@ const Checkout = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">District</label>
-                <input
-                  type="text"
+                <select
                   name="district"
                   value={formData.district}
                   onChange={handleInputChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   required
-                />
+                >
+                  <option value="">Select District</option>
+                  {districts.map((province, index) => (
+                    <optgroup key={index} label={province.group}>
+                      {province.districts.map((district, dIndex) => (
+                        <option key={dIndex} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -268,7 +285,7 @@ const Checkout = () => {
                 disabled={isLoading}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {isLoading ? 'Processing...' : 'Place Order'}
+                {isLoading ? "Processing..." : "Proceed to Payment"}
               </button>
             </div>
           </form>
