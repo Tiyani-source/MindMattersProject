@@ -48,7 +48,7 @@ const OrderManagement = () => {
     const [selectedPartner, setSelectedPartner] = useState("");
     const [estimatedDelivery, setEstimatedDelivery] = useState("");
     const [showOrderAnalytics, setShowOrderAnalytics] = useState(true);
-    const [selectedChart, setSelectedChart] = useState("");
+    const [selectedChart, setSelectedChart] = useState("Order Volume Trends");
     const [showOrderInfo, setShowOrderInfo] = useState(false);
     const printRef = useRef();
     const [deliveryPartners, setDeliveryPartners] = useState([]);
