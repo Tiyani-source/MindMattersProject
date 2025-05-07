@@ -1,8 +1,10 @@
 import React, { useContext, useEffect, useRef,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
+import { useNotifications } from '../context/NotificationContext';
 import OrderStatusCard from '../components/OrderStatusCard';
 import OrderInfo from '../components/OrderInfo';
+import NotificationBell from '../components/NotificationBell';
 
 
 const MyOrders = () => {
@@ -15,18 +17,82 @@ const MyOrders = () => {
     handlePrintInvoice,
     getFilteredOrders,
   } = useContext(AppContext);
+  const { addNotification } = useNotifications();
 
   const [filter, setFilter] = useState("All");
   const [statusSearch, setStatusSearch] = useState("");
   const [statusSort, setStatusSort] = useState("newest");
   const printRef = useRef();
+  const previousOrdersRef = useRef([]);
 
-  // Fetch user orders on load
+  // Fetch user orders on load and set up polling
   useEffect(() => {
     if (studentData?._id) {
       fetchOrders(studentData._id);
+      
+      // Set up polling to check for order updates every 30 seconds
+      const pollInterval = setInterval(() => {
+        fetchOrders(studentData._id);
+      }, 30000);
+
+      return () => clearInterval(pollInterval);
     }
   }, [studentData]);
+
+  // Check for order status changes and create notifications
+  useEffect(() => {
+    if (!orders || orders.length === 0) return;
+
+    // If this is the first load, just store the orders
+    if (previousOrdersRef.current.length === 0) {
+      previousOrdersRef.current = [...orders];
+      return;
+    }
+
+    // Compare current orders with previous orders
+    orders.forEach(currentOrder => {
+      const previousOrder = previousOrdersRef.current.find(
+        prevOrder => prevOrder._id === currentOrder._id
+      );
+
+      if (previousOrder) {
+        // Check for status changes
+        if (previousOrder.status !== currentOrder.status) {
+          console.log('Status change detected:', {
+            orderId: currentOrder.orderId,
+            from: previousOrder.status,
+            to: currentOrder.status
+          });
+          
+          addNotification({
+            title: `Order ${currentOrder.orderId} Status Updated`,
+            message: `Your order status has changed from ${previousOrder.status} to ${currentOrder.status}`,
+            type: 'status_update',
+            orderId: currentOrder.orderId
+          });
+        }
+
+        // Check for delivery status changes
+        if (previousOrder.deliveryStatus !== currentOrder.deliveryStatus) {
+          console.log('Delivery status change detected:', {
+            orderId: currentOrder.orderId,
+            from: previousOrder.deliveryStatus,
+            to: currentOrder.deliveryStatus
+          });
+
+          addNotification({
+            title: `Order ${currentOrder.orderId} Delivery Update`,
+            message: `Your order delivery status has changed from ${previousOrder.deliveryStatus} to ${currentOrder.deliveryStatus}`,
+            type: 'delivery_update',
+            orderId: currentOrder.orderId
+          });
+        }
+      }
+    });
+
+    // Update previous orders reference
+    previousOrdersRef.current = [...orders];
+  }, [orders, addNotification]);
 
   const [showOrderInfo, setShowOrderInfo] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -96,8 +162,13 @@ const MyOrders = () => {
 
   return (
     <div>
-      {/* 🏷️Page Title */}
-      <p className="pb-3 mt-18 font-medium text-zinc-900 border-b text-center">My Orders</p>
+      {/* 🏷️Page Title with Notification Bell */}
+      <div className="flex justify-between items-center pb-3 mt-18 border-b">
+        <p className="font-medium text-zinc-900 text-center flex-1">My Orders</p>
+        <div className="absolute right-4">
+          <NotificationBell />
+        </div>
+      </div>
 
       {/* Top Buttons */}
       <div className="flex justify-between items-center pb-3 mt-12 border-b">
