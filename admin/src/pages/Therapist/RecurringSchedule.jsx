@@ -1,679 +1,644 @@
-import { useState, useContext, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { TherapistContext } from '../../context/TherapistContext';
-import { CalendarDays, Clock, Repeat, Calendar, X, Check, Coffee, Utensils, User, Edit2, ChevronRight } from "lucide-react";
 import { toast } from 'react-toastify';
+import { Calendar, Clock, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 const RecurringSchedule = () => {
     const {
-        saveRecurringAvailability,
-        fetchRecurringSchedules,
         recurringSchedules,
-        deleteRecurringSchedule,
-        updateRecurringSchedule
+        saveRecurringAvailability,
+        updateRecurringSchedule,
+        fetchRecurringSchedules
     } = useContext(TherapistContext);
 
-    const [activeTab, setActiveTab] = useState('existing'); // 'existing' or 'new'
-    const [selectedSchedule, setSelectedSchedule] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({
+        days: [],
+        startTime: '',
+        endTime: '',
+        type: 'online',
+        breaks: [],
+        startDate: '',
+        endDate: '',
+        types: ['Online', 'In-Person']
+    });
+
+    const [editingSchedule, setEditingSchedule] = useState(null);
+    const [showBreakForm, setShowBreakForm] = useState(false);
+    const [breakForm, setBreakForm] = useState({
+        start: '',
+        end: '',
+        label: ''
+    });
+
+    const [showSchedules, setShowSchedules] = useState(true);
 
     useEffect(() => {
         fetchRecurringSchedules();
     }, []);
 
-    const defaultBreaks = [
-        { start: "13:00", end: "14:00", label: "Lunch Break" },
-        { start: "17:00", end: "18:00", label: "Human Break" }
-    ];
-
-    const emptySchedule = {
-        name: "",
-        days: [],
-        startTime: "09:00",
-        endTime: "21:00",
-        interval: 60,
-        types: ["In-Person", "Online"],
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: null,
-        breaks: defaultBreaks
-    };
-
-    const [recurringSchedule, setRecurringSchedule] = useState(emptySchedule);
-    const [newBreak, setNewBreak] = useState({ start: '', end: '', label: '' });
-    const [isAddingBreak, setIsAddingBreak] = useState(false);
-
-    const [selectedSlots, setSelectedSlots] = useState({});
-
-    const daysOfWeek = [
-        { value: 0, label: "Sunday" },
-        { value: 1, label: "Monday" },
-        { value: 2, label: "Tuesday" },
-        { value: 3, label: "Wednesday" },
-        { value: 4, label: "Thursday" },
-        { value: 5, label: "Friday" },
-        { value: 6, label: "Saturday" },
-    ];
-
-    const generateTimeSlots = () => {
-        const slots = [];
-        let currentTime = new Date();
-        currentTime.setHours(8, 0, 0); // Start at 8 AM
-        const endTime = new Date();
-        endTime.setHours(20, 0, 0); // End at 8 PM
-
-        while (currentTime <= endTime) {
-            const timeString = currentTime.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-            slots.push(timeString);
-            currentTime.setMinutes(currentTime.getMinutes() + 30);
-        }
-        return slots;
-    };
-
-    const [previewDay, setPreviewDay] = useState(new Date().getDay());
-    const [generatedSlots, setGeneratedSlots] = useState([]);
-
-    const generatePreviewSlots = () => {
-        if (!recurringSchedule.startTime || !recurringSchedule.endTime || !recurringSchedule.interval) {
-            return [];
-        }
-
-        const slots = [];
-        const [startHour, startMinute] = recurringSchedule.startTime.split(':').map(Number);
-        const [endHour, endMinute] = recurringSchedule.endTime.split(':').map(Number);
-
-        let currentTime = new Date();
-        currentTime.setHours(startHour, startMinute, 0);
-
-        const endTime = new Date();
-        endTime.setHours(endHour, endMinute, 0);
-
-        while (currentTime < endTime) {
-            const timeString = currentTime.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-
-            // Check if time is within any break
-            const isBreakTime = recurringSchedule.breaks.some(breakTime => {
-                const [breakStartHour, breakStartMinute] = breakTime.start.split(':').map(Number);
-                const [breakEndHour, breakEndMinute] = breakTime.end.split(':').map(Number);
-                const timeInMinutes = startHour * 60 + startMinute;
-                const breakStartInMinutes = breakStartHour * 60 + breakStartMinute;
-                const breakEndInMinutes = breakEndHour * 60 + breakEndMinute;
-                return timeInMinutes >= breakStartInMinutes && timeInMinutes < breakEndInMinutes;
-            });
-
-            if (!isBreakTime) {
-                slots.push({
-                    time: timeString,
-                    types: recurringSchedule.types
-                });
-            }
-
-            // Add interval minutes
-            currentTime.setMinutes(currentTime.getMinutes() + recurringSchedule.interval);
-        }
-
-        return slots;
-    };
-
-    useEffect(() => {
-        if (recurringSchedule.days.includes(previewDay)) {
-            const slots = generatePreviewSlots();
-            setGeneratedSlots(slots);
-        } else {
-            setGeneratedSlots([]);
-        }
-    }, [recurringSchedule, previewDay]);
-
-    const timeSlots = generateTimeSlots();
-
-    const handleDayToggle = (dayValue) => {
-        setRecurringSchedule(prev => ({
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
             ...prev,
-            days: prev.days.includes(dayValue)
-                ? prev.days.filter(d => d !== dayValue)
-                : [...prev.days, dayValue]
+            [name]: value
         }));
     };
 
-    const handleTypeToggle = (type) => {
-        setRecurringSchedule(prev => ({
+    const handleDayToggle = (day) => {
+        setFormData(prev => ({
             ...prev,
-            types: prev.types.includes(type)
-                ? prev.types.filter(t => t !== type)
-                : [...prev.types, type]
+            days: prev.days.includes(day)
+                ? prev.days.filter(d => d !== day)
+                : [...prev.days, day]
         }));
     };
 
-    const handleAddBreak = () => {
-        if (!newBreak.start || !newBreak.end || !newBreak.label) {
-            toast.error('Please fill in all break time details');
-            return;
-        }
-        // Enforce minimum 1 hour duration
-        const [startHour, startMinute] = newBreak.start.split(":").map(Number);
-        const [endHour, endMinute] = newBreak.end.split(":").map(Number);
-        const duration = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-        if (duration < 60 || duration % 60 !== 0) {
-            toast.error('Break must be at least 1 hour and in 1 hour increments');
-            return;
-        }
-        setRecurringSchedule(prev => ({
-            ...prev,
-            breaks: [...(prev.breaks || []), { ...newBreak }]
-        }));
-        setNewBreak({ start: '', end: '', label: '' });
-        setIsAddingBreak(false);
-        toast.success('Break time added successfully');
-    };
-
-    const handleRemoveBreak = (idx) => {
-        setRecurringSchedule(prev => ({
-            ...prev,
-            breaks: prev.breaks.filter((_, i) => i !== idx)
-        }));
-    };
-
-    const handleEditSchedule = (schedule) => {
-        setSelectedSchedule(schedule);
-        setRecurringSchedule({
-            ...schedule,
-            name: schedule.name || '',
-            startDate: schedule.startDate.split('T')[0],
-            endDate: schedule.endDate ? schedule.endDate.split('T')[0] : null
-        });
-        setIsEditing(true);
-        setActiveTab('new');
-    };
-
-    const handleSave = async () => {
-        if (!recurringSchedule.name.trim()) {
-            toast.error('Please provide a schedule name');
+    const handleBreakAdd = () => {
+        if (!breakForm.start || !breakForm.end) {
+            toast.error('Please fill in break start and end times');
             return;
         }
 
-        if (recurringSchedule.days.length === 0) {
+        setFormData(prev => ({
+            ...prev,
+            breaks: [...prev.breaks, { ...breakForm }]
+        }));
+        setBreakForm({ start: '', end: '', label: '' });
+        setShowBreakForm(false);
+    };
+
+    const handleBreakRemove = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            breaks: prev.breaks.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!formData.days.length) {
             toast.error('Please select at least one day');
             return;
         }
 
-        if (!recurringSchedule.startTime || !recurringSchedule.endTime) {
-            toast.error('Please set both start and end times');
+        if (!formData.startTime || !formData.endTime) {
+            toast.error('Please set start and end times');
             return;
         }
 
-        if (recurringSchedule.types.length === 0) {
-            toast.error('Please select at least one appointment type');
+        if (!formData.startDate) {
+            toast.error('Please set a start date');
             return;
         }
 
-        // Remove icon property from breaks before sending
-        const breaksToSend = (recurringSchedule.breaks || []).map(({ start, end, label }) => ({ start, end, label }));
-        const scheduleToSend = { ...recurringSchedule, breaks: breaksToSend };
+        const dayNameToNum = {
+            Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+            Thursday: 4, Friday: 5, Saturday: 6
+        };
+
+        const payload = {
+            ...formData,
+            days: formData.days.map(d => typeof d === 'string' ? dayNameToNum[d] : d),
+            interval: formData.interval || 60, // default to 60 if not set
+            types: formData.types,
+            // Remove 'type' if present
+        };
+        delete payload.type;
 
         try {
-            if (isEditing && selectedSchedule) {
-                await updateRecurringSchedule(selectedSchedule._id, scheduleToSend);
+            if (editingSchedule) {
+                await updateRecurringSchedule(editingSchedule._id, payload);
                 toast.success('Schedule updated successfully');
             } else {
-                await saveRecurringAvailability(scheduleToSend);
-                toast.success('New schedule created successfully');
+                await saveRecurringAvailability(payload);
+                toast.success('Schedule created successfully');
             }
-
-            setRecurringSchedule(emptySchedule);
-            setIsEditing(false);
-            setSelectedSchedule(null);
-            setActiveTab('existing');
-            fetchRecurringSchedules();
+            resetForm();
         } catch (error) {
-            toast.error('Failed to save schedule');
+            toast.error(error.response?.data?.message || 'Error saving schedule');
         }
     };
 
-    const handleCancel = () => {
-        setRecurringSchedule(emptySchedule);
-        setIsEditing(false);
-        setSelectedSchedule(null);
-        setActiveTab('existing');
+    const handleEdit = (schedule) => {
+        // Convert numeric days to day names if needed
+        const numToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const daysAsNames = (schedule.days || []).map(d => typeof d === 'number' ? numToDay[d] : d);
+
+        setEditingSchedule(schedule);
+        setFormData({
+            name: schedule.name || '',
+            days: daysAsNames,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+            type: schedule.type,
+            breaks: schedule.breaks || [],
+            startDate: schedule.startDate ? schedule.startDate.slice(0, 10) : '',
+            endDate: schedule.endDate ? schedule.endDate.slice(0, 10) : '',
+            types: schedule.types || ['Online', 'In-Person'],
+            interval: schedule.interval || 60,
+        });
     };
 
-    const formatTime = (time) => {
-        return time.replace(/:00$/, '');
+    const resetForm = () => {
+        setFormData({
+            days: [],
+            startTime: '',
+            endTime: '',
+            type: 'online',
+            breaks: [],
+            startDate: '',
+            endDate: '',
+            types: ['Online', 'In-Person']
+        });
+        setEditingSchedule(null);
     };
 
-    const getDayNames = (days) => {
-        const dayMap = {
-            0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat'
+    // Helper to generate hour options
+    const hourOptions = Array.from({ length: 15 }, (_, i) => {
+        const hour = 7 + i; // 7 to 21
+        const label = new Date(0, 0, 0, hour).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const value = `${hour.toString().padStart(2, '0')}:00`;
+        return { value, label };
+    });
+
+    // For breaks, allow 30-min increments if desired
+    const breakOptions = Array.from({ length: 15 }, (_, i) => {
+        const hour = 7 + i;
+        return [
+            { value: `${hour.toString().padStart(2, '0')}:00`, label: `${hour}:00` },
+            { value: `${hour.toString().padStart(2, '0')}:30`, label: `${hour}:30` }
+        ];
+    }).flat();
+
+    // Default breaks
+    const defaultBreaks = [
+        { label: 'Lunch Break', start: '12:00', end: '13:00' },
+        { label: 'Tea Break', start: '15:00', end: '16:00' }
+    ];
+
+    function generatePreviewSlots(form) {
+        // Only preview up to 7 days for performance
+        if (!form.days.length || !form.startTime || !form.endTime || !form.startDate) return [];
+        const dayNameToNum = {
+            Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+            Thursday: 4, Friday: 5, Saturday: 6
         };
-        return days.map(d => dayMap[d]).join(', ');
-    };
-
-    const handleSlotSelect = (time, type) => {
-        setSelectedSlots(prev => {
-            const newSlots = { ...prev };
-            if (!newSlots[time]) {
-                newSlots[time] = [];
+        const daysNum = form.days.map(d => dayNameToNum[d]);
+        const startDate = new Date(form.startDate);
+        const endDate = form.endDate ? new Date(form.endDate) : new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000); // 1 week preview
+        const breaks = form.breaks || [];
+        const slots = [];
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            if (daysNum.includes(d.getDay())) {
+                const dateStr = d.toISOString().split('T')[0];
+                let [startHour, startMinute] = form.startTime.split(':').map(Number);
+                let [endHour, endMinute] = form.endTime.split(':').map(Number);
+                let current = startHour * 60 + startMinute;
+                const end = endHour * 60 + endMinute;
+                while (current < end) {
+                    const hour = Math.floor(current / 60);
+                    const minute = current % 60;
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    // Check if in break
+                    const isBreak = breaks.some(b => {
+                        const [bsh, bsm] = b.start.split(':').map(Number);
+                        const [beh, bem] = b.end.split(':').map(Number);
+                        const bstart = bsh * 60 + bsm;
+                        const bend = beh * 60 + bem;
+                        return current >= bstart && current < bend;
+                    });
+                    if (!isBreak) {
+                        slots.push({
+                            date: dateStr,
+                            time: timeStr,
+                            type: form.type === 'in-person' ? 'In-Person' : 'Online'
+                        });
+                    }
+                    current += 60; // 1 hour interval
+                }
             }
-
-            if (newSlots[time].includes(type)) {
-                newSlots[time] = newSlots[time].filter(t => t !== type);
-            } else {
-                newSlots[time] = [...newSlots[time], type];
-            }
-
-            if (newSlots[time].length === 0) {
-                delete newSlots[time];
-            }
-
-            return newSlots;
-        });
-    };
-
-    const handleClearSchedule = () => {
-        setSelectedSlots({});
-    };
-
-    const handleSaveSelectedSchedule = async () => {
-        if (!selectedSchedule.date) {
-            toast.error('Please select a date first');
-            return;
         }
-
-        try {
-            await saveRecurringAvailability({
-                [selectedSchedule.date]: selectedSlots
-            });
-            toast.success('Schedule saved successfully');
-        } catch (error) {
-            toast.error('Failed to save schedule');
-        }
-    };
-
-    const handleBreakUpdate = (index, field, value) => {
-        setRecurringSchedule(prev => {
-            const updatedBreaks = [...prev.breaks];
-            updatedBreaks[index] = {
-                ...updatedBreaks[index],
-                [field]: value
-            };
-            return {
-                ...prev,
-                breaks: updatedBreaks
-            };
-        });
-    };
-
-    const resetToDefaultBreaks = () => {
-        setRecurringSchedule(prev => ({
-            ...prev,
-            breaks: defaultBreaks
-        }));
-        toast.success('Reset to system defaults');
-    };
+        return slots;
+    }
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-light-gray to-white py-8 px-2">
-            <div className="w-full max-w-6xl mx-auto flex flex-col gap-8 h-max">
-                {/* Tab Bar */}
-                <div className="mb-2">
-                    <div className="flex gap-2 border-b border-gray-200">
+        <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-[#f7f8fa] rounded-3xl min-h-screen">
+            {/* Existing Schedules */}
+            {recurringSchedules && recurringSchedules.length > 0 && (
+                <div className="p-2  mb-10">
+                    <div className="flex items-center p-4 gap-2 mb-0 bg-[#f7f8fa] rounded-xl shadow-sm">
+                        <h3 className="text-2xl font-bold text-primary">Existing Schedules</h3>
                         <button
-                            className={`px-3 py-2 text-sm font-semibold transition-all focus:outline-none border-b-2 ${activeTab === 'existing'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-gray-700 hover:text-primary'} bg-transparent`}
-                            style={{ borderRadius: 0, boxShadow: 'none' }}
-                            onClick={() => setActiveTab('existing')}
+                            className="ml-2 px-4 py-1 rounded-full bg-primary text-white font-semibold text-base flex items-center gap-1 shadow hover:bg-[#4C5AE3] transition-all"
+                            onClick={() => setShowSchedules(v => !v)}
                         >
-                            Recurring Schedules
-                        </button>
-                        <button
-                            className={`px-3 py-2 text-sm font-semibold transition-all focus:outline-none border-b-2 ${activeTab === 'new'
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-gray-700 hover:text-primary'} bg-transparent`}
-                            style={{ borderRadius: 0, boxShadow: 'none' }}
-                            onClick={() => {
-                                setActiveTab('new');
-                                setRecurringSchedule(emptySchedule);
-                                setIsEditing(false);
-                                setSelectedSchedule(null);
-                            }}
-                        >
-                            + New Schedule
+                            {showSchedules ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                            {showSchedules ? 'Hide' : 'Show'}
                         </button>
                     </div>
+                    <hr className="my-2 border-gray-200" />
+                    {showSchedules && (
+                        <div className="space-y-5 mt-2">
+                            {recurringSchedules.map((schedule) => {
+                                // Map days to names
+                                const numToDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                                const dayNames = (schedule.days || []).map(d => typeof d === 'number' ? numToDay[d] : d).join(', ');
+                                // Calculate sessions per day (excluding breaks)
+                                const [startHour, startMinute] = schedule.startTime.split(':').map(Number);
+                                const [endHour, endMinute] = schedule.endTime.split(':').map(Number);
+                                const interval = schedule.interval || 60;
+                                const breaks = schedule.breaks || [];
+                                let sessionCount = 0;
+                                let current = startHour * 60 + startMinute;
+                                const end = endHour * 60 + endMinute;
+                                while (current < end) {
+                                    // Check if in break
+                                    const isBreak = breaks.some(b => {
+                                        const [bsh, bsm] = b.start.split(':').map(Number);
+                                        const [beh, bem] = b.end.split(':').map(Number);
+                                        const bstart = bsh * 60 + bsm;
+                                        const bend = beh * 60 + bem;
+                                        return current >= bstart && current < bend;
+                                    });
+                                    if (!isBreak) sessionCount++;
+                                    current += interval;
+                                }
+                                // Types as pill badges
+                                const typesArr = schedule.types || [];
+                                return (
+                                    <div
+                                        key={schedule._id}
+                                        className="relative flex flex-col md:flex-row items-start md:items-center bg-white rounded-xl shadow border-l-4 border-primary/80 p-4 md:p-6 transition-all hover:shadow-lg group"
+                                    >
+                                        <div className="flex-1 w-full">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="font-extrabold text-lg md:text-xl text-primary leading-tight">{schedule.name || 'Untitled Schedule'}</span>
                 </div>
-                {/* Tab Content */}
-                {activeTab === 'existing' && (
-                    <div className="w-full flex flex-col bg-transparent p-0 h-full min-h-0">
-                        <div className="flex-1 min-h-0 overflow-y-auto">
-                            {recurringSchedules.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                                    <CalendarDays className="w-12 h-12 mb-2" />
-                                    <p>No recurring schedules yet.</p>
+                                            <div className="flex flex-wrap items-center gap-4 mb-1">
+                                                <span className="flex items-center gap-2 text-base md:text-lg font-semibold text-gray-800">
+                                                    <Calendar className="w-5 h-5 text-primary" />
+                                                    {dayNames}
+                                                </span>
+                                                <span className="flex items-center gap-2 text-base md:text-lg font-semibold text-gray-700">
+                                                    <Clock className="w-5 h-5 text-primary/80" />
+                                                    {schedule.startTime} - {schedule.endTime}
+                                                </span>
                                 </div>
-                            ) : (
-                                <div className="flex flex-col gap-6">
-                                    {recurringSchedules.map((schedule, index) => (
-                                        <div
-                                            key={index}
-                                            className="bg-white rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-all p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative"
-                                        >
-                                            {/* Left: Name and Days */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-bold text-primary text-xl pl-2 mb-4 break-words">{schedule.name || `Schedule ${index + 1}`}</div>
-                                                <div className="flex flex-wrap gap-2 mb-2">
-                                                    {getDayNames(schedule.days).split(', ').map((day) => (
-                                                        <span
-                                                            key={day}
-                                                            className="bg-slate-100 text-gray-800 text-xs px-3 py-1 rounded-full font-medium shadow-sm"
-                                                        >
-                                                            {day}
+                                            <div className="flex flex-wrap items-center gap-3 mb-1">
+                                                <span className="text-sm md:text-base text-gray-600 font-medium">
+                                                    <span className="text-primary font-bold text-lg md:text-xl">{sessionCount}</span> sessions/day
+                                                </span>
+                                                <span className="flex items-center gap-2">
+                                                    {typesArr.map(type => (
+                                                        <span key={type} className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold text-sm md:text-base shadow-sm border border-primary/20">
+                                                            {type}
                                                         </span>
                                                     ))}
-                                                </div>
+                                                </span>
                                             </div>
-                                            {/* Right: Details row */}
-                                            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-shrink-0 w-full md:w-auto">
-                                                {/* Time */}
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <Clock className="w-4 h-4 text-gray-500" />
-                                                    <span className="font-medium">{formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}</span>
-                                                </div>
-                                                {/* Date Range */}
-                                                <div className="flex items-center gap-2 text-gray-700">
-                                                    <Calendar className="w-4 h-4 text-gray-500" />
-                                                    <span className="bg-gray-100 px-3 py-1 rounded-full text-sm font-medium text-gray-800">
-                                                        {schedule.startDate.split('T')[0]} → {schedule.endDate ? schedule.endDate.split('T')[0] : 'Ongoing'}
+                                            {schedule.breaks && schedule.breaks.length > 0 && (
+                                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                    {schedule.breaks.map((b, idx) => (
+                                                        <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full bg-[#eaf0fa] text-primary font-medium text-xs md:text-sm border border-primary/10">
+                                                            {b.label || 'Break'} <span className="mx-1">({b.start}-{b.end})</span>
                                                     </span>
+                                                    ))}
                                                 </div>
-                                                {/* Breaks */}
-                                                <div className="flex items-center min-w-[90px] justify-center md:justify-start">
-                                                    <span className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-xs font-medium">
-                                                        {schedule.breaks.length} {schedule.breaks.length === 1 ? 'break' : 'breaks'}
-                                                    </span>
+                                            )}
                                                 </div>
-                                                {/* Actions */}
-                                                <div className="flex items-center gap-2 justify-center md:justify-end min-w-[90px]">
                                                     <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleEditSchedule(schedule);
-                                                        }}
-                                                        className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit2 className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            deleteRecurringSchedule(schedule._id);
-                                                        }}
-                                                        className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
-                                                        title="Delete"
-                                                    >
-                                                        <X className="w-4 h-4" />
+                                            onClick={() => handleEdit(schedule)}
+                                            className="ml-auto mt-4 md:mt-0 px-5 py-2 rounded-full bg-primary text-white font-bold text-base shadow-md hover:bg-[#4C5AE3] transition-all focus:ring-2 focus:ring-primary focus:outline-none"
+                                        >
+                                            Edit
                                                     </button>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                );
+                            })}
                                 </div>
                             )}
-                        </div>
                     </div>
                 )}
-                {activeTab === 'new' && (
-                    // Form Panel
-                    <div className="w-full flex flex-col bg-transparent px-0 py-0 h-full min-h-0">
-                        <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
-                            <Repeat className="w-7 h-7" /> {isEditing ? 'Edit Recurring Schedule' : 'Create Recurring Schedule'}
-                        </h2>
-                        <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-10">
+            {/* Create Recurring Schedule Section */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 max-w-3xl mx-auto mt-10 mb-10">
+                <h2 className="text-3xl font-bold mb-8 text-primary">{editingSchedule ? 'Edit Recurring Schedule' : 'Create Recurring Schedule'}</h2>
+                <form onSubmit={handleSubmit} className="space-y-7">
                             {/* Schedule Name */}
-                            <section>
-                                <label className="block text-lg font-semibold text-gray-700 mb-2">Schedule Name</label>
+                    <div>
+                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                            Schedule Name
+                        </label>
                                 <input
                                     type="text"
-                                    value={recurringSchedule.name}
-                                    onChange={e => setRecurringSchedule(prev => ({ ...prev, name: e.target.value }))}
-                                    placeholder="e.g., Morning Sessions, Friday Evenings"
-                                    className="w-full p-3 border rounded-xl text-base focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50 mb-2"
-                                />
-                            </section>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                {/* Days */}
-                                <section>
-                                    <h3 className="font-semibold mb-3 text-lg">Days</h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {daysOfWeek.map(day => (
+                            name="name"
+                            value={formData.name || ''}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Morning Sessions, Weekend Only, etc."
+                            className="w-full px-5 py-3 border rounded-xl text-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50"
+                            required
+                        />
+                    </div>
+                    {/* Days Selection */}
+                    <div>
+                        <label className="block text-base font-medium text-gray-700 mb-2">
+                            Select Days
+                        </label>
+                        <div className="flex flex-wrap gap-3">
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                                             <button
-                                                key={day.value}
-                                                onClick={() => handleDayToggle(day.value)}
-                                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${recurringSchedule.days.includes(day.value)
-                                                    ? 'bg-primary text-white shadow'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                                            >
-                                                {day.label}
+                                    key={day}
+                                    type="button"
+                                    onClick={() => handleDayToggle(day)}
+                                    className={`px-5 py-2 rounded-xl transition text-lg font-semibold shadow-sm border ${formData.days.includes(day)
+                                        ? 'bg-primary text-white border-primary'
+                                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'} focus:outline-none`}
+                                >
+                                    {day}
                                             </button>
                                         ))}
                                     </div>
-                                </section>
-                                {/* Time Range & Interval */}
-                                <section>
-                                    <h3 className="font-semibold mb-3 text-lg">Time Range</h3>
-                                    <div className="flex gap-2 mb-3">
-                                        {["startTime", "endTime"].map((field, idx) => (
+                    </div>
+                    {/* Time Selection */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-base font-medium text-gray-700 mb-2">
+                                Start Time
+                            </label>
                                             <select
-                                                key={field}
-                                                value={recurringSchedule[field]}
-                                                onChange={e => setRecurringSchedule(prev => ({ ...prev, [field]: e.target.value }))}
-                                                className="p-2 border rounded-lg w-1/2"
-                                            >
-                                                {Array.from({ length: 13 }, (_, i) => 9 + i).map(hour => {
-                                                    const time = `${hour.toString().padStart(2, '0')}:00`;
-                                                    return <option key={time} value={time}>{time}</option>;
-                                                })}
+                                name="startTime"
+                                value={formData.startTime}
+                                onChange={handleInputChange}
+                                className="w-full px-5 py-3 border rounded-xl text-lg"
+                                required
+                            >
+                                <option value="">Select start time</option>
+                                {hourOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                                             </select>
-                                        ))}
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Session Interval</label>
+                            <label className="block text-base font-medium text-gray-700 mb-2">
+                                End Time
+                            </label>
                                         <select
-                                            value={recurringSchedule.interval}
-                                            onChange={e => setRecurringSchedule(prev => ({ ...prev, interval: parseInt(e.target.value) }))}
-                                            className="w-full p-2 border rounded-lg"
-                                        >
-                                            <option value={60}>60 mins (40 min session + 20 min break)</option>
-                                            <option value={120}>120 mins (100 min session + 20 min break)</option>
+                                name="endTime"
+                                value={formData.endTime}
+                                onChange={handleInputChange}
+                                className="w-full px-5 py-3 border rounded-xl text-lg"
+                                required
+                            >
+                                <option value="">Select end time</option>
+                                {hourOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                                         </select>
                                     </div>
-                                </section>
-                                {/* Types */}
-                                <section>
-                                    <h3 className="font-semibold mb-3 text-lg">Appointment Types</h3>
-                                    <div className="flex gap-2">
-                                        {["In-Person", "Online"].map(type => (
-                                            <button
-                                                key={type}
-                                                onClick={() => handleTypeToggle(type)}
-                                                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${recurringSchedule.types.includes(type)
-                                                    ? 'bg-primary text-white shadow'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                                            >
-                                                {type}
-                                            </button>
+                    </div>
+                    {/* Session Types */}
+                    <div>
+                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                            Session Types
+                        </label>
+                        <div className="flex gap-6">
+                            {['Online', 'In-Person'].map(type => (
+                                <label key={type} className="flex items-center gap-2 text-lg font-medium px-5 py-2 rounded-xl border border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-all shadow-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.types?.includes(type)}
+                                        onChange={e => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                types: e.target.checked
+                                                    ? [...(prev.types || []), type]
+                                                    : (prev.types || []).filter(t => t !== type)
+                                            }));
+                                        }}
+                                        className="accent-primary w-6 h-6 rounded focus:ring-2 focus:ring-primary border-gray-300"
+                                    />
+                                    <span>{type}</span>
+                                </label>
                                         ))}
                                     </div>
-                                </section>
+                    </div>
                                 {/* Date Range */}
-                                <section>
-                                    <h3 className="font-semibold mb-3 text-lg">Date Range</h3>
-                                    <div className="flex gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-base font-medium text-gray-700 mb-2">
+                                Start Date
+                            </label>
                                         <input
                                             type="date"
-                                            value={recurringSchedule.startDate}
-                                            onChange={e => setRecurringSchedule(prev => ({ ...prev, startDate: e.target.value }))}
-                                            className="p-2 border rounded-lg w-1/2"
-                                        />
-                                        <input
-                                            type="date"
-                                            value={recurringSchedule.endDate || ''}
-                                            onChange={e => setRecurringSchedule(prev => ({ ...prev, endDate: e.target.value || null }))}
-                                            className="p-2 border rounded-lg w-1/2"
-                                        />
-                                    </div>
-                                </section>
-                                {/* Breaks */}
-                                <section className="md:col-span-2 bg-gray-50 rounded-xl p-6 shadow-inner mt-2">
-                                    <h3 className="font-semibold mb-3 text-lg flex items-center gap-2"><Coffee className="w-5 h-5" /> Break Times</h3>
-                                    <div className="flex gap-2 mb-3">
-                                        <button
-                                            onClick={() => setIsAddingBreak(!isAddingBreak)}
-                                            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center"
-                                        >
-                                            {isAddingBreak ? 'Cancel' : 'Add Break'}
-                                        </button>
-                                        <button
-                                            onClick={resetToDefaultBreaks}
-                                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center"
-                                        >
-                                            Reset to System Defaults
-                                        </button>
-                                    </div>
-                                    {isAddingBreak && (
-                                        <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={newBreak.start}
-                                                        onChange={e => setNewBreak(prev => ({ ...prev, start: e.target.value }))}
-                                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                name="startDate"
+                                value={formData.startDate}
+                                onChange={handleInputChange}
+                                className="w-full px-5 py-3 border rounded-xl text-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                required
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <label className="block text-base font-medium text-gray-700 mb-2">
+                                End Date (Optional)
+                            </label>
                                                     <input
-                                                        type="time"
-                                                        value={newBreak.end}
-                                                        onChange={e => setNewBreak(prev => ({ ...prev, end: e.target.value }))}
-                                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Break Label</label>
-                                                    <input
-                                                        type="text"
-                                                        value={newBreak.label}
-                                                        onChange={e => setNewBreak(prev => ({ ...prev, label: e.target.value }))}
-                                                        placeholder="e.g., Lunch Break"
-                                                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                type="date"
+                                name="endDate"
+                                value={formData.endDate}
+                                onChange={handleInputChange}
+                                className="w-full px-5 py-3 border rounded-xl text-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="mt-4 flex justify-end">
+                    {/* Breaks */}
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-base font-medium text-gray-700">
+                                Breaks
+                            </label>
                                                 <button
-                                                    onClick={handleAddBreak}
-                                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center"
+                                type="button"
+                                onClick={() => setShowBreakForm(true)}
+                                className="text-primary hover:text-[#4C5AE3] px-4 py-2 rounded-xl font-semibold text-base bg-primary/10 border border-primary/20 shadow-sm"
                                                 >
-                                                    <Check className="w-4 h-4 mr-2" /> Add Break
+                                + Add Break
                                                 </button>
                                             </div>
+                        {formData.breaks.map((break_, index) => (
+                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-full bg-[#eaf0fa] text-primary font-medium text-sm md:text-base border border-primary/10 mr-2 mb-2">
+                                {break_.label || 'Break'}: {break_.start} - {break_.end}
+                                <button
+                                    type="button"
+                                    onClick={() => handleBreakRemove(index)}
+                                    className="ml-2 text-red-500 hover:text-red-600"
+                                >
+                                    ×
+                                </button>
+                            </span>
+                        ))}
                                         </div>
-                                    )}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {recurringSchedule.breaks.map((breakTime, index) => (
-                                            <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-primary transition-colors">
-                                                <div className="flex justify-between items-start">
-                                                    <div className="flex items-center gap-2">
-                                                        {breakTime.icon}
-                                                        <span className="font-medium text-gray-800">{breakTime.label}</span>
-                                                    </div>
+                    {/* Default Breaks */}
+                    <div className="flex gap-2 mb-2">
+                        {defaultBreaks.map(b => (
                                                     <button
-                                                        onClick={() => handleRemoveBreak(index)}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
-                                                    >
-                                                        <X className="w-4 h-4" />
+                                key={b.label}
+                                type="button"
+                                className="px-3 py-1 bg-[#eaf0fa] rounded-full hover:bg-primary/10 text-primary text-sm font-semibold border border-primary/10"
+                                onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    breaks: [...prev.breaks, b]
+                                }))}
+                            >
+                                + {b.label} ({b.start}-{b.end})
                                                     </button>
-                                                </div>
-                                                <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-                                                    <Clock className="w-4 h-4" />
-                                                    <span>{formatTime(breakTime.start)} - {formatTime(breakTime.end)}</span>
-                                                </div>
-                                            </div>
                                         ))}
                                     </div>
-                                </section>
-                            </div>
-                            {/* Live Preview */}
-                            <section className="mt-10 bg-gray-50 p-6 rounded-2xl shadow-inner max-h-56 overflow-y-auto">
-                                <h3 className="text-lg font-semibold mb-3">Generated Slots Preview</h3>
-                                <div className="mb-3">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Day to Preview</label>
+                    {/* Session Interval */}
+                    <div>
+                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                            Session Interval
+                        </label>
                                     <select
-                                        value={previewDay}
-                                        onChange={e => setPreviewDay(parseInt(e.target.value))}
-                                        className="w-full max-w-xs p-2 border rounded-lg"
-                                    >
-                                        {daysOfWeek.map(day => (
-                                            <option
-                                                key={day.value}
-                                                value={day.value}
-                                                disabled={!recurringSchedule.days.includes(day.value)}
-                                            >
-                                                {day.label}
-                                            </option>
-                                        ))}
+                            name="interval"
+                            value={formData.interval || 60}
+                            onChange={handleInputChange}
+                            className="w-full px-5 py-3 border rounded-xl text-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50"
+                            required
+                        >
+                            <option value={60}>60 minutes</option>
+                            <option value={120}>120 minutes</option>
                                     </select>
                                 </div>
-                                {recurringSchedule.days.includes(previewDay) ? (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {generatedSlots.map((slot, index) => (
-                                            <div
-                                                key={index}
-                                                className="p-2 bg-white rounded-lg border border-gray-200 text-center"
-                                            >
-                                                <div className="font-medium text-gray-800">{slot.time}</div>
-                                                <div className="text-xs text-gray-600 mt-1">
-                                                    {slot.types.join(' / ')}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500">
-                                        Select this day in the schedule to see available slots
-                                    </p>
-                                )}
-                            </section>
-                        </div>
-                        {/* Sticky Save/Cancel Bar */}
-                        <div className="sticky bottom-0 left-0 z-30 flex justify-center bg-white w-full pt-4 pb-2 mt-2 border-t border-gray-200 shadow">
+                    {/* Submit Buttons */}
+                    <div className="flex justify-end gap-4 mt-6">
+                        {editingSchedule && (
                             <button
-                                onClick={handleCancel}
-                                className="px-8 py-3 rounded-xl text-lg font-semibold border border-gray-300 hover:bg-gray-100 transition-all mr-4"
+                                type="button"
+                                onClick={resetForm}
+                                className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-semibold text-base border border-gray-300 bg-gray-50"
                             >
                                 Cancel
                             </button>
+                        )}
                             <button
-                                onClick={handleSave}
-                                disabled={recurringSchedule.days.length === 0}
-                                className={`px-8 py-3 rounded-xl text-lg font-semibold transition-all ${recurringSchedule.days.length === 0
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-primary text-white hover:bg-primary-dark'
-                                    }`}
-                            >
-                                {isEditing ? 'Update Schedule' : 'Save Schedule'}
+                            type="submit"
+                            className="px-6 py-2 bg-primary text-white rounded-xl font-bold text-base shadow-md hover:bg-[#4C5AE3] focus:ring-2 focus:ring-primary"
+                        >
+                            {editingSchedule ? 'Update Schedule' : 'Create Schedule'}
                             </button>
-                        </div>
                     </div>
+                </form>
+            </div>
+            {/* Slot Preview */}
+            <div className="mt-12 max-w-3xl mx-auto">
+                <h3 className="text-2xl font-bold mb-4 text-primary">Preview of Generated Schedule</h3>
+                {formData.days.length > 0 && formData.startTime && formData.endTime && formData.startDate ? (() => {
+                    // Calculate how many days this schedule applies to
+                    const dayNameToNum = {
+                        Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+                        Thursday: 4, Friday: 5, Saturday: 6
+                    };
+                    const daysNum = formData.days.map(d => dayNameToNum[d]);
+                    const startDate = new Date(formData.startDate);
+                    const endDate = formData.endDate ? new Date(formData.endDate) : new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+                    let count = 0;
+                    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                        if (daysNum.includes(d.getDay())) count++;
+                    }
+
+                    // Find the next applicable day for preview
+                    let previewDate = null;
+                    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                        if (daysNum.includes(d.getDay())) {
+                            previewDate = new Date(d);
+                            break;
+                        }
+                    }
+                    if (!previewDate) return <div className="text-gray-400">No applicable days in selected range.</div>;
+                    const previewDateStr = previewDate.toISOString().split('T')[0];
+
+                    // Generate slots and breaks for that day
+                    let [startHour, startMinute] = formData.startTime.split(':').map(Number);
+                    let [endHour, endMinute] = formData.endTime.split(':').map(Number);
+                    let current = startHour * 60 + startMinute;
+                    const end = endHour * 60 + endMinute;
+                    const breaks = formData.breaks || [];
+                    const timeline = [];
+                    while (current < end) {
+                        // Check if this time is a break start
+                        const breakNow = breaks.find(b => {
+                            const [bsh, bsm] = b.start.split(':').map(Number);
+                            return current === bsh * 60 + bsm;
+                        });
+                        if (breakNow) {
+                            timeline.push({
+                                type: 'break',
+                                start: breakNow.start,
+                                end: breakNow.end,
+                                label: breakNow.label || 'Break'
+                            });
+                            // Skip to end of break
+                            const [beh, bem] = breakNow.end.split(':').map(Number);
+                            current = beh * 60 + bem;
+                            continue;
+                        }
+                        // Otherwise, it's a slot
+                        const hour = Math.floor(current / 60);
+                        const minute = current % 60;
+                        const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        // Check if in any break
+                        const isInBreak = breaks.some(b => {
+                            const [bsh, bsm] = b.start.split(':').map(Number);
+                            const [beh, bem] = b.end.split(':').map(Number);
+                            const bstart = bsh * 60 + bsm;
+                            const bend = beh * 60 + bem;
+                            return current >= bstart && current < bend;
+                        });
+                        if (!isInBreak) {
+                            timeline.push({
+                                type: 'slot',
+                                time: timeStr,
+                                label: formData.type === 'in-person' ? 'In-Person' : 'Online'
+                            });
+                        }
+                        current += 60;
+                    }
+
+                    return (
+                        <>
+                            <div className="mb-4 text-gray-700">
+                                <span className="font-semibold">{count}</span> day{count !== 1 ? 's' : ''} will have this schedule between <span className="font-semibold">{formData.startDate}</span> and <span className="font-semibold">{formData.endDate || previewDateStr}</span>.
+                            </div>
+                            <div className="font-bold text-primary mb-3 flex items-center gap-2 text-lg">
+                                <Calendar className="w-5 h-5" /> {previewDateStr}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {timeline.map((item, idx) =>
+                                    item.type === 'slot' ? (
+                                        <div
+                                            key={idx}
+                                            className="flex items-center gap-3 bg-white rounded-xl shadow-sm px-4 py-3 border border-gray-100 hover:shadow-md transition"
+                                        >
+                                            <Clock className="w-5 h-5 text-green-500" />
+                                            <span className="font-semibold text-lg">{item.time}</span>
+                                            <span className="text-gray-500 text-base">{item.label}</span>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            key={idx}
+                                            className="flex items-center gap-3 bg-yellow-50 rounded-xl shadow-sm px-4 py-3 border border-yellow-200 hover:shadow-md transition"
+                                        >
+                                            <AlertCircle className="w-5 h-5 text-yellow-500" />
+                                            <span className="font-semibold text-base">{item.start} - {item.end}</span>
+                                            <span className="text-yellow-700 text-base">{item.label}</span>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        </>
+                    );
+                })() : (
+                    <div className="text-gray-400">Select days, start/end time, and start date to preview slots.</div>
                 )}
             </div>
         </div>

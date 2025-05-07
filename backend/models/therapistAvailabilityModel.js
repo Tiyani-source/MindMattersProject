@@ -23,7 +23,22 @@ const therapistAvailabilitySchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  recurringScheduleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "recurringSchedule",
+    default: null
+  },
+  isRecurring: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
+
+// Add compound index to prevent duplicates
+therapistAvailabilitySchema.index(
+  { therapistId: 1, date: 1, time: 1, type: 1 },
+  { unique: true }
+);
 
 const therapistAvailabilityModel = mongoose.models.therapistAvailability
   || mongoose.model("therapistAvailability", therapistAvailabilitySchema);

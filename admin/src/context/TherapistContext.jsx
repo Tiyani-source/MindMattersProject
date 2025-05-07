@@ -284,6 +284,38 @@ const TherapistContextProvider = (props) => {
         }
     };
 
+    const clearAvailabilityByDate = async (date) => {
+        try {
+            const response = await axios.delete(
+                `${backendUrl}/api/therapist/availability/date/${date}`,
+                { headers: { ttoken: dToken } }
+            );
+            if (response.data.success) {
+                toast.success('Availability cleared for date');
+                fetchAvailability(); // Refresh availability
+            }
+        } catch (error) {
+            console.error('Error clearing availability:', error);
+            toast.error(error.response?.data?.message || 'Failed to clear availability');
+        }
+    };
+
+    const clearAllAvailability = async () => {
+        try {
+            const response = await axios.delete(
+                `${backendUrl}/api/therapist/availability/all`,
+                { headers: { ttoken: dToken } }
+            );
+            if (response.data.success) {
+                toast.success('All availability cleared');
+                fetchAvailability(); // Refresh availability
+            }
+        } catch (error) {
+            console.error('Error clearing all availability:', error);
+            toast.error(error.response?.data?.message || 'Failed to clear all availability');
+        }
+    };
+
     const saveRecurringAvailability = async (recurringSchedule) => {
         try {
             console.log('Saving recurring schedule:', recurringSchedule);
@@ -301,6 +333,26 @@ const TherapistContextProvider = (props) => {
         } catch (error) {
             console.error('Error saving recurring schedule:', error);
             toast.error(error.response?.data?.message || 'Failed to save schedule');
+        }
+    };
+
+    const updateRecurringSchedule = async (scheduleId, updatedSchedule) => {
+        try {
+            console.log('Updating recurring schedule:', { scheduleId, updatedSchedule });
+            const response = await axios.put(
+                `${backendUrl}/api/therapist/recurring-schedules/${scheduleId}`,
+                updatedSchedule,
+                { headers: { ttoken: dToken } }
+            );
+
+            if (response.data.success) {
+                toast.success('Schedule updated successfully');
+                fetchRecurringSchedules();
+                fetchAvailability(); // Refresh availability after update
+            }
+        } catch (error) {
+            console.error('Error updating recurring schedule:', error);
+            toast.error('Failed to update schedule');
         }
     };
 
@@ -355,25 +407,6 @@ const TherapistContextProvider = (props) => {
         return slots;
     };
 
-    const updateRecurringSchedule = async (scheduleId, updatedSchedule) => {
-        try {
-            console.log('Updating recurring schedule:', { scheduleId, updatedSchedule });
-            const response = await axios.put(
-                `${backendUrl}/api/therapist/recurring-schedules/${scheduleId}`,
-                updatedSchedule,
-                { headers: { ttoken: dToken } }
-            );
-
-            if (response.data.success) {
-                toast.success('Schedule updated successfully');
-                fetchRecurringSchedules();
-            }
-        } catch (error) {
-            console.error('Error updating recurring schedule:', error);
-            toast.error('Failed to update schedule');
-        }
-    };
-
     // --- Client Notes & Templates API ---
     const fetchClientNotes = async (clientID, search = "") => {
         try {
@@ -389,21 +422,27 @@ const TherapistContextProvider = (props) => {
 
     const addClientNote = async (note) => {
         try {
-            // Defensive: ensure required fields are present
             const payload = {
-                therapistID,
-                clientID: note.clientID,
-                appointmentID: note.appointmentID || undefined,
-                content: note.content,
-                templateUsed: note.templateUsed || undefined,
-                title: note.title || '',
-                type: note.type || 'custom',
-                tags: note.tags || []
+                clientId: note.clientId,
+                therapistId: therapistID,
+                content: note.content || '',
+                templateUsed: note.templateId ? note.templateName : 'General',
+                fields: note.fields || {},
+                appointmentId: note.appointmentId || null,
+                date: note.date || new Date().toISOString(),
+                tags: note.tags || [],
+                status: note.status || 'published'
             };
             console.log('Sending client note to backend:', payload);
-            await axios.post(`${backendUrl}/api/therapist/client-notes`, payload, { headers: { ttoken: dToken } });
+            const { data } = await axios.post(`${backendUrl}/api/therapist/client-notes`, payload, { headers: { ttoken: dToken } });
+            if (data.success) {
+                return data.note;
+            } else {
+                throw new Error(data.message || 'Failed to save note');
+            }
         } catch (err) {
             console.error('Error saving client note:', err?.response?.data || err.message);
+            throw err;
         }
     };
     const pinClientNote = async (noteId, pin) => {
@@ -446,31 +485,81 @@ const TherapistContextProvider = (props) => {
     };
 
     // Fetch clients
-    const fetchClients = async (status = 'ongoing') => {
+    const getClients = async () => {
         try {
-            const { data } = await axios.get(`${backendUrl}/api/therapist/clients?status=${status}`, {
+            const { data } = await axios.get(`${backendUrl}/api/therapist/clients`, {
                 headers: { ttoken: dToken }
             });
-            // totalSessions now reflects ALL sessions, not just completed
-            console.log('Fetched clients from backend (with totalSessions = all sessions):', data.clients);
-            return data.clients;
-        } catch (err) {
-            toast.error('Failed to fetch clients');
-            console.error('Error fetching clients:', err);
+            if (data.success) {
+                return data.clients;
+            }
+            throw new Error(data.message || 'Failed to fetch clients');
+        } catch (error) {
+            toast.error(error.message || 'Failed to fetch clients');
+            console.error('Error fetching clients:', error);
             return [];
         }
     };
 
-    const fetchClientsByAppointments = async () => {
+    const getClientDetails = async (clientId) => {
         try {
-            const { data } = await axios.get(`${backendUrl}/api/therapist/clients-by-appointments`, {
+            const { data } = await axios.get(`${backendUrl}/api/therapist/client/${clientId}`, {
                 headers: { ttoken: dToken }
             });
-            return data.clients;
-        } catch (err) {
-            toast.error('Failed to fetch clients');
-            return [];
+            if (data.success) {
+                return data.client;
+            }
+            throw new Error(data.message || 'Failed to fetch client details');
+        } catch (error) {
+            toast.error(error.message || 'Failed to fetch client details');
+            console.error('Error fetching client details:', error);
+            return null;
         }
+    };
+
+    const addClientGoal = async (goalData) => {
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/therapist/client/goal`, {
+                ...goalData,
+                therapistId: therapistID
+            }, {
+                headers: { ttoken: dToken }
+            });
+            if (data.success) {
+                toast.success('Goal added successfully');
+                return data.goal;
+            }
+            throw new Error(data.message || 'Failed to add goal');
+        } catch (error) {
+            toast.error(error.message || 'Failed to add goal');
+            console.error('Error adding goal:', error);
+            return null;
+        }
+    };
+
+    const addClientProgress = async (progressData) => {
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/therapist/client/progress`, {
+                ...progressData,
+                therapistId: therapistID
+            }, {
+                headers: { ttoken: dToken }
+            });
+            if (data.success) {
+                toast.success('Progress added successfully');
+                return data.progress;
+            }
+            throw new Error(data.message || 'Failed to add progress');
+        } catch (error) {
+            toast.error(error.message || 'Failed to add progress');
+            console.error('Error adding progress:', error);
+            return null;
+        }
+    };
+
+    const fetchAnalytics = async () => {
+        const { data } = await axios.post(`${backendUrl}/api/therapist/analytics`, {}, { headers: { ttoken: dToken } });
+        return data.analytics;
     };
 
     return (
@@ -494,6 +583,8 @@ const TherapistContextProvider = (props) => {
             fetchRecurringSchedules,
             updateRecurringSchedule,
             deleteRecurringSchedule,
+            clearAvailabilityByDate,
+            clearAllAvailability,
             // --- Client Notes ---
             fetchClientNotes,
             addClientNote,
@@ -502,8 +593,11 @@ const TherapistContextProvider = (props) => {
             fetchNoteTemplates,
             addNoteTemplate,
             deleteNoteTemplate,
-            fetchClients,
-            fetchClientsByAppointments
+            getClients,
+            getClientDetails,
+            addClientGoal,
+            addClientProgress,
+            fetchAnalytics
         }}>
             {props.children}
         </TherapistContext.Provider>

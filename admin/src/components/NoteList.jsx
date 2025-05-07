@@ -1,17 +1,28 @@
 import React from 'react';
-import { FaThumbtack, FaTrash, FaEdit } from 'react-icons/fa';
+import { FileText, Pin, Trash2, Edit2, Calendar, Clock } from 'lucide-react';
+import { format } from 'date-fns';
 
 const NoteList = ({
     notes,
     onPinNote,
     onDeleteNote,
     onEditNote,
-    searchQuery = ''
+    searchQuery = '',
+    sessions
 }) => {
-    const filteredNotes = notes.filter(note =>
-        note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (note.templateUsed && note.templateUsed.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    const filteredNotes = notes.filter(note => {
+        if (!searchQuery) return true;
+        const searchLower = searchQuery.toLowerCase();
+        return (
+            note.content?.toLowerCase().includes(searchLower) ||
+            note.templateUsed?.toLowerCase().includes(searchLower)
+        );
+    });
+
+    const getAppointmentDetails = (appointmentId) => {
+        if (!appointmentId || !sessions) return null;
+        return sessions.find(session => session._id === appointmentId);
+    };
 
     return (
         <div className="space-y-4">
@@ -33,52 +44,79 @@ const NoteList = ({
                 </p>
             ) : (
                 <div className="space-y-4">
-                    {filteredNotes.map((note) => (
-                        <div
-                            key={note._id}
-                            className={`bg-white rounded-lg shadow-sm p-4 ${note.pinned ? 'border-l-4 border-indigo-500' : ''}`}
-                        >
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    {note.templateUsed && (
-                                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-2">
+                    {filteredNotes.map((note) => {
+                        const appointment = getAppointmentDetails(note.appointmentId);
+                        return (
+                            <div
+                                key={note._id}
+                                className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                            >
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="text-indigo-500" size={18} />
+                                        <span className="font-medium text-gray-800">
                                             {note.templateUsed}
                                         </span>
-                                    )}
-                                    <p className="text-gray-700 whitespace-pre-wrap">{note.content}</p>
-                                    {note.appointmentID && (
-                                        <p className="text-sm text-gray-500 mt-2">
-                                            Associated with appointment on {new Date(note.appointmentID.date).toLocaleDateString()} at {note.appointmentID.time}
-                                        </p>
-                                    )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => onPinNote(note._id, !note.pinned)}
+                                            className={`p-1 rounded-full hover:bg-gray-100 ${note.pinned ? 'text-indigo-600' : 'text-gray-400'}`}
+                                        >
+                                            <Pin size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => onEditNote(note)}
+                                            className="p-1 rounded-full hover:bg-gray-100 text-gray-400"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => onDeleteNote(note._id)}
+                                            className="p-1 rounded-full hover:bg-gray-100 text-gray-400"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex space-x-2 ml-4">
-                                    <button
-                                        onClick={() => onPinNote(note._id, !note.pinned)}
-                                        className={`p-2 rounded-full hover:bg-gray-100 ${note.pinned ? 'text-indigo-600' : 'text-gray-400'
-                                            }`}
-                                    >
-                                        <FaThumbtack size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => onEditNote(note)}
-                                        className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
-                                    >
-                                        <FaEdit size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => onDeleteNote(note._id)}
-                                        className="p-2 rounded-full hover:bg-gray-100 text-red-500"
-                                    >
-                                        <FaTrash size={16} />
-                                    </button>
-                                </div>
+
+                                {/* Appointment Details */}
+                                {appointment && (
+                                    <div className="mb-3 flex items-center gap-4 text-sm text-gray-500">
+                                        <div className="flex items-center gap-1">
+                                            <Calendar size={14} />
+                                            <span>{format(new Date(appointment.date), 'MMM d, yyyy')}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Clock size={14} />
+                                            <span>{appointment.time}</span>
+                                        </div>
+                                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs">
+                                            {appointment.type} session
+                                        </span>
+                                    </div>
+                                )}
+
+                                <p className="text-gray-600 text-sm whitespace-pre-wrap">
+                                    {note.content}
+                                </p>
+
+                                {note.fields && Object.keys(note.fields).length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <h4 className="text-xs font-medium text-gray-500 mb-2">Template Fields</h4>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {Object.entries(note.fields).map(([key, value]) => (
+                                                <div key={key} className="text-sm">
+                                                    <span className="text-gray-500">{key}:</span>
+                                                    <span className="ml-1 text-gray-700">{value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="mt-2 text-xs text-gray-500">
-                                Created: {new Date(note.createdAt).toLocaleString()}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -1,43 +1,79 @@
 import mongoose from "mongoose";
 
+const fieldSchema = new mongoose.Schema({
+    id: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    label: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    type: {
+        type: String,
+        enum: ['textarea', 'radio', 'number', 'short_text'],
+        required: true
+    },
+    options: [{
+        type: String,
+        trim: true
+    }],
+    required: {
+        type: Boolean,
+        default: false
+    },
+    placeholder: {
+        type: String,
+        trim: true
+    }
+});
+
 const noteTemplateSchema = new mongoose.Schema({
-    therapistID: {
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    description: {
+        type: String,
+        trim: true
+    },
+    type: {
+        type: String,
+        enum: ['client_note', 'psychometric'],
+        required: true
+    },
+    fields: [fieldSchema],
+    createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "doctor",
         required: true,
+        index: true
     },
-    name: { type: String, required: true },
-    description: {
-        type: String,
-        default: ""
-    },
-    category: {
-        type: String,
-        enum: ["assessment", "formulation", "session", "progress", "custom"],
-        required: true
-    },
-    fields: [{
-        name: { type: String, required: true },
-        type: {
-            type: String,
-            enum: ["text", "textarea", "select", "checkbox", "date", "rating"],
-            required: true
-        },
-        label: { type: String, required: true },
-        placeholder: String,
-        options: [String],
-        required: { type: Boolean, default: false }
-    }],
     isDefault: {
         type: Boolean,
         default: false
     },
-    isActive: {
-        type: Boolean,
-        default: true
+    status: {
+        type: String,
+        enum: ['active', 'archived'],
+        default: 'active'
     },
-    createdAt: { type: Date, default: Date.now }
+    version: {
+        type: Number,
+        default: 1
+    }
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
+
+// Index for faster queries
+noteTemplateSchema.index({ type: 1, status: 1 });
+noteTemplateSchema.index({ createdBy: 1, status: 1 });
 
 const NoteTemplate = mongoose.models.NoteTemplate || mongoose.model("NoteTemplate", noteTemplateSchema);
 export default NoteTemplate; 

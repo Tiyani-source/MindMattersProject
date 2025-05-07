@@ -40,6 +40,12 @@ const doctorSchema = new mongoose.Schema({
 
 
   date: { type: Number, default: () => Date.now() },
+
+
+  // Google Calendar Integration Fields
+  googleCalendarToken: { type: String, default: null },
+  googleCalendarRefreshToken: { type: String, default: null },
+  googleCalendarConnected: { type: Boolean, default: false }
 }, { minimize: false });
 
 const doctorModel = mongoose.models.doctor || mongoose.model("doctor", doctorSchema);

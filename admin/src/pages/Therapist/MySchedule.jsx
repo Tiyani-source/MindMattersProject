@@ -37,7 +37,8 @@ const MySchedule = () => {
   const [hasChanges, setHasChanges] = useState(false);
   useEffect(() => {
     if (availability && Object.keys(availability).length > 0) {
-      setSelectedSlots({ ...availability });
+      // Deep clone to avoid reference issues
+      setSelectedSlots(JSON.parse(JSON.stringify(availability)));
       setHasChanges(false);
     }
   }, [availability]);
@@ -60,26 +61,48 @@ const MySchedule = () => {
 
   // --- Agenda logic ---
   const getAgendaListGroupedByTime = () => {
-    // { date: { time: [ {type, isBooked}, ... ] } }
+    // Only include dates from the current week
+    const weekDates = weekDays.map(day => day.date);
     const grouped = {};
+
     Object.entries(selectedSlots).forEach(([date, slots]) => {
-      Object.entries(slots).forEach(([time, types]) => {
-        const slotList = Array.isArray(types)
-          ? types
-          : typeof types === 'string'
-            ? types.split(', ').map(type => ({ type, isBooked: false }))
-            : [];
-        if (!grouped[date]) grouped[date] = {};
-        grouped[date][time] = slotList;
-      });
+      // Only process dates that are in the current week
+      if (weekDates.includes(date)) {
+        Object.entries(slots).forEach(([time, types]) => {
+          // Always treat as array of objects
+          let slotList = Array.isArray(types)
+            ? types
+            : typeof types === 'string'
+              ? types.split(', ').map(type => ({ type, isBooked: false }))
+              : [];
+          if (!grouped[date]) grouped[date] = {};
+          if (!grouped[date][time]) grouped[date][time] = [];
+          // Merge all types for this time slot, avoiding duplicates
+          slotList.forEach(slot => {
+            if (!grouped[date][time].some(s => s.type === slot.type)) {
+              grouped[date][time].push(slot);
+            }
+          });
+        });
+      }
     });
+
     // Sort times for each date
     Object.keys(grouped).forEach(date => {
       grouped[date] = Object.fromEntries(
         Object.entries(grouped[date]).sort(([a], [b]) => a.localeCompare(b))
       );
     });
-    return grouped;
+
+    // Sort dates to match weekDays order
+    const sortedGrouped = {};
+    weekDates.forEach(date => {
+      if (grouped[date]) {
+        sortedGrouped[date] = grouped[date];
+      }
+    });
+
+    return sortedGrouped;
   };
 
   // Expand only today or the first date by default
@@ -146,6 +169,18 @@ const MySchedule = () => {
   const [showAllSlots, setShowAllSlots] = useState({});
   const handleShowMore = (date) => {
     setShowAllSlots(prev => ({ ...prev, [date]: true }));
+  };
+
+  // Expand/collapse all agenda dates
+  const areAllExpanded = Object.values(expandedDates).every(Boolean);
+  const handleExpandCollapseAll = () => {
+    setExpandedDates(prev => {
+      const newState = {};
+      Object.keys(prev).forEach(date => {
+        newState[date] = !areAllExpanded;
+      });
+      return newState;
+    });
   };
 
   // Jump to today
@@ -342,8 +377,8 @@ const MySchedule = () => {
         </main>
         {/* Agenda Side Panel */}
         {activeTab === 'regular' && agendaOpen && (
-          <aside className="w-[420px] bg-white border-l shadow-xl flex flex-col transition-all duration-300" style={{ height: '870px' }}>
-            <div className="p-8 flex flex-col h-full min-h-0" style={{ height: '870px' }}>
+          <aside className="w-[420px] bg-white border-l shadow-xl flex flex-col transition-all duration-300" style={{ height: '1040px' }}>
+            <div className="p-8 flex flex-col h-full min-h-0" >
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-7 h-7 text-primary" />
@@ -356,24 +391,54 @@ const MySchedule = () => {
               <div className="flex items-center gap-2 mb-4">
                 <button
                   className="flex items-center gap-1 px-3 py-1 rounded bg-primary text-white text-sm font-medium hover:bg-primary-dark focus:ring-2 focus:ring-primary transition-all"
-                  onClick={jumpToToday}
+                  onClick={handleExpandCollapseAll}
                   style={{ outline: 'none' }}
                 >
-                  <ArrowDownCircle className="w-4 h-4" /> Jump to Today
+                  {areAllExpanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                  {areAllExpanded ? 'Collapse All' : 'Expand All'}
                 </button>
                 <span className="text-gray-400 text-xs">(Collapse/expand dates as needed)</span>
               </div>
               <p className="text-gray-500 text-base mb-2">All your upcoming slots, grouped by date. Edit or remove slots as needed.</p>
               <div className="flex-1 min-h-0 overflow-y-auto max-h-full" ref={agendaPanelRef}>
                 {Object.keys(getAgendaListGroupedByTime()).length === 0 ? (
-                  <div className="text-center text-gray-400 py-12">No slots selected yet.</div>
+                  <div className="text-center text-gray-400 py-12">
+                    <div className="flex flex-col items-center gap-2">
+                      <CalendarDays className="w-8 h-8 text-gray-300" />
+                      <p>No slots selected for this week.</p>
+                      <p className="text-sm text-gray-400">Select slots on the left to see them here.</p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {Object.entries(getAgendaListGroupedByTime()).map(([date, times]) => (
                       <div key={date} className="py-2" data-date={date}>
-                        <div className="sticky top-0 bg-white z-10 flex items-center gap-2 pb-1 cursor-pointer select-none" onClick={() => toggleDateExpand(date)}>
-                          <span className="text-lg font-bold text-primary">{date}</span>
-                          {expandedDates[date] ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                        <div className="sticky top-0 bg-white z-10 flex items-center gap-2 pb-1 select-none">
+                          <span
+                            className="text-lg font-bold text-primary cursor-pointer flex items-center gap-2"
+                            onClick={() => toggleDateExpand(date)}
+                          >
+                            {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {expandedDates[date] ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                          </span>
+                          <button
+                            className="ml-2 px-2 py-1 text-xs rounded bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                            onClick={() => {
+                              setSelectedSlots(prev => {
+                                const updated = { ...prev };
+                                delete updated[date];
+                                setHasChanges(true);
+                                return updated;
+                              });
+                            }}
+                            title="Clear all slots for this day"
+                          >
+                            Clear All Slots
+                          </button>
                         </div>
                         {expandedDates[date] && (
                           <div className="flex flex-col gap-1 mt-1 max-h-64 overflow-y-auto pr-1">

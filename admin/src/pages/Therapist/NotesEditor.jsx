@@ -64,17 +64,22 @@ const NotesEditor = ({ onSave, onCancel }) => {
     };
 
     const handleSave = () => {
+        let content = '';
         if (selectedTemplate) {
-            onSave({
-                type: selectedTemplate.name,
-                content: templateValues
-            });
+            content = Object.entries(templateValues)
+                .map(([label, value]) => `${label}: ${value}`)
+                .join('\n');
         } else {
-            onSave({
-                type: 'General Note',
-                content
-            });
+            content = content;
         }
+        onSave({
+            content,
+            fields: templateValues,
+            templateId: selectedTemplate?.id,
+            templateName: selectedTemplate?.name,
+            appointmentId: null,
+            date: new Date().toISOString().split('T')[0],
+        });
     };
 
     return (

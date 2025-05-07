@@ -281,21 +281,27 @@ export const getTherapistDashboard = async (req, res) => {
             inPerson: bookingsByMonth[month].inPerson,
         }));
 
-        // Calculate new clients data with null checks
-        const seenClients = new Set();
+        // Calculate new clients data: first appointment per unique client
+        const firstAppointments = {};
+        appointments.forEach(app => {
+            if (!app.clientID || !app.date) return;
+            // Use _id if populated, else use as is
+            const clientId = app.clientID._id ? app.clientID._id.toString() : app.clientID.toString();
+            if (!firstAppointments[clientId] || new Date(app.date) < new Date(firstAppointments[clientId])) {
+                firstAppointments[clientId] = app.date;
+            }
+        });
+
+        // Count new clients per month
         const newClientsByMonth = monthNames.reduce((acc, month) => {
             acc[month] = 0;
             return acc;
         }, {});
 
-        appointments.forEach((app) => {
-            if (!app.date || !app.clientID) return;
-            const date = new Date(app.date);
+        Object.values(firstAppointments).forEach(dateStr => {
+            const date = new Date(dateStr);
             const key = `${date.toLocaleString("default", { month: "short" })} ${date.getFullYear()}`;
-
-            const clientId = app.clientID.toString();
-            if (!seenClients.has(clientId) && newClientsByMonth[key] !== undefined) {
-                seenClients.add(clientId);
+            if (newClientsByMonth[key] !== undefined) {
                 newClientsByMonth[key] += 1;
             }
         });
@@ -318,6 +324,68 @@ export const getTherapistDashboard = async (req, res) => {
             { name: "Client Cancellations", value: clientCancellations },
             { name: "Therapist Cancellations", value: therapistCancellations }
         ];
+
+        console.log("All appointments for therapist:", appointments.map(a => ({
+            clientID: a.clientID,
+            date: a.date
+        })));
+
+        console.log("newClientsData to frontend:", dashData.newClientsData);
+
+        // Group by month
+        const monthlyCounts = {};
+        appointments.forEach(app => {
+            const key = `${app.date.getFullYear()}-${app.date.getMonth() + 1}`;
+            monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
+        });
+        const months = Object.keys(monthlyCounts).sort();
+        const lastN = months.slice(-3); // last 3 months
+        const avg = lastN.reduce((sum, m) => sum + monthlyCounts[m], 0) / lastN.length;
+        const predictedNextMonthAppointments = Math.round(avg);
+
+        const clientBookings = {};
+        appointments.forEach(app => {
+            const id = app.clientID.toString();
+            if (!clientBookings[id]) clientBookings[id] = [];
+            clientBookings[id].push(app);
+        });
+        let rebookAfterCancel = 0, totalCancelled = 0;
+        Object.values(clientBookings).forEach(apps => {
+            const cancelled = apps.some(a => a.statusOfAppointment === 'cancelled');
+            const rebooked = apps.some(a => a.statusOfAppointment !== 'cancelled');
+            if (cancelled) totalCancelled++;
+            if (cancelled && rebooked) rebookAfterCancel++;
+        });
+        const rebookAfterCancelRate = totalCancelled ? (rebookAfterCancel / totalCancelled) : 0;
+
+        const total = appointments.length;
+        const cancelled = appointments.filter(a => a.statusOfAppointment === 'cancelled').length;
+        const predictedCancellations = total ? (cancelled / total) : 0;
+
+        let totalConsecutive = 0, newClientCount = 0;
+        Object.values(clientBookings).forEach(apps => {
+            if (apps.length < 2) return;
+            apps.sort((a, b) => new Date(a.date) - new Date(b.date));
+            let maxStreak = 1, streak = 1;
+            for (let i = 1; i < apps.length; i++) {
+                const diff = (new Date(apps[i].date) - new Date(apps[i - 1].date)) / (1000 * 60 * 60 * 24);
+                if (diff <= 30) streak++;
+                else streak = 1;
+                if (streak > maxStreak) maxStreak = streak;
+            }
+            totalConsecutive += maxStreak;
+            newClientCount++;
+        });
+        const avgConsecutiveSessionsForNewClients = newClientCount ? (totalConsecutive / newClientCount) : 0;
+
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const lastMonthBookings = appointments.filter(app => {
+            const appDate = new Date(app.date);
+            return appDate >= lastMonth && appDate < thisMonth;
+        }).length;
 
         return res.status(200).json({ success: true, dashData });
 
@@ -451,10 +519,25 @@ export const changeAvailablity = async (req, res) => {
 
         const dates = Object.keys(selectedSlots);
 
+        // Get all dates in the DB for this therapist
+        const allDbDates = await therapistAvailabilityModel.find({ therapistId: docId }).distinct('date');
+
+        // Find dates that are in the DB but not in the new selection
+        const datesToDelete = allDbDates.filter(date => !dates.includes(date));
+
+        // Delete all unbooked slots for those dates
+        if (datesToDelete.length > 0) {
+            await therapistAvailabilityModel.deleteMany({
+                therapistId: docId,
+                date: { $in: datesToDelete },
+                isBooked: false
+            });
+        }
+
         for (const date of dates) {
             const slots = selectedSlots[date];
 
-            // Update queries to use docId instead of therapistId
+            // Remove slots not present in the new selection
             const existing = await therapistAvailabilityModel.find({ therapistId: docId, date });
             for (const slot of existing) {
                 const typesInFrontend = Array.isArray(slots[slot.time])
@@ -468,7 +551,7 @@ export const changeAvailablity = async (req, res) => {
                 }
             }
 
-            // Update upsert operations to use docId
+            // Upsert new/remaining slots
             for (const time in slots) {
                 const types = Array.isArray(slots[time])
                     ? slots[time].map(s => s.type)
@@ -1015,74 +1098,38 @@ export const updateRecurringSchedule = async (req, res) => {
     try {
         const { scheduleId } = req.params;
         const therapistId = req.body.userId;
-        const { name, days, startTime, endTime, interval, types, breaks, startDate, endDate } = req.body;
+        const updateData = req.body;
 
-        // Find the schedule
-        const schedule = await RecurringScheduleModel.findOne({ _id: scheduleId, therapistId });
+        // Find and update schedule
+        const schedule = await RecurringScheduleModel.findOne({
+            _id: scheduleId,
+            therapistId
+        });
+
         if (!schedule) {
             return res.status(404).json({ success: false, message: 'Schedule not found' });
         }
 
-        // Update the schedule fields
-        schedule.name = name || '';
-        schedule.days = days;
-        schedule.startTime = startTime;
-        schedule.endTime = endTime;
-        schedule.interval = interval;
-        schedule.types = types;
-        schedule.breaks = breaks;
-        schedule.startDate = new Date(startDate);
-        schedule.endDate = endDate ? new Date(endDate) : undefined;
+        // Update schedule fields
+        Object.assign(schedule, updateData);
         await schedule.save();
 
-        // Delete old availability slots for this schedule
-        await therapistAvailabilityModel.deleteMany({ recurringScheduleId: scheduleId });
+        // Delete old availability slots
+        await therapistAvailabilityModel.deleteMany({
+            recurringScheduleId: scheduleId,
+            isBooked: false
+        });
 
         // Generate new availability slots
-        const slots = [];
-        let currentDate = new Date(startDate);
-        const endDateTime = endDate ? new Date(endDate) : new Date(currentDate.getTime() + (90 * 24 * 60 * 60 * 1000));
-        while (currentDate <= endDateTime) {
-            if (days.includes(currentDate.getDay())) {
-                const dateStr = currentDate.toISOString().split('T')[0];
-                const [startHour, startMinute] = startTime.split(':').map(Number);
-                const [endHour, endMinute] = endTime.split(':').map(Number);
-                const scheduleStart = startHour * 60 + startMinute;
-                const scheduleEnd = endHour * 60 + endMinute;
-                for (let time = scheduleStart; time < scheduleEnd; time += interval) {
-                    const hour = Math.floor(time / 60);
-                    const minute = time % 60;
-                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                    const isBreakTime = (breaks || []).some(breakTime => {
-                        const [breakStartHour, breakStartMinute] = breakTime.start.split(':').map(Number);
-                        const [breakEndHour, breakEndMinute] = breakTime.end.split(':').map(Number);
-                        const breakStart = breakStartHour * 60 + breakStartMinute;
-                        const breakEnd = breakEndHour * 60 + breakEndMinute;
-                        return time >= breakStart && time < breakEnd;
-                    });
-                    if (!isBreakTime) {
-                        for (const type of types) {
-                            slots.push({
-                                therapistId,
-                                date: dateStr,
-                                time: timeStr,
-                                type,
-                                isBooked: false,
-                                duration: 60,
-                                recurringScheduleId: scheduleId
-                            });
-                        }
-                    }
-                }
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
+        const slots = await schedule.generateAvailabilitySlots();
+
+        // Save new slots
         if (slots.length > 0) {
             await therapistAvailabilityModel.insertMany(slots);
         }
-        res.json({ success: true, message: 'Schedule updated successfully', schedule });
+
+        res.json({ success: true, message: 'Schedule updated successfully' });
     } catch (error) {
-        console.error('Error updating recurring schedule:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -1250,6 +1297,227 @@ export const getClientAppointments = async (req, res) => {
             clientID: clientId
         }).sort({ date: -1 });
         res.json({ success: true, appointments });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// Clear all availability slots for a date
+export const clearAvailabilityByDate = async (req, res) => {
+    try {
+        const { date } = req.params;
+        const therapistId = req.body.userId;
+
+        await therapistAvailabilityModel.deleteMany({
+            therapistId,
+            date,
+            isBooked: false // Only delete unbooked slots
+        });
+
+        res.json({ success: true, message: 'Availability cleared for date' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Clear all availability slots
+export const clearAllAvailability = async (req, res) => {
+    try {
+        const therapistId = req.body.userId;
+
+        await therapistAvailabilityModel.deleteMany({
+            therapistId,
+            isBooked: false // Only delete unbooked slots
+        });
+
+        res.json({ success: true, message: 'All availability cleared' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getTherapistAnalytics = async (req, res) => {
+    try {
+        const therapistId = req.body.userId;
+        const appointments = await appointmentsModel.find({ therapistID: therapistId }).sort({ date: 1 });
+
+        // Dates for calculations
+        const now = new Date();
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+        // Bookings per month
+        const lastMonthBookings = appointments.filter(app => {
+            const appDate = new Date(app.date);
+            return appDate >= lastMonth && appDate < thisMonth;
+        }).length;
+        const currentMonthBookings = appointments.filter(app => {
+            const appDate = new Date(app.date);
+            return appDate >= thisMonth && appDate < nextMonth;
+        }).length;
+
+        // Simple moving average for prediction (last 3 months)
+        const monthlyCounts = {};
+        appointments.forEach(app => {
+            const d = new Date(app.date);
+            const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+            monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
+        });
+        const months = Object.keys(monthlyCounts).sort();
+        const last3 = months.slice(-3);
+        const predictedNextMonthAppointments = last3.length
+            ? Math.round(last3.reduce((sum, m) => sum + monthlyCounts[m], 0) / last3.length)
+            : 0;
+
+        // Consecutive sessions distribution
+        const clientBookings = {};
+        appointments.forEach(app => {
+            const id = app.clientID.toString();
+            if (!clientBookings[id]) clientBookings[id] = [];
+            clientBookings[id].push(app);
+        });
+
+        // Enhanced session distribution analysis
+        let singleSessionClients = 0, twoToThreeSessions = 0, fourToFiveSessions = 0, sixPlusSessions = 0;
+        let totalSessions = 0;
+        Object.values(clientBookings).forEach(apps => {
+            totalSessions += apps.length;
+            if (apps.length === 1) singleSessionClients++;
+            else if (apps.length <= 3) twoToThreeSessions++;
+            else if (apps.length <= 5) fourToFiveSessions++;
+            else sixPlusSessions++;
+        });
+
+        // New: Session completion prediction
+        const sessionCompletionRate = totalSessions ?
+            (appointments.filter(a => a.statusOfAppointment === 'completed').length / totalSessions) : 0;
+        const predictedCompletionRate = sessionCompletionRate * 0.95; // 95% of historical rate
+
+        // New: Student engagement score
+        const engagementScores = {};
+        Object.entries(clientBookings).forEach(([clientId, apps]) => {
+            const completedSessions = apps.filter(a => a.statusOfAppointment === 'completed').length;
+            const cancelledSessions = apps.filter(a => a.statusOfAppointment === 'cancelled').length;
+            const totalSessions = apps.length;
+            const avgInterval = apps.length > 1 ?
+                apps.reduce((sum, app, i) => {
+                    if (i === 0) return 0;
+                    return sum + (new Date(app.date) - new Date(apps[i - 1].date)) / (1000 * 60 * 60 * 24);
+                }, 0) / (apps.length - 1) : 0;
+
+            engagementScores[clientId] = {
+                score: (completedSessions / totalSessions) * (1 - (cancelledSessions / totalSessions)) * (1 / (1 + avgInterval / 30)),
+                totalSessions,
+                completedSessions,
+                cancelledSessions,
+                avgInterval
+            };
+        });
+
+        // New: Predict student retention
+        const retentionPrediction = Object.values(engagementScores).reduce((acc, score) => {
+            if (score.score > 0.8) acc.high += 1;
+            else if (score.score > 0.5) acc.medium += 1;
+            else acc.low += 1;
+            return acc;
+        }, { high: 0, medium: 0, low: 0 });
+
+        // New: Session timing patterns
+        const sessionTimings = appointments.reduce((acc, app) => {
+            const hour = new Date(app.date).getHours();
+            acc[hour] = (acc[hour] || 0) + 1;
+            return acc;
+        }, {});
+
+        const peakHours = Object.entries(sessionTimings)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 3)
+            .map(([hour]) => `${hour}:00`);
+
+        // Rebook after cancel rate
+        let rebookAfterCancel = 0, totalCancelled = 0;
+        Object.values(clientBookings).forEach(apps => {
+            const cancelled = apps.some(a => a.statusOfAppointment === 'cancelled');
+            const rebooked = apps.some(a => a.statusOfAppointment !== 'cancelled');
+            if (cancelled) totalCancelled++;
+            if (cancelled && rebooked) rebookAfterCancel++;
+        });
+        const rebookAfterCancelRate = totalCancelled ? (rebookAfterCancel / totalCancelled) : 0;
+
+        // Predicted cancellation rate with confidence
+        const total = appointments.length;
+        const cancelled = appointments.filter(a => a.statusOfAppointment === 'cancelled').length;
+        const predictedCancellations = total ? (cancelled / total) : 0;
+        const cancellationConfidence = Math.min(0.95, 1 - (1 / Math.sqrt(total)));
+
+        // Avg consecutive sessions for new clients
+        let totalConsecutive = 0, newClientCount = 0;
+        Object.values(clientBookings).forEach(apps => {
+            if (apps.length < 2) return;
+            apps.sort((a, b) => new Date(a.date) - new Date(b.date));
+            let maxStreak = 1, streak = 1;
+            for (let i = 1; i < apps.length; i++) {
+                const diff = (new Date(apps[i].date) - new Date(apps[i - 1].date)) / (1000 * 60 * 60 * 24);
+                if (diff <= 30) streak++;
+                else streak = 1;
+                if (streak > maxStreak) maxStreak = streak;
+            }
+            totalConsecutive += maxStreak;
+            newClientCount++;
+        });
+        const avgConsecutiveSessionsForNewClients = newClientCount ? (totalConsecutive / newClientCount) : 0;
+
+        // Client retention rate
+        const totalClients = Object.keys(clientBookings).length;
+        const retainedClients = Object.values(clientBookings).filter(apps => apps.length > 1).length;
+        const clientRetentionRate = totalClients ? (retainedClients / totalClients) : 0;
+
+        // Avg days between sessions
+        let totalIntervals = 0, intervalCount = 0;
+        Object.values(clientBookings).forEach(apps => {
+            if (apps.length < 2) return;
+            apps.sort((a, b) => new Date(a.date) - new Date(b.date));
+            for (let i = 1; i < apps.length; i++) {
+                const diff = (new Date(apps[i].date) - new Date(apps[i - 1].date)) / (1000 * 60 * 60 * 24);
+                totalIntervals += diff;
+                intervalCount++;
+            }
+        });
+        const avgSessionInterval = intervalCount ? (totalIntervals / intervalCount) : 0;
+
+        res.json({
+            success: true,
+            analytics: {
+                lastMonthBookings,
+                predictedLastMonth: lastMonthBookings,
+                currentMonthBookings,
+                predictedCurrentMonth: currentMonthBookings,
+                predictedNextMonthAppointments,
+                singleSessionClients,
+                twoToThreeSessions,
+                fourToFiveSessions,
+                sixPlusSessions,
+                rebookAfterCancelRate,
+                predictedCancellations,
+                cancellationConfidence,
+                avgConsecutiveSessionsForNewClients,
+                clientRetentionRate,
+                avgSessionInterval,
+                // New analytics
+                sessionCompletionRate,
+                predictedCompletionRate,
+                engagementScores,
+                retentionPrediction,
+                peakHours,
+                sessionDistribution: {
+                    single: singleSessionClients,
+                    twoToThree: twoToThreeSessions,
+                    fourToFive: fourToFiveSessions,
+                    sixPlus: sixPlusSessions
+                }
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { CalendarCheck, XCircle, ClipboardList, Star } from "lucide-react";
 import { TherapistContext } from '../../context/TherapistContext';
-import { FaCalendarCheck, FaClipboardList, FaStar, FaDollarSign } from "react-icons/fa";
+import { FaCalendarCheck, FaClipboardList, FaStar, FaDollarSign, FaDownload } from "react-icons/fa";
 import { ScheduleComponent, ViewsDirective, ViewDirective, Inject, Agenda } from '@syncfusion/ej2-react-schedule';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer, CartesianGrid } from 'recharts';
 import jsPDF from "jspdf";
@@ -19,7 +19,7 @@ import '@syncfusion/ej2-react-schedule/styles/material.css';
 
 
 const TherapistAppointments = () => {
-  const { dToken, appointments, fetchAppointments, cancelAppointment, updateMeetingLink, dashData, getDashData } = useContext(TherapistContext);
+  const { dToken, appointments, fetchAppointments, cancelAppointment, updateMeetingLink, dashData, getDashData, fetchAnalytics } = useContext(TherapistContext);
   console.log('TherapistAppointments mounted with token:', dToken);
   console.log('Current appointments state:', appointments);
   console.log('Current dashData state:', dashData);
@@ -33,7 +33,12 @@ const TherapistAppointments = () => {
   const [filter, setFilter] = useState('current');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
   const [formattedAppointments, setFormattedAppointments] = useState([]);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("appointments");
+  const [analytics, setAnalytics] = useState(null);
+  const [reportType, setReportType] = useState('all');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const reportTableRef = useRef(null);
+  const [selectedReportTypes, setSelectedReportTypes] = useState(['all']);
 
   // Extract data
   const activeAppointments = appointments?.current?.length || 0;
@@ -43,6 +48,14 @@ const TherapistAppointments = () => {
     { name: "Client Cancellations", value: 0 },
     { name: "Therapist Cancellations", value: 0 },
   ]);
+
+  const reportOptions = [
+    { value: 'all', label: 'All Appointments' },
+    { value: 'current', label: 'Current Appointments' },
+    { value: 'past', label: 'Past Appointments' },
+    { value: 'cancelled', label: 'Cancelled Appointments' },
+    { value: 'pastNoCancelled', label: 'Past Appointments (No Cancelled)' },
+  ];
 
   useEffect(() => {
     console.log('Initial useEffect running, calling getDashData');
@@ -76,6 +89,11 @@ const TherapistAppointments = () => {
       setFormattedAppointments(dashData.formattedAppointments);
     }
   }, [dashData.formattedAppointments]);
+
+  useEffect(() => {
+    // Fetch analytics when dashboard loads
+    fetchAnalytics().then(setAnalytics);
+  }, []);
 
   const COLORS = ["#1E3A8A", "#4C5AE3"];
   const pageTopRef = useRef(null);
@@ -275,6 +293,54 @@ const TherapistAppointments = () => {
     pdf.save("appointments-dashboard-report.pdf");
   };
 
+  const getReportData = () => {
+    switch (reportType) {
+      case 'current':
+        return appointments.current;
+      case 'past':
+        return appointments.past;
+      case 'cancelled':
+        return appointments.all.filter(app => app.status === 'cancelled');
+      case 'pastNoCancelled':
+        return appointments.past.filter(app => app.status !== 'cancelled');
+      default:
+        return appointments.all;
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    setShowReportModal(false);
+    // Show the hidden report, render, then hide
+    const reportDiv = reportTableRef.current;
+    if (!reportDiv) return;
+    reportDiv.style.display = 'block';
+    await new Promise(r => setTimeout(r, 200)); // Wait for render
+    const canvas = await html2canvas(reportDiv, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    // Paginate if content is taller than one page
+    let position = 0;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    while (position < pdfHeight) {
+      pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, pdfHeight);
+      position += pageHeight;
+      if (position < pdfHeight) pdf.addPage();
+    }
+    pdf.save(`appointments-report-${reportType}.pdf`);
+    reportDiv.style.display = 'none';
+  };
+
+  const handleReportTypeChange = (value) => {
+    setSelectedReportTypes(prev =>
+      prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev, value]
+    );
+  };
+
   return (
     <div className="w-full min-h-screen bg-gray-50">
       <div className="w-full max-w-5xl mx-auto px-6 py-8">
@@ -282,16 +348,16 @@ const TherapistAppointments = () => {
         <div className="flex justify-between items-center mb-8">
           <div className="flex gap-2 bg-white rounded-xl shadow p-2">
             <button
-              className={`px-6 py-2 rounded-lg font-semibold transition ${activeTab === "dashboard" ? "bg-indigo-600 text-white shadow" : "text-gray-700 hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("dashboard")}
-            >
-              Dashboard
-            </button>
-            <button
               className={`px-6 py-2 rounded-lg font-semibold transition ${activeTab === "appointments" ? "bg-indigo-600 text-white shadow" : "text-gray-700 hover:bg-gray-100"}`}
               onClick={() => setActiveTab("appointments")}
             >
               Appointments
+            </button>
+            <button
+              className={`px-6 py-2 rounded-lg font-semibold transition ${activeTab === "dashboard" ? "bg-indigo-600 text-white shadow" : "text-gray-700 hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("dashboard")}
+            >
+              Session Analytics
             </button>
           </div>
           {activeTab === "dashboard" && (
@@ -304,134 +370,37 @@ const TherapistAppointments = () => {
           )}
         </div>
 
-        {/* Dashboard Tab */}
-        {activeTab === "dashboard" && (
-          <>
-            <div ref={reportRef}>
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                {cardData.map((card, index) => (
-                  <div
-                    key={index}
-                    className="relative group bg-gradient-to-br from-indigo-50 to-white shadow-lg rounded-2xl p-6 flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-2xl"
-                  >
-                    <div className="absolute top-4 right-4 opacity-10 text-6xl pointer-events-none">{card.icon}</div>
-                    <div className="w-14 h-14 flex items-center justify-center bg-indigo-100 rounded-full shadow mb-4">
-                      {card.icon}
-                    </div>
-                    <h3 className="text-base font-semibold text-gray-700 mb-1">{card.label}</h3>
-                    <p className="text-4xl font-extrabold text-indigo-700 mb-1">{card.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Booking Trends Chart */}
-              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px]">
-                <div className="flex items-center mb-4">
-                  <CalendarCheck className="text-indigo-500 w-6 h-6 mr-2" />
-                  <h3 className="text-lg font-bold text-gray-800">Booking Trends</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={dashData?.bookingTrendsData ?? []} margin={{ top: 20, right: 50, left: 10, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="1 1" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="total" stroke="#E3165B" strokeWidth={3} dot={{ r: 5 }} />
-                    <Line type="monotone" dataKey="online" stroke="#1E3A8A" strokeWidth={2} dot={{ r: 4 }} />
-                    <Line type="monotone" dataKey="inPerson" stroke="#4C5AE3" strokeWidth={2} dot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* New Clients Gained Chart */}
-              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px]">
-                <div className="flex items-center mb-4">
-                  <ClipboardList className="text-indigo-500 w-6 h-6 mr-2" />
-                  <h3 className="text-lg font-bold text-gray-800">New Clients Gained</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={dashData?.newClientsData ?? []} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => `${value} Clients`} />
-                    <Legend />
-                    <Bar dataKey="newClients" fill="#4C5AE3" name="New Clients" barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Cancellations Breakdown Pie Chart */}
-              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px] flex flex-col items-center border border-indigo-100">
-                <div className="flex items-center mb-2">
-                  <XCircle className="text-indigo-500 w-6 h-6 mr-2" />
-                  <h3 className="text-lg font-bold text-gray-800">Cancellations Breakdown</h3>
-                </div>
-                <p className="text-gray-500 mb-4">See who cancelled sessions this month</p>
-                <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-center">
-                  <PieChart width={180} height={180}>
-                    <Pie
-                      data={cancellationBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={70}
-                      fill="#8884d8"
-                      label
-                    >
-                      {cancellationBreakdown.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                  <div className="flex flex-col justify-center items-start gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-4 h-4 rounded-full" style={{ background: COLORS[0] }}></span>
-                      <span className="text-gray-700 font-medium">Client Cancellations: {cancellationBreakdown[0]?.value || 0}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-4 h-4 rounded-full" style={{ background: COLORS[1] }}></span>
-                      <span className="text-gray-700 font-medium">Therapist Cancellations: {cancellationBreakdown[1]?.value || 0}</span>
-                    </div>
-                    <div className="mt-4 font-bold text-indigo-700">Total: {cancellationBreakdown.reduce((sum, entry) => sum + entry.value, 0)}</div>
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-gray-500 text-center w-full">
-                  <span>
-                    Most cancellations this month were by <b>{cancellationBreakdown[0]?.value >= cancellationBreakdown[1]?.value ? 'clients' : 'therapists'}</b>.
-                  </span>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
         {/* Appointments Tab */}
         {activeTab === "appointments" && (
           <div className="bg-white shadow-lg rounded-2xl p-8">
-            <h2 className="text-lg font-bold pt-2 pb-4">All Appointments</h2>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <h2 className="text-2xl font-extrabold text-[#6366F1] pt-2 pb-4">All Appointments</h2>
+              <div className="flex gap-2 items-center">
+                <button
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-[#6366F1]/90 transition"
+                  onClick={() => setShowReportModal(true)}
+                >
+                  <FaDownload /> Download Report
+                </button>
+              </div>
+            </div>
             {/* Filter Tabs */}
             <div className='flex flex-row items-start gap-5 mb-4'>
               <div className='flex gap-4 text-sm text-gray-600'>
-
                 <p
-
-                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'current' ? 'bg-primary text-white' : ''}`}
+                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'current' ? 'bg-[#6366F1] text-white' : ''}`}
                   onClick={() => handleFilterChange('current')}
                 >Current Appointments</p>
                 <p
-                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'past' ? 'bg-primary text-white' : ''}`}
+                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'past' ? 'bg-[#6366F1] text-white' : ''}`}
                   onClick={() => handleFilterChange('past')}
                 >Past Appointments</p>
                 <p
-                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'all' ? 'bg-primary text-white' : ''}`}
+                  className={`pl-3 py-1.5 pr-16 border rounded cursor-pointer transition-all ${filter === 'all' ? 'bg-[#6366F1] text-white' : ''}`}
                   onClick={() => handleFilterChange('all')}
                 >All Appointments</p>
               </div>
             </div>
-
             {/* Search Bar */}
             <input
               type='text'
@@ -440,10 +409,8 @@ const TherapistAppointments = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-
             {/* Appointments List */}
             <div ref={tableRef} className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-
               <div className='grid grid-cols-6 gap-4 py-3 px-6 border-b font-medium text-center'>
                 {columns.map(({ label, key }) => (
                   <p
@@ -479,7 +446,7 @@ const TherapistAppointments = () => {
                       if (isPast || isCancelled || isCompleted) {
                         return (
                           <button
-                            className="px-3 py-1.5 rounded bg-primary text-white hover:opacity-90 transition"
+                            className="px-3 py-1.5 rounded bg-[#6366F1] text-white hover:opacity-90 transition"
                             onClick={() => handleViewRating(item)}
                           >
                             View Session Ratings
@@ -490,7 +457,7 @@ const TherapistAppointments = () => {
                       // If it's upcoming and not cancelled
                       return (
                         <button
-                          className="px-3 py-1.5 rounded bg-primary text-white hover:opacity-90 transition"
+                          className="px-3 py-1.5 rounded bg-[#6366F1] text-white hover:opacity-90 transition"
                           onClick={() => handleModifyAppointment(item)}
                         >
                           Modify Appointment
@@ -510,7 +477,7 @@ const TherapistAppointments = () => {
                     className="bg-white p-6 rounded-lg shadow-lg w-96"
                     onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside
                   >
-                    <h2 className="text-lg font-semibold text-primary mb-3">Modify Appointment</h2>
+                    <h2 className="text-lg font-semibold text-[#6366F1] mb-3">Modify Appointment</h2>
 
                     {/* Show Meeting Link only for Online Appointments */}
                     {selectedAppointment.type === 'online' && (
@@ -531,7 +498,7 @@ const TherapistAppointments = () => {
                       {/* Save Meeting Link Button */}
                       {selectedAppointment.type === 'online' && (
                         <button
-                          className="text-sm bg-primary text-white px-4 py-2 rounded hover:opacity-90 transition"
+                          className="text-sm bg-[#6366F1] text-white px-4 py-2 rounded hover:opacity-90 transition"
                           onClick={handleSaveMeetingLink}
                         >
                           Save Meeting Link
@@ -614,7 +581,236 @@ const TherapistAppointments = () => {
                 </button>
               </div>
             )}
+            {/* Report Type Modal */}
+            {showReportModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setShowReportModal(false)}>
+                <div className="bg-white rounded-2xl shadow-2xl p-10 min-w-[340px] max-w-[95vw] relative flex flex-col items-center"
+                  onClick={e => e.stopPropagation()}>
+                  <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-3xl" onClick={() => setShowReportModal(false)}>&times;</button>
+                  <h3 className="text-2xl font-extrabold mb-6 text-[#6366F1] text-center">Select Report Type(s)</h3>
+                  <div className="flex flex-col gap-4 mb-8">
+                    {reportOptions.map(opt => (
+                      <label
+                        key={opt.value}
+                        className="flex items-center gap-4 py-2 px-2 rounded-lg hover:bg-[#6366F1]/50 transition cursor-pointer"
+                        style={{ fontSize: '1.15rem', fontWeight: 500 }}
+                      >
+                        <input
+                          type="checkbox"
+                          value={opt.value}
+                          checked={selectedReportTypes.includes(opt.value)}
+                          onChange={() => handleReportTypeChange(opt.value)}
+                          className="w-5 h-5 accent-[#6366F1]"
+                        />
+                        <span className="text-gray-800">{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    className="w-full py-3 bg-[#6366F1] text-white rounded-xl font-bold text-lg shadow-lg hover:bg-[#6366F1]/90 transition"
+                    style={{ fontSize: '1.2rem', marginTop: 12 }}
+                    onClick={handleDownloadReport}
+                  >
+                    Download PDF{selectedReportTypes.length > 1 ? 's' : ''}
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Hidden printable report */}
+            <div ref={reportTableRef} style={{ display: 'none' }}>
+              <div style={{ padding: 32, fontFamily: 'Arial, sans-serif', background: '#fff', minWidth: 900 }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+                  <img src="/logo192.png" alt="Logo" style={{ height: 48, marginRight: 16 }} />
+                  <div>
+                    <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1E3A8A', margin: 0 }}>Appointments Report</h1>
+                    <div style={{ fontSize: 16, color: '#4C5AE3', fontWeight: 600 }}>{
+                      reportOptions.find(opt => opt.value === reportType)?.label || ''
+                    }</div>
+                    <div style={{ fontSize: 12, color: '#888' }}>Generated: {new Date().toLocaleString()}</div>
+                  </div>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                  <thead>
+                    <tr style={{ background: '#F7F8FA', color: '#1E3A8A', fontWeight: 700 }}>
+                      <th style={{ padding: 10, border: '1px solid #E5E7EB' }}>Booking ID</th>
+                      <th style={{ padding: 10, border: '1px solid #E5E7EB' }}>Client</th>
+                      <th style={{ padding: 10, border: '1px solid #E5E7EB' }}>Type</th>
+                      <th style={{ padding: 10, border: '1px solid #E5E7EB' }}>Date</th>
+                      <th style={{ padding: 10, border: '1px solid #E5E7EB' }}>Time</th>
+                      <th style={{ padding: 10, border: '1px solid #E5E7EB' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getReportData().map((item, idx) => (
+                      <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#F7F8FA' }}>
+                        <td style={{ padding: 10, border: '1px solid #E5E7EB' }}>{item.id || item._id || ''}</td>
+                        <td style={{ padding: 10, border: '1px solid #E5E7EB' }}>{item.client}</td>
+                        <td style={{ padding: 10, border: '1px solid #E5E7EB' }}>{item.type}</td>
+                        <td style={{ padding: 10, border: '1px solid #E5E7EB' }}>{item.date}</td>
+                        <td style={{ padding: 10, border: '1px solid #E5E7EB' }}>{item.time}</td>
+                        <td style={{ padding: 10, border: '1px solid #E5E7EB', color: item.status === 'cancelled' ? '#E3165B' : item.status === 'completed' ? '#22C55E' : '#4C5AE3', fontWeight: 600 }}>{item.status.charAt(0).toUpperCase() + item.status.slice(1)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ marginTop: 32, fontSize: 12, color: '#888', textAlign: 'right' }}>
+                  Mind Matters &copy; {new Date().getFullYear()}
+                </div>
+              </div>
+            </div>
           </div>
+        )}
+
+        {/* Dashboard Tab */}
+        {activeTab === "dashboard" && (
+          <>
+            <div ref={reportRef}>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                {cardData.map((card, index) => (
+                  <div
+                    key={index}
+                    className="relative group bg-gradient-to-br from-indigo-50 to-white shadow-lg rounded-2xl p-6 flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-2xl"
+                  >
+                    <div className="absolute top-4 right-4 opacity-10 text-6xl pointer-events-none">{card.icon}</div>
+                    <div className="w-14 h-14 flex items-center justify-center bg-indigo-100 rounded-full shadow mb-4">
+                      {card.icon}
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-700 mb-1">{card.label}</h3>
+                    <p className="text-4xl font-extrabold text-indigo-700 mb-1">{card.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Booking Trends Chart */}
+              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px]">
+                <div className="flex items-center mb-4">
+                  <CalendarCheck className="text-indigo-500 w-6 h-6 mr-2" />
+                  <h3 className="text-2xl font-extrabold text-indigo-700 ">Booking Trends</h3>
+                </div>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={dashData?.bookingTrendsData ?? []} margin={{ top: 20, right: 50, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="1 1" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="total" stroke="#E3165B" strokeWidth={3} dot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="online" stroke="#1E3A8A" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="inPerson" stroke="#4C5AE3" strokeWidth={2} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              {/* --- AI Predictions Section --- */}
+              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10">
+                <h3 className="text-2xl font-extrabold text-indigo-700 mb-8 flex items-center gap-2">
+                  <span role="img" aria-label="AI">🤖</span> AI Predictions & Insights
+                </h3>
+                {!analytics ? (
+                  <p className="text-lg text-gray-500">Loading predictions...</p>
+                ) : (
+                  <div className="space-y-10">
+                    {/* Predicted Bookings Card */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-indigo-50 p-8 rounded-xl flex flex-col items-center justify-center">
+                        <h4 className="font-bold text-xl text-gray-700 mb-4">Predicted Bookings Next Month</h4>
+                        <p className="text-5xl font-extrabold text-primary mb-3">{analytics.predictedNextMonthAppointments}</p>
+                        <p className="text-lg text-gray-500">Based on recent trends</p>
+                      </div>
+                      {/* Consecutive Sessions Card */}
+                      <div className="bg-indigo-50 p-8 rounded-xl flex flex-col items-center justify-center">
+                        <h4 className="font-bold text-xl text-gray-700 mb-4">Consecutive Sessions</h4>
+                        <p className="text-5xl font-extrabold text-primary mb-3">{analytics.avgConsecutiveSessionsForNewClients?.toFixed(1) ?? '0'}</p>
+                        <p className="text-lg text-gray-500">New clients have about {analytics.avgConsecutiveSessionsForNewClients?.toFixed(1) ?? '0'} sessions in a row</p>
+                      </div>
+                    </div>
+
+                    {/* Cancellation Predictions */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-gray-50 p-6 rounded-xl">
+                        <h4 className="font-bold text-xl text-gray-700 mb-2">Rebook After Cancel Rate</h4>
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 h-20 rounded-full border-4 border-primary flex items-center justify-center">
+                            <span className="text-xl font-extrabold text-primary">
+                              {analytics.rebookAfterCancelRate ? (analytics.rebookAfterCancelRate * 100).toFixed(0) : '0'}%
+                            </span>
+                          </div>
+                          <p className="text-lg text-gray-600">
+                            of clients who cancel rebook within 30 days
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 p-6 rounded-xl">
+                        <h4 className="font-bold text-xl text-gray-700 mb-2">Predicted Cancellation Rate</h4>
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 h-20 rounded-full border-4 border-red-500 flex items-center justify-center">
+                            <span className="text-xl font-extrabold text-red-500">
+                              {analytics.predictedCancellations ? (analytics.predictedCancellations * 100).toFixed(0) : '0'}%
+                            </span>
+                          </div>
+                          <p className="text-lg text-gray-600">
+                            expected cancellation rate for next month
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Avg Days Between Sessions Card */}
+                    <div className="bg-gray-50 p-8 rounded-xl flex flex-col items-center justify-center">
+                      <h4 className="font-bold text-xl text-gray-700 mb-3">Average Days Between Sessions</h4>
+                      <p className="text-5xl font-extrabold text-primary mb-2">{analytics.avgSessionInterval?.toFixed(0) ?? '0'} days</p>
+                      <p className="text-lg text-gray-500">On average, clients wait this long between sessions</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Cancellations Breakdown Pie Chart */}
+              <div className="bg-white shadow-lg rounded-2xl p-8 mb-10 min-h-[340px] flex flex-col items-center border border-indigo-100">
+                <div className="flex items-center mb-2">
+                  <XCircle className="text-indigo-500 w-6 h-6 mr-2" />
+                  <h3 className="text-2xl font-extrabold text-indigo-700">Cancellations Breakdown</h3>
+                </div>
+                <p className="text-lg text-gray-500 mb-4">See who cancelled sessions this month</p>
+                <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-center">
+                  <PieChart width={180} height={180}>
+                    <Pie
+                      data={cancellationBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={70}
+                      fill="#8884d8"
+                      label
+                    >
+                      {cancellationBreakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                  <div className="flex flex-col justify-center items-start gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-4 h-4 rounded-full" style={{ background: COLORS[0] }}></span>
+                      <span className="text-gray-700 font-medium">Client Cancellations: {cancellationBreakdown[0]?.value || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-4 h-4 rounded-full" style={{ background: COLORS[1] }}></span>
+                      <span className="text-gray-700 font-medium">Therapist Cancellations: {cancellationBreakdown[1]?.value || 0}</span>
+                    </div>
+                    <div className="mt-4 font-bold text-indigo-700">Total: {cancellationBreakdown.reduce((sum, entry) => sum + entry.value, 0)}</div>
+                  </div>
+                </div>
+                <div className="mt-4 text-sm text-gray-500 text-lg text-center w-full">
+                  <span>
+                    Most cancellations this month were by <b>{cancellationBreakdown[0]?.value >= cancellationBreakdown[1]?.value ? 'clients' : 'therapists'}</b>.
+                  </span>
+                </div>
+              </div>
+
+
+            </div>
+          </>
         )}
       </div>
     </div>

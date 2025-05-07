@@ -1,37 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTemplates } from '../../context/TemplateContext';
+import { toast } from 'react-toastify';
 
-const emptyTemplate = { name: '', fields: [] };
+const emptyTemplate = { name: '', fields: [], type: 'client_note' };
 
 export default function TemplateEditor() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { clientNoteTemplates, setClientNoteTemplates, psychometricTools, setPsychometricTools } = useTemplates();
+    const { clientNoteTemplates, psychometricTools, addNoteTemplate, editNoteTemplate, fetchNoteTemplates } = useTemplates();
     const [tab, setTab] = useState('notes');
     const [template, setTemplate] = useState(emptyTemplate);
-
+    const ensureFieldIds = (fields) =>
+        fields.map(field => ({
+            ...field,
+            id: field.id || Date.now().toString() + Math.random().toString(36).substr(2, 5)
+        }));
     // Load template for editing
     useEffect(() => {
         if (id) {
             const allTemplates = [...clientNoteTemplates, ...psychometricTools];
-            const found = allTemplates.find(t => t.id === id);
+            const found = allTemplates.find(t => t._id === id);
             if (found) {
                 setTemplate(found);
-                setTab(clientNoteTemplates.some(t => t.id === id) ? 'notes' : 'psychometric');
+                setTab(clientNoteTemplates.some(t => t._id === id) ? 'notes' : 'psychometric');
             }
         }
     }, [id, clientNoteTemplates, psychometricTools]);
 
-    const setTemplates = tab === 'notes' ? setClientNoteTemplates : setPsychometricTools;
+    const setTemplates = tab === 'notes' ? clientNoteTemplates : psychometricTools;
 
-    const handleSave = () => {
+    // Save Template (add or edit)
+    const handleSave = async () => {
         if (!template.name.trim()) return;
+        const type = tab === 'notes' ? 'client_note' : 'psychometric';
+        // Ensure all fields have an id
+        const fieldsWithIds = ensureFieldIds(template.fields);
+        const templateToSave = { ...template, type, fields: fieldsWithIds };
         if (id) {
-            setTemplates(prev => prev.map(t => t.id === id ? { ...template, id } : t));
+            await editNoteTemplate(id, templateToSave);
         } else {
-            setTemplates(prev => [...prev, { ...template, id: Date.now().toString() }]);
+            await addNoteTemplate(templateToSave);
         }
+        await fetchNoteTemplates(); // Wait for templates to update
+        toast.success('Template saved!');
         navigate('/clients');
     };
 

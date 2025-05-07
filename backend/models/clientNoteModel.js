@@ -1,56 +1,64 @@
 import mongoose from "mongoose";
 
 const clientNoteSchema = new mongoose.Schema({
-    therapistID: {
+    clientId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Student",
+        required: true,
+        index: true
+    },
+    therapistId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "doctor",
         required: true,
-    },
-    clientID: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
-        required: true,
-    },
-    appointmentID: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "appointments",
-        required: false,
-    },
-    templateID: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "NoteTemplate",
-        required: false,
-    },
-    title: {
-        type: String,
-        required: true
+        index: true
     },
     content: {
-        type: mongoose.Schema.Types.Mixed,
-        required: true
-    },
-    type: {
         type: String,
-        enum: ["session", "assessment", "formulation", "progress", "custom"],
-        required: true
+        required: true,
+        trim: true
+    },
+    templateUsed: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    fields: {
+        type: Map,
+        of: mongoose.Schema.Types.Mixed,
+        default: new Map()
+    },
+    appointmentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "appointments",
+        default: null
     },
     pinned: {
         type: Boolean,
-        default: false,
+        default: false
     },
     tags: [{
-        type: String
-    }],
-    attachments: [{
         type: String,
-        url: String,
-        name: String
+        trim: true
     }],
-    createdAt: {
+    status: {
+        type: String,
+        enum: ['draft', 'published', 'archived'],
+        default: 'published'
+    },
+    date: {
         type: Date,
-        default: Date.now,
+        default: Date.now
     }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Index for faster queries
+clientNoteSchema.index({ createdAt: -1 });
+clientNoteSchema.index({ pinned: 1 });
 
 const ClientNote = mongoose.models.ClientNote || mongoose.model("ClientNote", clientNoteSchema);
 export default ClientNote; 

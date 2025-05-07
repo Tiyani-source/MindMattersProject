@@ -31,7 +31,7 @@ const Login = () => {
           return;
         }
 
-        alert( 'Login Successful');
+        alert('Login Successful');
         localStorage.setItem('token', data.token);
         navigate('/');
         window.location.reload();
@@ -76,7 +76,7 @@ const Login = () => {
 
           {state === 'Sign Up' && step === 'selection' && (
             <>
-            
+
               <button type="button" className="btn green" onClick={() => { setUserType('normal'); navigate('/student-signup'); }}>
                 Student SignUp
               </button>
