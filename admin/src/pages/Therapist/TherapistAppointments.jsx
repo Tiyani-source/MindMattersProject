@@ -345,7 +345,7 @@ const TherapistAppointments = () => {
     <div className="w-full min-h-screen bg-gray-50">
       <div className="w-full max-w-5xl mx-auto px-6 py-8">
         {/* Tabs */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex mt-2 justify-between items-center mb-8">
           <div className="flex gap-2 bg-white rounded-xl shadow p-2">
             <button
               className={`px-6 py-2 rounded-lg font-semibold transition ${activeTab === "appointments" ? "bg-indigo-600 text-white shadow" : "text-gray-700 hover:bg-gray-100"}`}
@@ -377,7 +377,7 @@ const TherapistAppointments = () => {
               <h2 className="text-2xl font-extrabold text-[#6366F1] pt-2 pb-4">All Appointments</h2>
               <div className="flex gap-2 items-center">
                 <button
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-[#6366F1]/90 transition"
+                  className="flex items-center gap-2 px-4 py-2  text-white rounded shadow bg-indigo-600 hover:bg-[#6366F1]/90 transition"
                   onClick={() => setShowReportModal(true)}
                 >
                   <FaDownload /> Download Report
@@ -607,7 +607,7 @@ const TherapistAppointments = () => {
                     ))}
                   </div>
                   <button
-                    className="w-full py-3 bg-[#6366F1] text-white rounded-xl font-bold text-lg shadow-lg hover:bg-[#6366F1]/90 transition"
+                    className="w-full py-3 bg-indigo-600 hover:bg-[#6366F1]/90 text-white rounded-xl font-bold text-lg shadow-lg  transition"
                     style={{ fontSize: '1.2rem', marginTop: 12 }}
                     onClick={handleDownloadReport}
                   >

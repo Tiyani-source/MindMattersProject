@@ -50,7 +50,7 @@ const statusOptions = [
     "Terminated"
 ];
 
-function StatusDropdown({ value, onChange, small, compact }) {
+function StatusDropdown({ value, onChange, small, compact, pill }) {
     const [open, setOpen] = useState(false);
     const ref = useRef();
 
@@ -422,32 +422,47 @@ const ClientDetail = () => {
                 {/* Client Stats Section */}
                 {selectedTab === 'stats' && (
                     <div className="flex flex-col md:flex-row gap-8 mb-10">
-                        {/* Profile Card */}
-                        <div className="flex-1 min-w-[280px] max-w-[340px] bg-white rounded-3xl shadow-xl p-8 flex flex-col items-start justify-between">
-                            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-400 to-blue-400 flex items-center justify-center text-white text-4xl font-bold shadow-xl mb-4">
+                        {/* Profile Card - Redesigned & Polished */}
+                        <div className="flex-1 min-w-[300px] max-w-[360px] bg-gradient-to-br from-indigo-400/80 to-blue-400/80 rounded-3xl shadow-2xl p-10 flex flex-col items-center justify-between relative overflow-visible min-h-[500px]">
+                            {/* Avatar with border and shadow */}
+                            <div className="relative z-10 w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white text-5xl font-extrabold shadow-2xl border-4 border-white mb-8 ring-4 ring-indigo-200/40">
                                 {clientData?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
                             </div>
-                            <div className="text-[28px] font-extrabold text-gray-900 mb-1">{clientData?.name}</div>
-                            <div className="text-[16px] text-gray-500 mb-2">{clientData?.university}{clientData?.birthdate && (<span className="text-gray-400"> · {Math.floor((new Date() - new Date(clientData.birthdate)) / (365.25 * 24 * 60 * 60 * 1000))} yrs</span>)}</div>
-                            <div className="w-full mb-4">
-                                <StatusDropdown value={clientStatus} onChange={handleStatusChange} small compact />
+                            {/* Name */}
+                            <div className="relative z-10 text-[32px] font-extrabold text-white mb-2 text-center drop-shadow-lg tracking-tight">
+                                {clientData?.name}
                             </div>
-                            <div className="w-full">
-                                <div className="flex items-center mb-2">
-                                    <span className="text-[18px] font-semibold text-gray-700 mr-2">Goals</span>
+                            {/* University & Age */}
+                            <div className="relative z-10 text-[18px] text-indigo-100 mb-6 text-center font-medium">
+                                {clientData?.university}
+                                {clientData?.birthdate && (
+                                    <span className="text-indigo-200"> · {Math.floor((new Date() - new Date(clientData.birthdate)) / (365.25 * 24 * 60 * 60 * 1000))} yrs</span>
+                                )}
+                            </div>
+                            {/* Status Dropdown - pill shape, integrated */}
+                            <div className="w-full mb-7 flex justify-center z-10 relative">
+                                <div className="inline-block">
+                                    <StatusDropdown value={clientStatus} onChange={handleStatusChange} small compact pill />
+                                </div>
+                            </div>
+                            {/* Goals */}
+                            <div className="w-full relative z-10">
+                                <div className="flex items-center mb-3 justify-between">
+                                    <span className="text-[19px] font-semibold text-white mr-2">Goals</span>
                                     <button
                                         onClick={() => setShowGoalInput(!showGoalInput)}
-                                        className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-blue-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full shadow transition text-[16px]"
+                                        className="w-9 h-9 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-blue-500 hover:scale-110 hover:from-blue-600 hover:to-indigo-600 text-white rounded-full shadow transition text-[20px] z-10 border-2 border-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                                         title="Add goal"
+                                        style={{ transition: 'transform 0.15s' }}
                                     >
-                                        <Plus size={15} />
+                                        <Plus size={18} />
                                     </button>
                                 </div>
                                 <div className="flex flex-wrap gap-2 mb-2">
                                     {clientGoals.map((goal, index) => (
                                         <div
                                             key={index}
-                                            className="inline-flex items-center bg-white border border-indigo-100 text-indigo-700 px-4 py-1 rounded-full text-[16px] font-semibold shadow-sm hover:shadow-md transition-all"
+                                            className="inline-flex items-center bg-white/80 border border-indigo-200 text-indigo-700 px-4 py-1 rounded-full text-[16px] font-semibold shadow-sm hover:shadow-md transition-all backdrop-blur-md"
                                         >
                                             <span>{goal.title}</span>
                                             <button
@@ -460,18 +475,20 @@ const ClientDetail = () => {
                                         </div>
                                     ))}
                                 </div>
+                                {/* Animated input for adding goal */}
                                 {showGoalInput && (
-                                    <div className="mt-2 flex gap-2">
+                                    <div className="mt-2 flex gap-2 z-10 relative animate-fade-in">
                                         <input
                                             type="text"
                                             value={newGoal}
                                             onChange={(e) => setNewGoal(e.target.value)}
                                             placeholder="Add new goal..."
-                                            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-[16px]"
+                                            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-[16px] bg-white/90 shadow"
+                                            autoFocus
                                         />
                                         <button
                                             onClick={handleAddGoal}
-                                            className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 text-[16px] font-medium"
+                                            className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 text-[16px] font-medium shadow"
                                         >
                                             Add
                                         </button>
@@ -479,73 +496,87 @@ const ClientDetail = () => {
                                 )}
                             </div>
                         </div>
-                        {/* AI Insights Card */}
-                        <div className="flex-1 min-w-[260px] max-w-[340px] bg-gradient-to-br from-white to-indigo-50 rounded-2xl shadow-lg p-8 flex flex-col min-h-[260px] border border-indigo-100">
-                            <div className="text-xs font-bold text-gray-700 mb-6 tracking-widest uppercase">AI Insights</div>
-                            <div className="flex flex-col gap-6">
+                        {/* AI Insights Card - Redesigned */}
+                        <div className="flex-1 min-w-[260px] max-w-[340px] bg-gradient-to-br from-white via-indigo-50 to-blue-100 rounded-3xl shadow-xl p-8 flex flex-col min-h-[300px] border border-indigo-100 relative overflow-hidden">
+                            {/* Decorative Gradient */}
+                            <div className="absolute -top-8 -right-8 w-32 h-32 bg-indigo-200/30 rounded-full blur-2xl z-0"></div>
+                            <div className="text-xs font-bold text-gray-700 mb-7 tracking-widest uppercase relative z-10">AI Insights</div>
+                            <div className="flex flex-col gap-7 relative z-10">
+                                {/* Engagement Score */}
                                 <div className="flex items-center gap-4">
-                                    <BarChart2 className="text-indigo-400" size={22} />
-                                    <div className="flex-1 flex justify-between items-center">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-blue-400 flex items-center justify-center shadow text-white">
+                                        <BarChart2 size={22} />
+                                    </div>
+                                    <div className="flex-1 flex flex-col">
                                         <span className="text-base text-gray-500">Engagement Score</span>
                                         <span className={`text-2xl font-extrabold ${getEngagementScoreColor(engagementScore)}`}>{engagementScore !== undefined ? (engagementScore * 100).toFixed(0) + '%' : '--'}</span>
                                     </div>
                                 </div>
+                                {/* Retention Prediction */}
                                 <div className="flex items-center gap-4">
-                                    <Tag className="text-indigo-400" size={22} />
-                                    <div className="flex-1 flex justify-between items-center">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-blue-400 flex items-center justify-center shadow text-white">
+                                        <Tag size={22} />
+                                    </div>
+                                    <div className="flex-1 flex flex-col">
                                         <span className="text-base text-gray-500">Retention Prediction</span>
-                                        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${retentionPrediction?.color} border-current bg-opacity-10`}>{retentionPrediction?.label || '--'}</span>
+                                        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${retentionPrediction?.color} border-current bg-opacity-10 mt-1`}>{retentionPrediction?.label || '--'}</span>
                                     </div>
                                 </div>
+                                {/* Completion Rate */}
                                 <div className="flex items-center gap-4">
-                                    <CheckCircle className="text-indigo-400" size={22} />
-                                    <div className="flex-1 flex justify-between items-center">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-blue-400 flex items-center justify-center shadow text-white">
+                                        <CheckCircle size={22} />
+                                    </div>
+                                    <div className="flex-1 flex flex-col">
                                         <span className="text-base text-gray-500">Completion Rate</span>
                                         <span className="text-xl font-bold text-gray-900">{aiStats ? ((aiStats.completedSessions / aiStats.totalSessions) * 100).toFixed(0) + '%' : '--'}</span>
                                     </div>
                                 </div>
+                                {/* Avg. Session Interval */}
                                 <div className="flex items-center gap-4">
-                                    <Clock className="text-indigo-400" size={22} />
-                                    <div className="flex-1 flex justify-between items-center">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-blue-400 flex items-center justify-center shadow text-white">
+                                        <Clock size={22} />
+                                    </div>
+                                    <div className="flex-1 flex flex-col">
                                         <span className="text-base text-gray-500">Avg. Session Interval</span>
                                         <span className="text-xl font-bold text-gray-900">{aiStats ? Math.round(aiStats.avgInterval) + ' days' : '--'}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        {/* Stat Cards Grid */}
+                        {/* Stat Cards Grid - Redesigned */}
                         <div className="flex-[2] min-w-[340px] max-w-[600px] grid grid-cols-2 gap-8">
                             {/* Next Session */}
-                            <div className="bg-gradient-to-br from-[#e0e7ff] to-[#f0f4ff] rounded-2xl shadow-lg flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] hover:scale-[1.03] transition-transform">
-                                <div className="bg-white shadow-md rounded-full p-4 mb-4">
-                                    <Calendar className="text-indigo-500" size={32} />
+                            <div className="bg-gradient-to-br from-indigo-100 via-blue-100 to-white rounded-3xl shadow-xl flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] transition-transform hover:scale-[1.04] hover:shadow-2xl group cursor-pointer">
+                                <div className="bg-gradient-to-br from-indigo-400 to-blue-400 shadow-lg rounded-full p-5 mb-4 flex items-center justify-center">
+                                    <Calendar className="text-white" size={36} />
                                 </div>
-                                <div className="text-base text-gray-500 font-medium mb-1">Next session</div>
-                                <div className="text-2xl font-extrabold text-indigo-700">{nextSession ? format(new Date(nextSession.date), 'MMMM d, yyyy') : '—'}</div>
+                                <div className="text-lg text-gray-600 font-semibold mb-1">Next session</div>
+                                <div className="text-2xl font-extrabold text-indigo-700 group-hover:text-blue-700 transition">{nextSession ? format(new Date(nextSession.date), 'MMMM d, yyyy') : '—'}</div>
                             </div>
                             {/* Total Sessions */}
-                            <div className="bg-gradient-to-br from-[#e0e7ff] to-[#f0f4ff] rounded-2xl shadow-lg flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] hover:scale-[1.03] transition-transform">
-                                <div className="bg-white shadow-md rounded-full p-4 mb-4">
-                                    <Clock className="text-indigo-500" size={32} />
+                            <div className="bg-gradient-to-br from-indigo-100 via-blue-100 to-white rounded-3xl shadow-xl flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] transition-transform hover:scale-[1.04] hover:shadow-2xl group cursor-pointer">
+                                <div className="bg-gradient-to-br from-indigo-400 to-blue-400 shadow-lg rounded-full p-5 mb-4 flex items-center justify-center">
+                                    <Clock className="text-white" size={36} />
                                 </div>
-                                <div className="text-base text-gray-500 font-medium mb-1">Total sessions</div>
-                                <div className="text-2xl font-extrabold text-indigo-700">{sessions.length}</div>
+                                <div className="text-lg text-gray-600 font-semibold mb-1">Total sessions</div>
+                                <div className="text-2xl font-extrabold text-indigo-700 group-hover:text-blue-700 transition">{sessions.length}</div>
                             </div>
                             {/* First Appointment */}
-                            <div className="bg-gradient-to-br from-[#e0e7ff] to-[#f0f4ff] rounded-2xl shadow-lg flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] hover:scale-[1.03] transition-transform">
-                                <div className="bg-white shadow-md rounded-full p-4 mb-4">
-                                    <Calendar className="text-indigo-500" size={32} />
+                            <div className="bg-gradient-to-br from-indigo-100 via-blue-100 to-white rounded-3xl shadow-xl flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] transition-transform hover:scale-[1.04] hover:shadow-2xl group cursor-pointer">
+                                <div className="bg-gradient-to-br from-indigo-400 to-blue-400 shadow-lg rounded-full p-5 mb-4 flex items-center justify-center">
+                                    <Calendar className="text-white" size={36} />
                                 </div>
-                                <div className="text-base text-gray-500 font-medium mb-1">First appointment</div>
-                                <div className="text-2xl font-extrabold text-indigo-700">{firstAppointmentDate && format(new Date(firstAppointmentDate), 'MMMM d, yyyy')}</div>
+                                <div className="text-lg text-gray-600 font-semibold mb-1">First appointment</div>
+                                <div className="text-2xl font-extrabold text-indigo-700 group-hover:text-blue-700 transition">{firstAppointmentDate && format(new Date(firstAppointmentDate), 'MMMM d, yyyy')}</div>
                             </div>
                             {/* Client For */}
-                            <div className="bg-gradient-to-br from-[#e0e7ff] to-[#f0f4ff] rounded-2xl shadow-lg flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] hover:scale-[1.03] transition-transform">
-                                <div className="bg-white shadow-md rounded-full p-4 mb-4">
-                                    <Clock className="text-indigo-500" size={32} />
+                            <div className="bg-gradient-to-br from-indigo-100 via-blue-100 to-white rounded-3xl shadow-xl flex flex-col items-center justify-center p-8 min-w-[180px] min-h-[170px] transition-transform hover:scale-[1.04] hover:shadow-2xl group cursor-pointer">
+                                <div className="bg-gradient-to-br from-indigo-400 to-blue-400 shadow-lg rounded-full p-5 mb-4 flex items-center justify-center">
+                                    <Clock className="text-white" size={36} />
                                 </div>
-                                <div className="text-base text-gray-500 font-medium mb-1">Client for</div>
-                                <div className="text-2xl font-extrabold text-indigo-700">{firstAppointmentDate && calculateClientDuration(firstAppointmentDate)}</div>
+                                <div className="text-lg text-gray-600 font-semibold mb-1">Client for</div>
+                                <div className="text-2xl font-extrabold text-indigo-700 group-hover:text-blue-700 transition">{firstAppointmentDate && calculateClientDuration(firstAppointmentDate)}</div>
                             </div>
                         </div>
                     </div>

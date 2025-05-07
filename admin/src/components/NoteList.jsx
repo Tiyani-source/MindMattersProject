@@ -10,9 +10,10 @@ const NoteList = ({
     searchQuery = '',
     sessions
 }) => {
+    const [localSearch, setLocalSearch] = React.useState(searchQuery);
     const filteredNotes = notes.filter(note => {
-        if (!searchQuery) return true;
-        const searchLower = searchQuery.toLowerCase();
+        if (!localSearch) return true;
+        const searchLower = localSearch.toLowerCase();
         return (
             note.content?.toLowerCase().includes(searchLower) ||
             note.templateUsed?.toLowerCase().includes(searchLower)
@@ -25,55 +26,71 @@ const NoteList = ({
     };
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Client Notes</h3>
-                <div className="relative">
+        <div className="space-y-6">
+            {/* Modern Search Bar */}
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-indigo-700">Client Notes</h3>
+                <div className="relative w-full max-w-xs ml-auto">
                     <input
                         type="text"
                         placeholder="Search notes..."
-                        onChange={(e) => onSearch(e.target.value)}
-                        className="w-64 px-4 py-2 border rounded-lg focus:ring-primary focus:border-primary"
+                        value={localSearch}
+                        onChange={e => setLocalSearch(e.target.value)}
+                        className="w-full px-4 py-2 pl-10 rounded-xl border border-indigo-100 bg-white shadow focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 text-gray-700 placeholder-gray-400"
                     />
+                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
                 </div>
             </div>
 
+            {/* Empty State */}
             {filteredNotes.length === 0 ? (
-                <p className="text-center text-gray-500 py-4">
-                    {searchQuery ? 'No notes match your search' : 'No notes yet'}
-                </p>
+                <div className="flex flex-col items-center justify-center py-16 text-indigo-300 animate-fade-in">
+                    <FileText size={48} />
+                    <p className="mt-4 text-lg font-medium text-indigo-400">
+                        {localSearch ? 'No notes match your search.' : 'No notes yet. Add your first note!'}
+                    </p>
+                </div>
             ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
                     {filteredNotes.map((note) => {
                         const appointment = getAppointmentDetails(note.appointmentId);
                         return (
                             <div
                                 key={note._id}
-                                className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                                className={`relative bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl shadow-lg border border-indigo-100 p-6 transition-all hover:shadow-2xl group ${note.pinned ? 'ring-2 ring-indigo-300' : ''}`}
                             >
+                                {/* Pin icon for pinned notes */}
+                                {note.pinned && (
+                                    <div className="absolute top-4 right-4 text-indigo-500">
+                                        <Pin size={20} />
+                                    </div>
+                                )}
                                 <div className="flex items-start justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <FileText className="text-indigo-500" size={18} />
-                                        <span className="font-medium text-gray-800">
+                                        <FileText className="text-indigo-400" size={20} />
+                                        <span className="font-semibold text-indigo-700 text-lg">
                                             {note.templateUsed}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => onPinNote(note._id, !note.pinned)}
-                                            className={`p-1 rounded-full hover:bg-gray-100 ${note.pinned ? 'text-indigo-600' : 'text-gray-400'}`}
+                                            className={`p-2 rounded-full hover:bg-indigo-100 transition ${note.pinned ? 'text-indigo-600' : 'text-gray-400'}`}
+                                            title={note.pinned ? 'Unpin' : 'Pin'}
                                         >
                                             <Pin size={16} />
                                         </button>
                                         <button
                                             onClick={() => onEditNote(note)}
-                                            className="p-1 rounded-full hover:bg-gray-100 text-gray-400"
+                                            className="p-2 rounded-full hover:bg-indigo-100 text-gray-400 transition"
+                                            title="Edit"
                                         >
                                             <Edit2 size={16} />
                                         </button>
                                         <button
                                             onClick={() => onDeleteNote(note._id)}
-                                            className="p-1 rounded-full hover:bg-gray-100 text-gray-400"
+                                            className="p-2 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
+                                            title="Delete"
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -97,18 +114,18 @@ const NoteList = ({
                                     </div>
                                 )}
 
-                                <p className="text-gray-600 text-sm whitespace-pre-wrap">
+                                <p className="text-gray-700 text-base whitespace-pre-wrap leading-relaxed mt-2">
                                     {note.content}
                                 </p>
 
                                 {note.fields && Object.keys(note.fields).length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                        <h4 className="text-xs font-medium text-gray-500 mb-2">Template Fields</h4>
+                                    <div className="mt-4 pt-4 border-t border-indigo-100">
+                                        <h4 className="text-xs font-semibold text-indigo-400 mb-2">Template Fields</h4>
                                         <div className="grid grid-cols-2 gap-2">
                                             {Object.entries(note.fields).map(([key, value]) => (
                                                 <div key={key} className="text-sm">
-                                                    <span className="text-gray-500">{key}:</span>
-                                                    <span className="ml-1 text-gray-700">{value}</span>
+                                                    <span className="text-indigo-400 font-medium">{key}:</span>
+                                                    <span className="ml-1 text-indigo-700">{value}</span>
                                                 </div>
                                             ))}
                                         </div>
