@@ -1,5 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
-import { AppContext } from "../context/AppContext";
+import React from "react";
 import { Pie } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -13,86 +12,48 @@ import { FaTruck, FaCheckCircle, FaClock } from "react-icons/fa";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const OrderActivityChart = () => {
-    const [deliveryStatusData, setDeliveryStatusData] = useState({ labels: [], data: [] });
-    const [deliveryStats, setDeliveryStats] = useState({
-        totalOrders: 0,
-        completedDeliveries: 0,
-        averageDeliveryTime: 0
-    });
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
+    // Sample data
+    const sampleOrders = [
+        { deliveryStatus: 'Delivered', date: '2024-03-01', estimatedDelivery: '2024-03-02' },
+        { deliveryStatus: 'In Transit', date: '2024-03-02', estimatedDelivery: '2024-03-03' },
+        { deliveryStatus: 'Processing', date: '2024-03-03', estimatedDelivery: '2024-03-04' },
+        { deliveryStatus: 'Delivered', date: '2024-03-04', estimatedDelivery: '2024-03-05' },
+        { deliveryStatus: 'Delivered', date: '2024-03-05', estimatedDelivery: '2024-03-06' },
+        { deliveryStatus: 'In Transit', date: '2024-03-06', estimatedDelivery: '2024-03-07' },
+        { deliveryStatus: 'Processing', date: '2024-03-07', estimatedDelivery: '2024-03-08' },
+        { deliveryStatus: 'Delivered', date: '2024-03-08', estimatedDelivery: '2024-03-09' },
+    ];
 
-    const {
-        userData,
-        orders = [],
-        fetchOrders,
-        fetchDeliveryPartners
-    } = useContext(AppContext);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                setError(null);
-                if (userData?._id) {
-                    await Promise.all([
-                        fetchOrders(userData._id),
-                        fetchDeliveryPartners()
-                    ]);
-                }
-            } catch (err) {
-                setError("Failed to fetch data. Please try again later.");
-                console.error("Error fetching data:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [userData, fetchOrders, fetchDeliveryPartners]);
-
-    useEffect(() => {
-        try {
-            // Process delivery status data
-            const statusCount = orders.reduce((acc, order) => {
-                if (order?.deliveryStatus) {
-                    acc[order.deliveryStatus] = (acc[order.deliveryStatus] || 0) + 1;
-                }
-                return acc;
-            }, {});
-
-            setDeliveryStatusData({
-                labels: Object.keys(statusCount),
-                data: Object.values(statusCount)
-            });
-
-            // Calculate delivery stats
-            const completedOrders = orders.filter(order => 
-                order?.deliveryStatus === 'Delivered' && 
-                order?.estimatedDelivery && 
-                order?.date
-            );
-
-            const totalDeliveryTime = completedOrders.reduce((acc, order) => {
-                try {
-                    const deliveryTime = (new Date(order.estimatedDelivery) - new Date(order.date)) / (1000 * 60 * 60);
-                    return acc + deliveryTime;
-                } catch (err) {
-                    console.error("Error calculating delivery time:", err);
-                    return acc;
-                }
-            }, 0);
-
-            setDeliveryStats({
-                totalOrders: orders.length,
-                completedDeliveries: completedOrders.length,
-                averageDeliveryTime: completedOrders.length > 0 ? totalDeliveryTime / completedOrders.length : 0
-            });
-        } catch (err) {
-            console.error("Error processing data:", err);
-            setError("Error processing data. Please try again later.");
+    // Process delivery status data
+    const statusCount = sampleOrders.reduce((acc, order) => {
+        if (order?.deliveryStatus) {
+            acc[order.deliveryStatus] = (acc[order.deliveryStatus] || 0) + 1;
         }
-    }, [orders]);
+        return acc;
+    }, {});
+
+    const deliveryStatusData = {
+        labels: Object.keys(statusCount),
+        data: Object.values(statusCount)
+    };
+
+    // Calculate delivery stats
+    const completedOrders = sampleOrders.filter(order => 
+        order?.deliveryStatus === 'Delivered' && 
+        order?.estimatedDelivery && 
+        order?.date
+    );
+
+    const totalDeliveryTime = completedOrders.reduce((acc, order) => {
+        const deliveryTime = (new Date(order.estimatedDelivery) - new Date(order.date)) / (1000 * 60 * 60);
+        return acc + deliveryTime;
+    }, 0);
+
+    const deliveryStats = {
+        totalOrders: sampleOrders.length,
+        completedDeliveries: completedOrders.length,
+        averageDeliveryTime: completedOrders.length > 0 ? totalDeliveryTime / completedOrders.length : 0
+    };
 
     const deliveryStatusChart = {
         labels: deliveryStatusData.labels,
@@ -125,27 +86,6 @@ const OrderActivityChart = () => {
             }
         }
     };
-
-    if (isLoading) {
-        return (
-            <div className="p-6 bg-white shadow-lg rounded-lg flex items-center justify-center h-[500px]">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading delivery data...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="p-6 bg-white shadow-lg rounded-lg flex items-center justify-center h-[500px]">
-                <div className="text-center text-red-500">
-                    <p>{error}</p>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="p-6 bg-white shadow-lg rounded-lg">
