@@ -18,21 +18,34 @@ const doctorSchema = new mongoose.Schema({
   universityId: { type: String, required: true },
   doctorId: { type: String, required: true, unique: true },
 
-  
+
   available: { type: Boolean, default: true },
   fees: { type: Number, required: true },
-  slots_booked: { type: Object, default: {} },
+  slots_booked: {
+    type: Map,
+    of: {
+      type: Map,
+      of: Boolean
+    },
+    default: new Map()
+  },
 
 
   address: { type: Object, required: true }, // full address object: street, city, etc.
   gender: { type: String }, // optional if desired
   phone: { type: String },
 
-  
+
   documents: { type: String }, // cloudinary doc url
 
-  
+
   date: { type: Number, default: () => Date.now() },
+
+
+  // Google Calendar Integration Fields
+  googleCalendarToken: { type: String, default: null },
+  googleCalendarRefreshToken: { type: String, default: null },
+  googleCalendarConnected: { type: Boolean, default: false }
 }, { minimize: false });
 
 const doctorModel = mongoose.models.doctor || mongoose.model("doctor", doctorSchema);

@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { assets } from '../assets/assets';
+import { toast } from 'react-hot-toast';
 
 const imageList = [
   assets.doc1, assets.doc2, assets.doc3, assets.doc4, assets.doc5,
@@ -61,8 +62,8 @@ const Doctors = () => {
               key={idx}
               onClick={() => navigate(spec === 'All' ? '/doctors' : `/doctors/${spec}`)}
               className={`whitespace-nowrap px-4 py-2 border rounded-md text-sm transition-all cursor-pointer
-                ${speciality === spec 
-                  ? 'bg-blue-100 text-blue-800 font-semibold border-blue-300' 
+                ${speciality === spec
+                  ? 'bg-blue-100 text-blue-800 font-semibold border-blue-300'
                   : 'bg-white text-gray-600 border-gray-300'}`}
             >
               {spec}
@@ -78,7 +79,30 @@ const Doctors = () => {
               <div
                 key={index}
                 onClick={() => {
-                  navigate(`/appointment/${item._id}`, { state: { image: img } });
+                  // Ensure we have a valid ID
+                  const id = item.doctorId || item._id;
+                  if (!id) {
+                    console.error('No valid ID found for therapist:', item);
+                    toast.error('Could not load therapist details');
+                    return;
+                  }
+
+                  console.log('Navigating to appointment with therapist:', {
+                    name: item.name,
+                    id: id,
+                    doctorId: item.doctorId,
+                    _id: item._id
+                  });
+
+                  // Use the doctorId for the URL if available, fallback to _id
+                  const urlId = item.doctorId || item._id;
+                  navigate(`/appointment/${urlId}`, {
+                    state: {
+                      image: img,
+                      therapistId: id,
+                      therapistData: item // Pass full therapist data as backup
+                    }
+                  });
                   scrollTo(0, 0);
                 }}
                 className='border border-[#C9D8FF] rounded-xl overflow-hidden cursor-pointer hover:translate-y-[-10px] transition-all duration-500'
