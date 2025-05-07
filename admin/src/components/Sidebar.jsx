@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { assets } from "../assets/assets";
+import { assets } from '../assets/assets';
 import { NavLink } from "react-router-dom";
 import {
   Home,
@@ -11,21 +11,20 @@ import {
   FileText,
   CreditCard,
   BarChart4,
+  Truck,
   MessageCircle,
-} from "lucide-react";
-
+} from "lucide-react"; 
 import { jwtDecode } from "jwt-decode"; 
 import { DoctorContext } from "../context/DoctorContext";
 import { AdminContext } from "../context/AdminContext";
 import { UniversityContext } from "../context/UniversityContext";
-import { SupplyManagerContext } from "../context/SupplyManagerContext";
+import { SupplyManagerContext } from '../context/SupplyManagerContext';
 
 export default function Sidebar() {
   const { dToken } = useContext(DoctorContext);
   const { aToken } = useContext(AdminContext);
   const { uToken } = useContext(UniversityContext);
   const { smToken } = useContext(SupplyManagerContext);
-
   const [doctorEmail, setDoctorEmail] = useState("");
 
   useEffect(() => {
@@ -40,7 +39,6 @@ export default function Sidebar() {
   }, [dToken]);
 
   const chatUrl = `/doctor-chat?email=${encodeURIComponent(doctorEmail)}&userType=Doctor`;
-
   return (
     <div className="min-h-screen w-64 bg-white border-r -mt-4 fixed">
       {aToken && (
@@ -53,6 +51,7 @@ export default function Sidebar() {
           <NavItem to="/requests" label="Requests" Icon={ClipboardList} />
           <NavItem to="/payment-dashboard" label="Payment List" Icon={CreditCard} />
           <NavItem to="/order-insights" label="Order Insights & Actions" Icon={BarChart4} />
+          <NavItem to="/delivery-partners" label="Delivery Partners" Icon={Truck} />
         </ul>
       )}
 
