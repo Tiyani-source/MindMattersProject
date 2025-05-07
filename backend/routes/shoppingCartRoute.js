@@ -1,12 +1,14 @@
 import express from 'express';
-import { getCart, addToCart, removeFromCart, clearCart } from '../controllers/shoppingCartController.js';
-import authUser from '../middleware/authUser.js';
+import { getCart, addToCart, removeFromCart, clearCart, updateCartItemQuantity } from '../controllers/shoppingCartController.js';
+import { verifyToken } from '../middleware/verifyToken.js';
 
 const shoppingCartRouter = express.Router();
 
-shoppingCartRouter.get("/", authUser, getCart);
-shoppingCartRouter.post("/add", authUser, addToCart);
-shoppingCartRouter.delete("/remove/:productId", authUser, removeFromCart);
-shoppingCartRouter.delete("/clear", authUser, clearCart);
+// Cart routes with student authentication
+shoppingCartRouter.get("/", verifyToken, getCart);
+shoppingCartRouter.post("/", verifyToken, addToCart);
+shoppingCartRouter.delete("/:productId", verifyToken, removeFromCart);
+shoppingCartRouter.delete("/clear", verifyToken, clearCart);
+shoppingCartRouter.patch("/:productId/quantity", verifyToken, updateCartItemQuantity);
 
 export default shoppingCartRouter;
