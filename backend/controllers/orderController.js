@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import orderModel from "../models/orderModel.js";
+import refundModel from "../models/refundModel.js";
 
 // Create a new order
 export const createOrder = async (req, res) => {
@@ -13,9 +14,7 @@ export const createOrder = async (req, res) => {
       products,
     } = req.body;
 
-    // Get userId from the authenticated user
     const userId = req.userId;
-
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized - User not authenticated" });
     }
@@ -42,7 +41,7 @@ export const createOrder = async (req, res) => {
     });
 
     await newOrder.save();
-    res.status(201).json({ success: true, message: "Order created", data: newOrder });
+    res.status(201).json({ success: true, message: "Order created", order: newOrder });
   } catch (error) {
     console.error("Create order error:", error);
     res.status(500).json({ success: false, message: "Failed to create order", error: error.message });
@@ -52,10 +51,13 @@ export const createOrder = async (req, res) => {
 // Get all orders by student ID
 export const getOrdersByUser = async (req, res) => {
   try {
-    const studentId = req.params.userId; // This is actually studentId from the URL
-    
+    const studentId = req.params.userId;
     if (!studentId) {
       return res.status(400).json({ success: false, message: "Student ID is required" });
+    }
+
+    if (req.userId !== studentId && req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
     const orders = await orderModel.find({ userId: studentId }).populate('deliveryPartner', 'name phone vehicleNumber');
@@ -70,16 +72,10 @@ export const getOrdersByUser = async (req, res) => {
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await orderModel.find().populate('deliveryPartner', 'name phone vehicleNumber');
-    res.status(200).json({
-      success: true,
-      orders
-    });
+    res.status(200).json({ success: true, orders });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching orders',
-      error: error.message
-    });
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ success: false, message: "Error fetching orders", error: error.message });
   }
 };
 
@@ -89,18 +85,17 @@ export const cancelOrder = async (req, res) => {
     const { orderId } = req.params;
     const { cancelReason } = req.body;
 
-    // Validate order ID
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       return res.status(400).json({ success: false, message: "Invalid order ID format" });
     }
 
-    // Find order
-    const order = await orderModel.findOne({
-      _id: new mongoose.Types.ObjectId(orderId)
-    });
-
+    const order = await orderModel.findOne({ _id: new mongoose.Types.ObjectId(orderId) });
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.userId !== req.userId && req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
     if (order.status === "Delivered") {
@@ -116,6 +111,16 @@ export const cancelOrder = async (req, res) => {
     order.cancelReason = cancelReason;
     await order.save();
 
+    if (order.paymentStatus === "Completed") {
+      const refund = new refundModel({
+        refundId: `REF${Date.now()}`,
+        orderId: order.orderId,
+        amount: order.totalAmount,
+        reason: cancelReason,
+      });
+      await refund.save();
+    }
+
     return res.status(200).json({ success: true, message: "Order cancelled", data: order });
   } catch (error) {
     console.error("Cancel order error:", error);
@@ -127,13 +132,11 @@ export const cancelOrder = async (req, res) => {
 export const changeStatus = async (req, res) => {
   try {
     const { orderId, status, deliveryStatus } = req.body;
-
     if (!orderId || (!status && !deliveryStatus)) {
       return res.status(400).json({ success: false, message: "Order ID and at least one status are required" });
     }
 
     const order = await orderModel.findOne({ orderId });
-    
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -155,23 +158,24 @@ export const changeStatus = async (req, res) => {
 
 // Get order by ID
 export const getOrderById = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        // Validate order ID
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: "Invalid order ID format" });
-        }
-
-        const order = await orderModel.findById(id).populate('deliveryPartner');
-
-        if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found" });
-        }
-
-        return res.status(200).json({ success: true, data: order });
-    } catch (error) {
-        console.error("Get order by ID error:", error);
-        return res.status(500).json({ success: false, message: "Failed to fetch order", error: error.message });
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid order ID format" });
     }
+
+    const order = await orderModel.findById(id).populate('deliveryPartner');
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.userId !== req.userId && req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    return res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    console.error("Get order by ID error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch order", error: error.message });
+  }
 };

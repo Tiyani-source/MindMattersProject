@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { Line } from "react-chartjs-2";
 import { useNavigate } from "react-router-dom";
 import OrderStatusCard from "../../components/OrderStatusCard";
 import { FaSearch, FaTasks, FaChartLine, FaTruck } from "react-icons/fa";
@@ -61,6 +62,15 @@ const OrderManagement = () => {
     const [statusSearch, setStatusSearch] = useState("");
     const [overviewSort, setOverviewSort] = useState("newest");
     const [statusSort, setStatusSort] = useState("newest");
+    // New states for payment and refund data
+    const [refundData, setRefundData] = useState([]);
+    const [revenueData, setRevenueData] = useState([]);
+    const [paymentSearchTerm, setPaymentSearchTerm] = useState("");
+    const [filteredPaymentData, setFilteredPaymentData] = useState([]);
+    const [paymentCurrentPage, setPaymentCurrentPage] = useState(1);
+    const pageSize = 5;
+
+
 
     const cancelReasons = [
         "Incorrect delivery address",
@@ -104,78 +114,113 @@ const OrderManagement = () => {
         'Kegalle': 'Sabaragamuwa Province'
     };
 
-    // Fetch orders from backend
-    const fetchOrdersData = async () => {
-        try {
-            const response = await axios.get("http://localhost:4000/api/orders/all");
-            if (response.data.success) {
-                setOrders(response.data.orders);
-            }
-        } catch (err) {
-            console.error("Failed to fetch orders", err);
-        }
-    };
+   // Fetch orders from backend
+     const fetchOrdersData = async () => {
+       try {
+         const response = await axios.get("http://localhost:4000/api/orders/all", {
+           headers: { Authorization: `Bearer ${aToken}` },
+         });
+         if (response.data.success) {
+           const formattedOrders = response.data.orders.map((order, index) => ({
+             ...order,
+             key: index.toString(),
+             customerName: `${order.shippingInfo.firstName} ${order.shippingInfo.lastName}`,
+           }));
+           setOrders(formattedOrders);
+           setFilteredPaymentData(formattedOrders);
+         }
+       } catch (err) {
+         console.error("Failed to fetch orders", err);
+         toast.error("Failed to fetch orders");
+       }
+     };
+
+     // Fetch refund and revenue data
+       const fetchRefunds = async () => {
+        const token = localStorage.getItem('aToken');
+         try {
+           const response = await axios.get("http://localhost:4000/api/refunds", {
+             headers: { Authorization: `Bearer ${token}` },
+           });
+           if (response.data.success) {
+             setRefundData(response.data.refunds);
+           }
+         } catch (err) {
+           console.error("Error fetching refund data:", err);
+           toast.error("Failed to fetch refunds");
+         }
+       };
+
+       const fetchRevenue = async () => {
+           try {
+             const response = await axios.get("http://localhost:4000/api/revenue", {
+               headers: { Authorization: `Bearer ${aToken}` },
+             });
+             if (response.data.success) {
+               setRevenueData(response.data.revenue);
+             }
+           } catch (err) {
+             console.error("Error fetching revenue data:", err);
+             toast.error("Failed to fetch revenue");
+           }
+         };
 
     // Update order status
-    const updateOrderStatus = async (orderId, newStatus, deliveryStatus) => {
-        try {
-            const response = await axios.post(
-                `${backendUrl}/api/orders/change-status`,
-                { orderId, status: newStatus, deliveryStatus }
-            );
-            if (response.data.success) {
-                // Update the local state with the new status
-                setOrders(prevOrders =>
-                    prevOrders.map(order =>
-                        order.orderId === orderId ? { ...order, status: newStatus, deliveryStatus } : order
-                    )
-                );
-                setShowStatusModal(false);
-                // Show success message
-                alert("Order status updated successfully!");
-            } else {
-                alert("Failed to update order status: " + response.data.message);
-            }
-        } catch (err) {
-            console.error("Failed to update order status", err);
-            alert("Failed to update order status. Please try again.");
-        }
-    };
+  const updateOrderStatus = async (orderId, newStatus, deliveryStatus) => {
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/orders/change-status`,
+        { orderId, status: newStatus, deliveryStatus },
+        { headers: { Authorization: `Bearer ${aToken}` } }
+      );
+      if (response.data.success) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.orderId === orderId ? { ...order, status: newStatus, deliveryStatus } : order
+          )
+        );
+        setShowStatusModal(false);
+        toast.success("Order status updated successfully!");
+      } else {
+        toast.error("Failed to update order status: " + response.data.message);
+      }
+    } catch (err) {
+      console.error("Failed to update order status", err);
+      toast.error("Failed to update order status. Please try again.");
+    }
+  };
 
     // Cancel order
-    const cancelOrder = async (orderId, reason) => {
-        try {
-            const response = await axios.patch(
-                `${backendUrl}/api/orders/${orderId}/cancel`,
-                { cancelReason: reason },
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            if (response.data.success) {
-                setOrders(prevOrders =>
-                    prevOrders.map(order =>
-                        order._id === orderId
-                            ? { ...order, status: "Cancelled", cancelReason: reason }
-                            : order
-                    )
-                );
-                setShowCancelModal(false);
-                alert("Order cancelled successfully!");
-            } else {
-                alert("Failed to cancel order: " + response.data.message);
-            }
-        } catch (err) {
-            console.error("Failed to cancel order", err);
-            alert("Failed to cancel order. Please try again.");
-        }
-    };
+  const cancelOrder = async (orderId, reason) => {
+    try {
+      const response = await axios.patch(
+        `${backendUrl}/api/orders/${orderId}/cancel`,
+        { cancelReason: reason },
+        { headers: { Authorization: `Bearer ${aToken}` } }
+      );
+      if (response.data.success) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.orderId === orderId ? { ...order, status: "Cancelled", cancelReason: reason } : order
+          )
+        );
+        setShowCancelModal(false);
+        toast.success("Order cancelled successfully!");
+        fetchRefunds(); // Refresh refunds after cancellation
+      } else {
+        toast.error("Failed to cancel order: " + response.data.message);
+      }
+    } catch (err) {
+      console.error("Failed to cancel order", err);
+      toast.error("Failed to cancel order. Please try again.");
+    }
+  };
 
     // Initial data fetch
     useEffect(() => {
         fetchOrdersData();
+        fetchRefunds();
+        fetchRevenue();
     }, []);
 
     // Update the fetchDeliveryPartners function

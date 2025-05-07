@@ -51,6 +51,7 @@ const AppContextProvider = (props) => {
 
             if (data.success) {
                 setStudentData(data.studentData);
+                localStorage.setItem('studentData', JSON.stringify(data.studentData));
             } else {
                 toast.error(data.message);
             }

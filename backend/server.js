@@ -13,7 +13,8 @@ import studentRouter from "./routes/studentRoute.js"
 import patientRouter from "./routes/patientRoute.js"
 
 import paymentRoutes from "./routes/paymentRoutes.js";
-
+import orderPaymentRoutes from "./routes/orderPaymentRoutes.js";
+import refundRoutes from "./routes/refundRoutes.js";
 
 import orderRouter from "./routes/orderRoute.js"
 import wishlistRouter from "./routes/wishlistRoutes.js"
@@ -54,6 +55,9 @@ app.use("/api/user", userRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 app.use("/api/payments", paymentRoutes)
+app.use("/api/orderspay", orderPaymentRoutes)
+app.use("/api/refunds", refundRoutes)
+
 app.use("/api/orders", orderRouter)
 app.use("/api/wishlist", wishlistRouter)
 app.use("/api/cart", shoppingCartRouter)
