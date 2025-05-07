@@ -166,10 +166,7 @@ const Appointment = () => {
           className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>
           Book an appointment
         </button>
-        <button onClick={chatWithDoctor}
-          className='bg-green-500 text-white text-sm font-light px-20 py-3 rounded-full my-6'>
-          Chat with Doctor
-        </button>
+       
       </div>
 
       <RelatedDoctors speciality={docInfo.speciality} docId={docId} />

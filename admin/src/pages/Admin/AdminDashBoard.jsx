@@ -59,6 +59,36 @@ export default function AdminDashboard() {
   const primary = theme.palette.primary.main;
   const secondary = theme.palette.secondary.main;
 
+   const [studentCount, setStudentCount] = React.useState(0);
+   const [doctorCount, setDoctorCount] = React.useState(0);
+  
+    React.useEffect(() => {
+      
+      const fetchStudentCount = async () => {
+        try {
+          const res = await fetch('http://localhost:4000/api/student/count');
+          const data = await res.json();
+          setStudentCount(data.count || 0);
+        } catch (err) {
+          console.error('Failed to fetch student count:', err);
+        }
+      };
+
+      const fetchDoctorCount = async () => {
+        try {
+          const res = await fetch('http://localhost:4000/api/doctor/count');
+          const data = await res.json();
+          setDoctorCount(data.count || 0);
+        } catch (err) {
+          console.error('Failed to fetch student count:', err);
+        }
+      };
+  
+  
+      fetchDoctorCount();
+      fetchStudentCount();
+    }, []);
+
   const months = ['January', 'February', 'March', 'April', 'May', 'June'];
   const avgEarnings = [1200, 1300, 1100, 1500, 1400, 1600];
   const activeUsers = [300, 320, 310, 340, 350, 370];
@@ -77,11 +107,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6 grid gap-6 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold mb-4 text-black-700">System Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-4 text-black-700 mt-10">System Admin Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Students" value="1,200" color="border-blue-500" />
-        <StatCard icon={Activity} label="Doctors" value="150" color="border-green-500" />
+        <StatCard icon={Users} label="Students" value={studentCount} color="border-blue-500" />
+        <StatCard icon={Activity} label="Doctors" value={doctorCount} color="border-green-500" />
         <StatCard icon={University} label="Universities" value="35" color="border-purple-500" />
         <StatCard icon={CalendarCheck} label="Sessions this Month" value="870" color="border-pink-500" />
       </div>
