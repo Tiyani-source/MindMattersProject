@@ -25,6 +25,7 @@ import supportTicketRoutes from './routes/supportTicketRoutes.js'
 import smRouter from "./routes/supplyManager.js"
 
 import userOverviewRouter from "./routes/userOverview.route.js"
+import patientFeedbackRouter from "./routes/patientFeedbackRoute.js"
 
 // app config
 const app = express()
@@ -61,6 +62,7 @@ app.use("/api/cart", shoppingCartRouter)
 app.use("/api/supplymanager", smRouter)
 
 app.use("/api/user-overview", userOverviewRouter)
+app.use("/api/patient-feedback", patientFeedbackRouter)
 
 // test route
 app.get("/", (req, res) => {

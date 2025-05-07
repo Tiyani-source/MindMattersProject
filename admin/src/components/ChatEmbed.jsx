@@ -13,7 +13,7 @@ const ChatEmbed = () => {
 
 
   return (
-    <div className="w-full flex justify-center items-start pt-20 px-4">
+    <div className="w-full flex justify-center items-start pt-20 pr-5">
       <div className="w-full max-w-7xl h-[88vh] shadow-lg rounded-md overflow-hidden border">
         <iframe
           src={iframeSrc}

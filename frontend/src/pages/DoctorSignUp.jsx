@@ -9,6 +9,8 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
+import { Player } from "@lottiefiles/react-lottie-player";
+import doctorAnim from "../assets/lottie/doctor2.json"
 
 export default function DoctorSignUp() {
   const [step, setStep] = useState(1);
@@ -117,7 +119,13 @@ export default function DoctorSignUp() {
     <div className="flex flex-col justify-center items-center min-h-screen bg-gray-200 p-6">
       <div className="bg-white min-h-[600px] p-6 rounded-lg shadow-lg flex w-full max-w-5xl">
         <div className="w-1/2 p-4">
-          <img src={DoctorImage} alt="Doctor" className="w-full h-full object-cover rounded-lg" />
+        <Player
+          autoplay
+          loop
+          src={doctorAnim}
+          style={{ height: "550px", width: "100%" }}
+        />
+        
         </div>
         <div className="w-1/2 p-4 overflow-auto flex flex-col justify-between">
           {step !== 5 && (
