@@ -21,7 +21,12 @@ const OrderPaymentDashboard = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:4000/api/orders/all');
+        const token = localStorage.getItem('aToken');
+        const response = await axios.get('http://localhost:4000/api/orders/all',{
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         
         if (response.data.success) {
           // Transform order data to match the dashboard format
@@ -55,9 +60,15 @@ const OrderPaymentDashboard = () => {
   // Fetch refund and revenue data
   useEffect(() => {
     // Fetch refund data
+  
     const fetchRefunds = async () => {
+      const token = localStorage.getItem('aToken');
       try {
-        const response = await axios.get('http://localhost:4000/api/refunds');
+        const response = await axios.get('http://localhost:4000/api/refunds',{
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (response.data.success) {
           setRefundData(response.data.refunds);
         }
@@ -68,8 +79,13 @@ const OrderPaymentDashboard = () => {
 
     // Fetch revenue data
     const fetchRevenue = async () => {
+      const token = localStorage.getItem('aToken');
       try {
-        const response = await axios.get('http://localhost:4000/api/revenue');
+        const response = await axios.get('http://localhost:4000/api/refunds/revenue', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        } );
         if (response.data.success) {
           setRevenueData(response.data.revenue);
         }
