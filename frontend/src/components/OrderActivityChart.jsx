@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { AppContext } from "../context/AppContext";
 import { Pie } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -11,57 +12,65 @@ import { FaTruck, FaCheckCircle, FaClock } from "react-icons/fa";
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const OrderActivityChart = () => {
-    // Sample data
-    const sampleOrders = [
-        { deliveryStatus: 'Delivered', date: '2024-03-01', estimatedDelivery: '2024-03-02' },
-        { deliveryStatus: 'In Transit', date: '2024-03-02', estimatedDelivery: '2024-03-03' },
-        { deliveryStatus: 'Processing', date: '2024-03-03', estimatedDelivery: '2024-03-04' },
-        { deliveryStatus: 'Delivered', date: '2024-03-04', estimatedDelivery: '2024-03-05' },
-        { deliveryStatus: 'Delivered', date: '2024-03-05', estimatedDelivery: '2024-03-06' },
-        { deliveryStatus: 'In Transit', date: '2024-03-06', estimatedDelivery: '2024-03-07' },
-        { deliveryStatus: 'Processing', date: '2024-03-07', estimatedDelivery: '2024-03-08' },
-        { deliveryStatus: 'Delivered', date: '2024-03-08', estimatedDelivery: '2024-03-09' },
-    ];
-
-    // Process delivery status data
-    const statusCount = sampleOrders.reduce((acc, order) => {
+const processDeliveryStatusData = (orders) => {
+    const statusCount = {};
+    orders.forEach(order => {
         if (order?.deliveryStatus) {
-            acc[order.deliveryStatus] = (acc[order.deliveryStatus] || 0) + 1;
+            statusCount[order.deliveryStatus] = (statusCount[order.deliveryStatus] || 0) + 1;
         }
-        return acc;
-    }, {});
-
-    const deliveryStatusData = {
+    });
+    return {
         labels: Object.keys(statusCount),
         data: Object.values(statusCount)
     };
+};
 
-    // Calculate delivery stats
-    const completedOrders = sampleOrders.filter(order => 
-        order?.deliveryStatus === 'Delivered' && 
-        order?.estimatedDelivery && 
-        order?.date
-    );
+const OrderActivityChart = () => {
+    const { userData, orders, fetchOrders } = useContext(AppContext);
+    const [deliveryStatusData, setDeliveryStatusData] = useState({ labels: [], data: [] });
+    const [deliveryStats, setDeliveryStats] = useState({
+        totalOrders: 0,
+        completedDeliveries: 0,
+        averageDeliveryTime: 0
+    });
 
-    const totalDeliveryTime = completedOrders.reduce((acc, order) => {
-        const deliveryTime = (new Date(order.estimatedDelivery) - new Date(order.date)) / (1000 * 60 * 60);
-        return acc + deliveryTime;
-    }, 0);
+    useEffect(() => {
+        if (userData?._id) {
+            fetchOrders(userData._id);
+        }
+    }, [userData]);
 
-    const deliveryStats = {
-        totalOrders: sampleOrders.length,
-        completedDeliveries: completedOrders.length,
-        averageDeliveryTime: completedOrders.length > 0 ? totalDeliveryTime / completedOrders.length : 0
-    };
+    useEffect(() => {
+        // Process delivery status data
+        const statusData = processDeliveryStatusData(orders);
+        setDeliveryStatusData(statusData);
+
+        // Calculate delivery stats
+        const completedOrders = orders.filter(order =>
+            order?.deliveryStatus === 'Delivered' &&
+            order?.estimatedDelivery &&
+            order?.date
+        );
+
+        const totalDeliveryTime = completedOrders.reduce((acc, order) => {
+            const deliveryTime = (new Date(order.estimatedDelivery) - new Date(order.date)) / (1000 * 60 * 60);
+            return acc + deliveryTime;
+        }, 0);
+
+        setDeliveryStats({
+            totalOrders: orders.length,
+            completedDeliveries: completedOrders.length,
+            averageDeliveryTime: completedOrders.length > 0 ? totalDeliveryTime / completedOrders.length : 0
+        });
+    }, [orders]);
 
     const deliveryStatusChart = {
         labels: deliveryStatusData.labels,
         datasets: [
             {
                 data: deliveryStatusData.data,
-                backgroundColor: ["#FF6F61", "#4ECDC4", "#45B7D1"],
-                hoverBackgroundColor: ["#E45B50", "#3DBBB3", "#3CA5BC"],
+                backgroundColor: ["#FF6F61", "#4ECDC4", "#45B7D1", "#A0AEC0"],
+                hoverBackgroundColor: ["#E45B50", "#3DBBB3", "#3CA5BC", "#718096"],
             },
         ],
     };
