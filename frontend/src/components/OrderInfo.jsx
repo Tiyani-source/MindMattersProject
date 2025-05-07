@@ -198,39 +198,45 @@ const OrderInfo = ({ selectedOrder, setShowOrderInfo, isPrintMode = false }) => 
                 <h3 className="text-lg font-semibold text-gray-800">Order Items</h3>
               </div>
               <div className="space-y-3">
-                {selectedOrder.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-white rounded-lg border border-amber-100 p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                        {item.image ? (
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-lg" />
-                        ) : (
-                          <FaBox className="text-orange-400" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-800">{item.name}</h4>
-                        <div className="flex flex-wrap gap-2 text-sm text-gray-500">
-                          <p>Quantity: {item.quantity}</p>
-                          {item.color && (
-                            <div className="flex items-center gap-1">
-                              <span>|</span>
-                              <span>Color:</span>
-                              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
-                            </div>
-                          )}
-                          {item.size && (
-                            <div className="flex items-center gap-1">
-                              <span>|</span>
-                              <span>Size: {item.size}</span>
-                            </div>
+                {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                  selectedOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white rounded-lg border border-amber-100 p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name || 'Product'} className="w-full h-full object-cover rounded-lg" />
+                          ) : (
+                            <FaBox className="text-orange-400" />
                           )}
                         </div>
+                        <div>
+                          <h4 className="font-medium text-gray-800">{item.name || 'Product'}</h4>
+                          <div className="flex flex-wrap gap-2 text-sm text-gray-500">
+                            <p>Quantity: {item.quantity || 1}</p>
+                            {item.color && (
+                              <div className="flex items-center gap-1">
+                                <span>|</span>
+                                <span>Color:</span>
+                                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
+                              </div>
+                            )}
+                            {item.size && (
+                              <div className="flex items-center gap-1">
+                                <span>|</span>
+                                <span>Size: {item.size}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
+                      <span className="font-semibold text-orange-600 text-sm whitespace-nowrap">LKR {item.price || 0}</span>
                     </div>
-                    <span className="font-semibold text-orange-600 text-sm whitespace-nowrap">LKR {item.price}</span>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    No items found in this order
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

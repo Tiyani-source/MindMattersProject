@@ -93,10 +93,10 @@ const Checkout = () => {
       // Calculate total amount and shipping cost
       const shippingCost = 500; // Fixed shipping cost
       const subtotal = cart.items.reduce((sum, item) => {
-        if (!item.price || !item.quantity) {
-          throw new Error('Invalid cart item data');
-        }
-        return sum + (item.price * item.quantity);
+        // More robust validation of cart items
+        const price = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 0;
+        return sum + (price * quantity);
       }, 0);
       const totalAmount = subtotal + shippingCost;
 
@@ -109,12 +109,15 @@ const Checkout = () => {
         totalAmount,
         shippingInfo: formData,
         items: cart.items.map(item => ({
-          name: item.name || 'Unknown Product',
-          quantity: item.quantity || 1,
-          price: item.price || 0,
+          productId: item.productId,
+          name: item.name,
+          quantity: parseInt(item.quantity) || 1,
+          price: parseFloat(item.price) || 0,
           color: item.color || null,
           size: item.size || null,
-          image: item.image || null
+          image: item.image || null,
+          description: item.description || null,
+          category: item.category || null
         }))
       };
 
