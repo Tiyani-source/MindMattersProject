@@ -29,6 +29,7 @@ import StudentSignUp from './SignUpForms/StudentSignUp';
 import PatientSignUp from './SignUpForms/PatientSignUpForm';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import Rechedule from './pages/Rechedule';
+import MentalHealthChatbot from './pages/MentalHealthChatbot.jsx';
 
 const App = () => {
   return (
@@ -63,6 +64,7 @@ const App = () => {
           <Route path='/patient-signup' element={<PatientSignUp />} />
           <Route path='/reschedule/:therapistId' element={<Rechedule />} />
           <Route path='/support-desk' element={<SupportTicketsPage />} />
+          <Route path='/chat/bot' element = {<MentalHealthChatbot/>} />
         </Routes>
         <Footer />
       </div>
