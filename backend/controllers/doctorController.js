@@ -224,7 +224,7 @@ const deleteDoctor = async (req, res) => {
     }
   };
   
- const getDoctorCount = async (req, res) => {
+  const getDoctorCount = async (req, res) => {
     try {
       const count = await doctorModel.countDocuments();
       res.json({ count });

@@ -1,21 +1,60 @@
-import React from "react";
+import React, { useState } from "react";
 
-const OrderStatusCard = ({ title, count, description, bgColor, icon, onClick }) => {
+const OrderStatusCard = ({ 
+  title, 
+  count, 
+  description, 
+  bgColor, 
+  icon, 
+  onClick, 
+  isActive,
+  className = "p-6",
+  titleSize = "text-lg",
+  countSize = "text-2xl"
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div 
-      className={`p-4 rounded-lg shadow-md cursor-pointer flex flex-col items-start gap-4 ${bgColor}`}
+      className={`
+        ${className} rounded-xl shadow-lg cursor-pointer 
+        transition-all duration-300 ease-in-out
+        transform hover:scale-[1.02] hover:shadow-xl
+        ${isActive ? 'ring-2 ring-offset-2 ring-blue-500' : ''}
+        ${bgColor}
+      `}
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-center gap-4">
-        <div className="p-2 bg-white rounded-full">{icon}</div>
-        <div>
-          <p className="text-gray-600 font-semibold">{title}</p>
+      <div className="flex items-center gap-2">
+        <div className={`
+          p-2 rounded-full transition-all duration-300
+          ${isHovered || isActive ? 'bg-white scale-110' : 'bg-white/80'}
+        `}>
+          {icon}
+        </div>
+        <div className="flex-1">
+          <p className={`text-gray-700 font-semibold ${titleSize}`}>{title}</p>
           {/* Only display count if it's not null */}
-          {count !== null && <h3 className="font-bold text-lg">{count} Orders</h3>}
+          {count !== null && (
+            <h3 className={`font-bold ${countSize} mt-1`}>
+              {count} <span className="text-xs font-normal">Orders</span>
+            </h3>
+          )}
         </div>
       </div>
       {/* New Description Field */}
-      {description && <p className="text-gray-500 text-sm">{description}</p>}
+      {description && (
+        <p className="text-gray-600 text-xs mt-2">
+          {description}
+        </p>
+      )}
+      <div className={`
+        mt-2 h-1 w-full rounded-full
+        transition-all duration-300
+        ${isHovered || isActive ? 'bg-blue-500' : 'bg-transparent'}
+      `} />
     </div>
   );
 };

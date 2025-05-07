@@ -1,16 +1,13 @@
-import express from 'express';
-import { getWishlist, addToWishlist, removeFromWishlist } from '../controllers/wishlistController.js';
-import authUser from '../middleware/authUser.js'; // Import the authentication middleware
+import express from "express";
+import { getWishlist, addToWishlist, removeFromWishlist, clearWishlist } from "../controllers/wishlistController.js";
+import { verifyToken } from "../middleware/verifyToken.js";
 
 const wishlistRouter = express.Router();
 
-// Get user's wishlist
-wishlistRouter.get("/", authUser, getWishlist);
-
-// Add item to wishlist
-wishlistRouter.post("/", authUser, addToWishlist);
-
-// Remove item from wishlist
-wishlistRouter.delete("/:productId", authUser, removeFromWishlist);
+// Wishlist routes with user authentication
+wishlistRouter.get("/", verifyToken, getWishlist);
+wishlistRouter.post("/", verifyToken, addToWishlist);
+wishlistRouter.delete("/clear", verifyToken, clearWishlist);
+wishlistRouter.delete("/:productId", verifyToken, removeFromWishlist);
 
 export default wishlistRouter;

@@ -18,11 +18,13 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import orderRouter from "./routes/orderRoute.js"
 import wishlistRouter from "./routes/wishlistRoutes.js"
 import shoppingCartRouter from "./routes/shoppingCartRoute.js"
+import deliveryPartnerRouter from "./routes/deliveryPartnerRoute.js";
 
 import productRoutes from './routes/productRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import supportTicketRoutes from './routes/supportTicketRoutes.js'
 import smRouter from "./routes/supplyManager.js"
+
 
 import userOverviewRouter from "./routes/userOverview.route.js"
 import patientFeedbackRouter from "./routes/patientFeedbackRoute.js"
@@ -59,11 +61,10 @@ app.use("/api/payments", paymentRoutes)
 app.use("/api/orders", orderRouter)
 app.use("/api/wishlist", wishlistRouter)
 app.use("/api/cart", shoppingCartRouter)
+app.use("/api/deliveryPartners", deliveryPartnerRouter);
 app.use("/api/supplymanager", smRouter)
-
 app.use("/api/user-overview", userOverviewRouter)
 app.use("/api/patient-feedback", patientFeedbackRouter)
-
 // test route
 app.get("/", (req, res) => {
   res.send("API Working")
