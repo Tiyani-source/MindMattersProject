@@ -402,9 +402,9 @@ const OrderPaymentDashboard = () => {
               {refundData.length > 0 ? (
                 refundData.map((refund, index) => (
                   <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.refundId}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund._id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.orderId}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${refund.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${refund.totalAmount}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.date}</td>
                   </tr>
                 ))
@@ -458,6 +458,87 @@ const OrderPaymentDashboard = () => {
         },
       },
     };
+
+    /**
+     * // Generate time series data for line chart
+    const generateTimeSeriesData = () => {
+        if (!paymentData || !paymentData.latestPayments || paymentData.latestPayments.length === 0) {
+            return [];
+        }
+
+        const paymentsWithDates = paymentData.latestPayments
+            .filter(p => p.createdAt)
+            .map(p => ({
+                ...p,
+                date: new Date(p.createdAt)
+            }));
+
+        // Sort by date
+        paymentsWithDates.sort((a, b) => a.date - b.date);
+
+        // Group by time period based on view
+        const timeMap = {};
+        const successMap = {};
+        const failureMap = {};
+
+        paymentsWithDates.forEach(payment => {
+            let timeKey;
+            if (chartView === "weekly") {
+                // Group by week (using ISO week date)
+                const year = payment.date.getFullYear();
+                const weekNumber = getWeekNumber(payment.date);
+                timeKey = `Week ${weekNumber}, ${year}`;
+            } else if (chartView === "monthly") {
+                // Group by month
+                timeKey = payment.date.toLocaleString('default', { month: 'short', year: 'numeric' });
+            } else {
+                // Group by day (default)
+                timeKey = payment.date.toLocaleDateString();
+            }
+
+            if (!timeMap[timeKey]) {
+                timeMap[timeKey] = 0;
+                successMap[timeKey] = 0;
+                failureMap[timeKey] = 0;
+            }
+
+            timeMap[timeKey] += payment.amount || 0;
+            
+            if (payment.status === "succeeded") {
+                successMap[timeKey] += payment.amount || 0;
+            } else {
+                failureMap[timeKey] += payment.amount || 0;
+            }
+        });
+
+        return Object.keys(timeMap).map(date => ({
+            date,
+            totalAmount: timeMap[date],
+            successAmount: successMap[date],
+            failureAmount: failureMap[date]
+        }));
+    };
+
+    const getWeekNumber = (date) => {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+        const week1 = new Date(d.getFullYear(), 0, 4);
+        return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    };
+
+    const lineData = generateTimeSeriesData();
+     * 
+     */
+
+
+
+
+
+
+
+
+
 
     return (
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
