@@ -9,6 +9,8 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
+import { Player } from "@lottiefiles/react-lottie-player";
+import studentAnim from "../assets/lottie/student.json";
 
 export default function StudentSignUp() {
   const [step, setStep] = useState(1);
@@ -114,7 +116,13 @@ export default function StudentSignUp() {
     <div className="flex flex-col justify-center items-center min-h-screen bg-gray-200 p-6">
       <div className="bg-white min-h-[600px] p-6 rounded-lg shadow-lg flex w-full max-w-5xl transition-all duration-500 ease-in-out">
         <div className="w-1/2 p-4">
-          <img src={StudentImage} alt="Student" className="w-full h-full object-cover rounded-lg" />
+
+        <Player
+          autoplay
+          loop
+          src={studentAnim}
+          style={{ height: "550px", width: "100%" }}
+        />
         </div>
 
         <div className="w-1/2 p-4 overflow-auto flex flex-col justify-between">

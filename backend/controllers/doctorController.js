@@ -224,6 +224,15 @@ const deleteDoctor = async (req, res) => {
     }
   };
   
+ const getDoctorCount = async (req, res) => {
+    try {
+      const count = await doctorModel.countDocuments();
+      res.json({ count });
+    } catch (err) {
+      console.error('Error getting student count:', err);
+      res.status(500).json({ message: 'Failed to get student count' });
+    }
+  };
 
 export {
     loginDoctor,
@@ -235,5 +244,6 @@ export {
     doctorDashboard,
     doctorProfile,
     updateDoctorProfile,
-    deleteDoctor
+    deleteDoctor,
+    getDoctorCount
 }

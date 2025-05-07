@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -21,18 +21,6 @@ import {
 import { Star, StarHalf } from "lucide-react";
 import { motion } from "framer-motion";
 
-const initialRatings = [
-  { id: 1, rating: 8, review: "Great session!", month: "January" },
-  { id: 2, rating: 9, review: "Very understanding.", month: "January" },
-  { id: 3, rating: 7, review: "Good but could be better.", month: "February" },
-  { id: 4, rating: 10, review: "Outstanding!", month: "March" },
-  { id: 5, rating: 6, review: "Average experience.", month: "April" },
-  { id: 6, rating: 8, review: "Helpful and kind.", month: "April" },
-  { id: 7, rating: 9, review: "Professional.", month: "May" },
-  { id: 8, rating: 7, review: "Nice overall.", month: "May" },
-  { id: 9, rating: 10, review: "Amazing session!", month: "June" },
-  { id: 10, rating: 9, review: "Loved it!", month: "June" },
-];
 
 const COLORS = [
   "#0088FE",
@@ -48,8 +36,28 @@ const COLORS = [
 ];
 
 const PatientFeedbackPage = () => {
-  const [ratings] = useState(initialRatings);
+  const [ratings, setRatings] = useState([]);
   const [filterMonth, setFilterMonth] = useState("All");
+
+  useEffect(() => {
+    const fetchRatings = async () => {
+      try {
+        const response = await fetch("http://localhost:4000/api/patient-feedback/all");
+        const data = await response.json();
+        console.log("Fetched feedback data:", data);
+        if (Array.isArray(data.feedback)) {
+          setRatings(data.feedback);
+        } else {
+          console.error("Expected 'feedback' to be an array");
+          setRatings([]);
+        }
+      } catch (error) {
+        console.error("Error fetching feedback:", error);
+        setRatings([]);
+      }
+    };
+    fetchRatings();
+  }, []);
 
   const filteredRatings =
     filterMonth === "All"
