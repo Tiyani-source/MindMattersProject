@@ -981,7 +981,6 @@ const removeFromWishlist = async (productId) => {
         userData, setUserData, loadUserProfileData,
         studentData, setStudentData, loadStudentProfileData,
         loadStudentData,
-        loadUserProfileData,
         orders, setOrders, fetchOrders,
         createOrder,
         cancelOrder,
