@@ -1,5 +1,4 @@
-// models/orderModel.js
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const orderSchema = new mongoose.Schema({
   orderId: { type: String, required: true, unique: true },
@@ -8,18 +7,18 @@ const orderSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["Pending", "Shipped", "Delivered", "Cancelled"],
-    default: "Pending",
+    default: "Pending"
   },
   deliveryStatus: {
     type: String,
     enum: ["UnAssigned", "Assigned", "Delivered"],
-    default: "UnAssigned",
+    default: "UnAssigned"
   },
   cancelReason: { type: String },
   products: { type: Number, required: true },
   shippingCost: { type: Number, required: true, default: 500 },
   totalAmount: { type: Number, required: true },
-  deliveryPartner: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryPartner" },
+  deliveryPartner: { type: mongoose.Schema.Types.ObjectId, ref: 'DeliveryPartner' },
   estimatedDelivery: { type: Date },
   shippingInfo: {
     firstName: String,
@@ -31,7 +30,7 @@ const orderSchema = new mongoose.Schema({
     city: String,
     postalCode: String,
     district: String,
-    country: { type: String, default: "Sri Lanka" },
+    country: { type: String, default: "Sri Lanka" }
   },
   items: [
     {

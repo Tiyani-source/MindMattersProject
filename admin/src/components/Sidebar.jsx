@@ -74,6 +74,7 @@ export default function Sidebar() {
           <NavItem to="/doctor-user-profile" label="Profile" Icon={UserCircle} />
           <NavItem to="/student-list" label="Student List" Icon={UserPlus} />
           
+
         </ul>
       )}
 

@@ -81,8 +81,8 @@ export default function DoctorDashboard() {
     fetchChartData();
     fetchStudentCount();
   }, []);
-  
-    const earningsData = months.map((month, index) => ({
+
+  const earningsData = months.map((month, index) => ({
     name: month.slice(0, 3),
     current: 800 + Math.floor(Math.random() * 500),
     lastYear: 700 + Math.floor(Math.random() * 500),
@@ -94,7 +94,7 @@ export default function DoctorDashboard() {
       <h1 className="text-3xl font-bold mb-4 mt-10 text-black">Doctor Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard icon={Users} label="Total Patients" value={studentCount} color="border-blue-500" />
+        <StatCard icon={Users} label="Total Patients" value={studentCount} color="border-blue-500" />
         <StatCard icon={Activity} label="Appointments" value="87" color="border-green-500" />
         <StatCard icon={University} label="Reports Filed" value="35" color="border-purple-500" />
         <StatCard icon={CalendarCheck} label="Sessions Scheduled" value="23" color="border-pink-500" />
@@ -103,20 +103,20 @@ export default function DoctorDashboard() {
       <div className="bg-white rounded-md shadow-md p-4">
         <h2 className="text-xl font-semibold mb-4">Monthly Patient & User Overview</h2>
         {months.length > 0 && patientCounts.length > 0 && activeUsers.length > 0 ? (
-        <BarChart
-          height={300}
-          borderRadius={6}
-          series={[
-            { data: patientCounts, label: 'Patients', id: 'patientId', color: primary },
-            { data: activeUsers, label: 'Active Users', id: 'activeId', color: secondary },
-          ]}
-          xAxis={[{
-            data: months,
-            scaleType: 'band',
-            categoryGapRatio: 0.8,
-            barGapRatio: 0.8,
-          }]}
-        />
+          <BarChart
+            height={300}
+            borderRadius={6}
+            series={[
+              { data: patientCounts, label: 'Patients', id: 'patientId', color: primary },
+              { data: activeUsers, label: 'Active Users', id: 'activeId', color: secondary },
+            ]}
+            xAxis={[{
+              data: months,
+              scaleType: 'band',
+              categoryGapRatio: 0.8,
+              barGapRatio: 0.8,
+            }]}
+          />
         ) : (
           <p className="text-sm text-gray-400">Chart data not available.</p>
         )}

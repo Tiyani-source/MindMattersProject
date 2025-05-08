@@ -50,6 +50,7 @@ import OrderPaymentDashboard from "./pages/Payment/orderPaymentDashboard.jsx";
 import ChatEmbed from "./components/ChatEmbed";
 
 
+import ChatEmbed from "./components/ChatEmbed";
 const App = () => {
   const { dToken } = useContext(DoctorContext);
   const { dToken: therapistToken } = useContext(TherapistContext);
@@ -89,6 +90,35 @@ const App = () => {
             <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
             <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
             <Route path='/my-schedule' element={<MySchedule />} />
+      <div className="bg-[#F8F9FD]">
+        <ToastContainer />
+        <Navbar />
+        <div className="flex items-start mt-11 ">
+          <Sidebar />
+          <div className="ml-72 w-full">
+            <Routes>
+              <Route path="/" element={<></>} />
+              <Route path="/all-appointments" element={<AllAppointments />} />
+              <Route path="/add-doctor" element={<AddDoctor />} />
+              <Route path='/order-insights' element={<OrderInsights />} />
+              <Route path="/doctor-list" element={<DoctorsList />} />
+              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+              <Route path="/doctor-appointments" element={<DoctorAppointments />} />
+              <Route path="/doctor-profile" element={<DoctorProfile />} />
+              <Route path="/patient-requests" element={<PatientRequests />} />
+              <Route path="/patient-feedback" element={<PatientFeedback />} />
+              <Route path="/doctor-user-profile" element={<DoctorUserProfile />} />
+              <Route path="/admin-profile" element={<AdminProfile />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/requests" element={<Requests />} />
+              <Route path="/add-uni" element={<AddUni />} />
+              <Route path="/uni-dashboard" element={<UniversityDashboard />} />
+              <Route path="/student-list" element={<StudentList />} />
+              <Route path='/payment-dashboard' element={<PaymentDashboard />} />
+              <Route path="/product-management" element={<AdminProductManagement />} />
+              <Route path='/supplier-profile' element={<SupplierProfileDashboard />} />
+              <Route path='/supplier-dashboard' element={<SupplierDashboard />} />
+              <Route path='/my-schedule' element={<MySchedule />} />
               <Route path='/therapist-appointments' element={<TherapistAppointments />} />
               <Route path='/therapist-schedule' element={<TherapistSchedule />} />
               <Route path='/online-link-upload' element={<OnlineLinkUpload />} />
@@ -107,6 +137,12 @@ const App = () => {
         </div>
       </div>
     </div>
+              <Route path='/delivery-partners' element={<DeliveryPartners />} />
+              <Route path="/doctor-chat" element={<ChatEmbed />} />
+            </Routes>
+          </div>
+        </div>
+      </div>
     </PaymentProvider>
   ) : (
     <>

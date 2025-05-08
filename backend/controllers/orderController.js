@@ -16,6 +16,7 @@ export const createOrder = async (req, res) => {
 
     // Get userId from the authenticated user
     const userId = req.userId;
+
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized - User not authenticated" });
     }
@@ -43,7 +44,6 @@ export const createOrder = async (req, res) => {
 
     await newOrder.save();
     res.status(201).json({ success: true, message: "Order created", order: newOrder });
-    
   } catch (error) {
     console.error("Create order error:", error);
     res.status(500).json({ success: false, message: "Failed to create order", error: error.message });
@@ -53,7 +53,8 @@ export const createOrder = async (req, res) => {
 // Get all orders by student ID
 export const getOrdersByUser = async (req, res) => {
   try {
-    const studentId = req.params.userId;
+    const studentId = req.params.userId; // This is actually studentId from the URL
+    
     if (!studentId) {
       return res.status(400).json({ success: false, message: "Student ID is required" });
     }
@@ -74,10 +75,16 @@ export const getOrdersByUser = async (req, res) => {
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await orderModel.find().populate('deliveryPartner', 'name phone vehicleNumber');
-    res.status(200).json({ success: true, orders });
+    res.status(200).json({
+      success: true,
+      orders
+    });
   } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({ success: false, message: "Error fetching orders", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching orders',
+      error: error.message
+    });
   }
 };
 
@@ -97,6 +104,7 @@ export const cancelOrder = async (req, res) => {
     const order = await orderModel.findOne({
       _id: new mongoose.Types.ObjectId(orderId)
     });
+
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -118,16 +126,6 @@ export const cancelOrder = async (req, res) => {
     order.cancelReason = cancelReason;
     await order.save();
 
-    if (order.paymentStatus === "Completed") {
-      const refund = new refundModel({
-        refundId: `REF${Date.now()}`,
-        orderId: order.orderId,
-        amount: order.totalAmount,
-        reason: cancelReason,
-      });
-      await refund.save();
-    }
-
     return res.status(200).json({ success: true, message: "Order cancelled", data: order });
   } catch (error) {
     console.error("Cancel order error:", error);
@@ -144,6 +142,7 @@ export const changeStatus = async (req, res) => {
     }
 
     const order = await orderModel.findOne({ orderId });
+    
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -165,25 +164,23 @@ export const changeStatus = async (req, res) => {
 
 // Get order by ID
 export const getOrderById = async (req, res) => {
-  try {
-    const { id } = req.params;
-     // Validate order ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid order ID format" });
-    }
+    try {
+        const { id } = req.params;
 
-    const order = await orderModel.findById(id).populate('deliveryPartner');
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
-    }
+        // Validate order ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: "Invalid order ID format" });
+        }
 
-    if (order.userId !== req.userId && req.user?.role !== "admin") {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
+        const order = await orderModel.findById(id).populate('deliveryPartner');
 
-    return res.status(200).json({ success: true, data: order });
-  } catch (error) {
-    console.error("Get order by ID error:", error);
-    return res.status(500).json({ success: false, message: "Failed to fetch order", error: error.message });
-  }
+        if (!order) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
+        return res.status(200).json({ success: true, data: order });
+    } catch (error) {
+        console.error("Get order by ID error:", error);
+        return res.status(500).json({ success: false, message: "Failed to fetch order", error: error.message });
+    }
 };

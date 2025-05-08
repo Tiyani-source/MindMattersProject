@@ -13,23 +13,22 @@ import { TemplateProvider } from './context/TemplateContext';
 
 console.log("In main.jsx..."),  // Debugging
 
-ReactDOM.createRoot(document.getElementById('root')).render(    //This initializes the React application inside the root div in index.html
-  <BrowserRouter>
-    <AdminContextProvider>
-     <UniversityContextProvider>
-     
-      <DoctorContextProvider>
-      <TherapistContextProvider>
-      <SupplyManagerProvider>
-        <AppContextProvider>
-        <TemplateProvider>
-          <App />
-          </TemplateProvider>
-        </AppContextProvider>
-        </SupplyManagerProvider>
-        </TherapistContextProvider>
-      </DoctorContextProvider>
-      </UniversityContextProvider>
-    </AdminContextProvider>
-  </BrowserRouter>,
-)
+  ReactDOM.createRoot(document.getElementById('root')).render(    //This initializes the React application inside the root div in index.html
+    <BrowserRouter>
+      <AdminContextProvider>
+        <UniversityContextProvider>
+          <DoctorContextProvider>
+            <TherapistContextProvider>
+              <SupplyManagerProvider>
+                <AppContextProvider>
+                  <TemplateProvider>
+                    <App />
+                  </TemplateProvider>
+                </AppContextProvider>
+              </SupplyManagerProvider>
+            </TherapistContextProvider>
+          </DoctorContextProvider>
+        </UniversityContextProvider>
+      </AdminContextProvider>
+    </BrowserRouter>,
+  )

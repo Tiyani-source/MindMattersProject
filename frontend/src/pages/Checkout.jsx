@@ -1,4 +1,4 @@
-// src/components/Checkout.jsx
+
 import React, { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
@@ -11,45 +11,45 @@ const Checkout = () => {
   const { studentData, cart, createOrder, clearCart } = useContext(AppContext);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    address: "",
-    apartment: "",
-    city: "",
-    postalCode: "",
-    district: "",
-    country: "Sri Lanka",
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    apartment: '',
+    city: '',
+    postalCode: '',
+    district: '',
+    country: 'Sri Lanka'
   });
 
   // Sri Lankan districts
   const districts = [
-    { group: "Western Province", districts: ["Colombo", "Gampaha", "Kalutara"] },
-    { group: "Central Province", districts: ["Kandy", "Matale", "Nuwara Eliya"] },
-    { group: "Southern Province", districts: ["Galle", "Matara", "Hambantota"] },
-    { group: "Northern Province", districts: ["Jaffna", "Kilinochchi", "Mannar", "Vavuniya", "Mullaitivu"] },
-    { group: "Eastern Province", districts: ["Trincomalee", "Batticaloa", "Ampara"] },
-    { group: "North Western Province", districts: ["Kurunegala", "Puttalam"] },
-    { group: "North Central Province", districts: ["Anuradhapura", "Polonnaruwa"] },
-    { group: "Uva Province", districts: ["Badulla", "Monaragala"] },
-    { group: "Sabaragamuwa Province", districts: ["Ratnapura", "Kegalle"] },
+    { group: 'Western Province', districts: ['Colombo', 'Gampaha', 'Kalutara'] },
+    { group: 'Central Province', districts: ['Kandy', 'Matale', 'Nuwara Eliya'] },
+    { group: 'Southern Province', districts: ['Galle', 'Matara', 'Hambantota'] },
+    { group: 'Northern Province', districts: ['Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya', 'Mullaitivu'] },
+    { group: 'Eastern Province', districts: ['Trincomalee', 'Batticaloa', 'Ampara'] },
+    { group: 'North Western Province', districts: ['Kurunegala', 'Puttalam'] },
+    { group: 'North Central Province', districts: ['Anuradhapura', 'Polonnaruwa'] },
+    { group: 'Uva Province', districts: ['Badulla', 'Monaragala'] },
+    { group: 'Sabaragamuwa Province', districts: ['Ratnapura', 'Kegalle'] }
   ];
 
   // Initialize form with student data if available
   useEffect(() => {
     if (studentData) {
       setFormData({
-        firstName: studentData.firstName || "",
-        lastName: studentData.lastName || "",
-        email: studentData.email || "",
-        phone: studentData.phone || "",
-        address: studentData.address || "",
-        apartment: studentData.apartment || "",
-        city: studentData.city || "",
-        postalCode: studentData.postalCode || "",
-        district: studentData.district || "",
-        country: studentData.country || "Sri Lanka",
+        firstName: studentData.firstName || '',
+        lastName: studentData.lastName || '',
+        email: studentData.email || '',
+        phone: studentData.phone || '',
+        address: studentData.address || '',
+        apartment: studentData.apartment || '',
+        city: studentData.city || '',
+        postalCode: studentData.postalCode || '',
+        district: studentData.district || '',
+        country: studentData.country || 'Sri Lanka'
       });
     }
   }, [studentData]);
@@ -63,10 +63,10 @@ const Checkout = () => {
   };
 
   const validateForm = () => {
-    const requiredFields = ["firstName", "lastName", "email", "phone", "address", "city", "postalCode", "district"];
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postalCode', 'district'];
     for (const field of requiredFields) {
       if (!formData[field]) {
-        toast.error(`Please fill in your ${field.replace(/([A-Z])/g, " $1").toLowerCase()}`);
+        toast.error(`Please fill in your ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
         return false;
       }
     }
@@ -75,16 +75,16 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     // Validate student data
     if (!studentData || !studentData._id) {
-      toast.error("Student data is not available. Please try logging in again.");
+      toast.error('Student data is not available. Please try logging in again.');
       return;
     }
 
     // Validate cart
     if (!cart || !cart.items || cart.items.length === 0) {
-      toast.error("Your cart is empty");
+      toast.error('Your cart is empty');
       return;
     }
 
@@ -95,10 +95,10 @@ const Checkout = () => {
       // Calculate total amount and shipping cost
       const shippingCost = 500; // Fixed shipping cost
       const subtotal = cart.items.reduce((sum, item) => {
-        if (!item.price || !item.quantity) {
-          throw new Error("Invalid cart item data");
-        }
-        return sum + item.price * item.quantity;
+        // More robust validation of cart items
+        const price = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 0;
+        return sum + (price * quantity);
       }, 0);
       const totalAmount = subtotal + shippingCost;
 
@@ -151,6 +151,7 @@ const Checkout = () => {
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
 
+        
         <div className="bg-white shadow rounded-lg p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
