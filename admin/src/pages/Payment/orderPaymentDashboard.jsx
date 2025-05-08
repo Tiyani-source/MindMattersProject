@@ -34,7 +34,7 @@ const OrderPaymentDashboard = () => {
             key: index.toString(),
             orderId: order.orderId,
             customerName: `${order.shippingInfo.firstName} ${order.shippingInfo.lastName}`,
-            amount: `$${(order.totalAmount / 100).toFixed(2)}`, // Assuming amount is in cents
+            amount: `LKR${(order.totalAmount / 100).toFixed(2)}`, // Assuming amount is in cents
             paymentStatus: mapOrderStatusToPaymentStatus(order.status),
             date: new Date(order.date).toISOString().split('T')[0],
             rawData: order // Keep the raw data for additional details if needed
@@ -357,7 +357,7 @@ const OrderPaymentDashboard = () => {
     
     // Calculate total revenue (removing the $ sign and converting to number)
     const totalRevenue = filteredData.reduce((sum, item) => {
-      const amount = parseFloat(item.amount.replace('$', ''));
+      const amount = parseFloat(item.amount.replace('LKR', ''));
       return sum + (isNaN(amount) ? 0 : amount);
     }, 0);
     
@@ -365,7 +365,7 @@ const OrderPaymentDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
-          <p className="text-2xl font-bold text-gray-800">${totalRevenue.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-gray-800">LKR {totalRevenue.toFixed(2)}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-sm text-gray-500 mb-1">Total Orders</p>
@@ -404,7 +404,7 @@ const OrderPaymentDashboard = () => {
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund._id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.orderId}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${refund.totalAmount}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">LKR {refund.totalAmount}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{refund.date}</td>
                   </tr>
                 ))
@@ -453,7 +453,7 @@ const OrderPaymentDashboard = () => {
         y: {
           title: {
             display: true,
-            text: 'Revenue ($)',
+            text: 'Revenue (LKR)',
           },
         },
       },

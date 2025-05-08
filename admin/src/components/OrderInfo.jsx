@@ -202,11 +202,10 @@ const OrderInfo = ({ selectedOrder, setShowOrderInfo, isPrintMode = false }) => 
                   <div key={idx} className="flex items-center justify-between bg-white rounded-lg border border-amber-100 p-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                        {item.image ? (
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-lg" />
-                        ) : (
+                        
+                          
                           <FaBox className="text-orange-400" />
-                        )}
+                        
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-800">{item.name}</h4>

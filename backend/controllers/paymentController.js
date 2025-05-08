@@ -10,7 +10,7 @@ const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
 // Process Payment
 export const processPayment = async (req, res) => {
     try {
-        const { name, email, amount, appointmentId, currency = "usd" } = req.body;
+        const { name, email, amount, appointmentId, currency = "LKR" } = req.body;
 
         // Create Stripe Payment Intent
         // const paymentIntent = await stripeInstance.paymentIntents.create({
