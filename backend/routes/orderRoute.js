@@ -1,5 +1,13 @@
+// routes/orderRoute.js
 import express from "express";
-import { createOrder, getOrdersByUser, cancelOrder, getAllOrders, changeStatus, getOrderById } from "../controllers/orderController.js";
+import {
+  createOrder,
+  getOrdersByUser,
+  cancelOrder,
+  getAllOrders,
+  changeStatus,
+  getOrderById,
+} from "../controllers/orderController.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { authAdmin } from "../middleware/authAdmin.js";
 

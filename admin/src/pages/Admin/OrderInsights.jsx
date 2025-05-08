@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { Line } from "react-chartjs-2";
 import { useNavigate } from "react-router-dom";
 import OrderStatusCard from "../../components/OrderStatusCard";
 import { FaSearch, FaTasks, FaChartLine, FaTruck } from "react-icons/fa";
@@ -13,7 +14,6 @@ import OrderManagementDashboard from "../../components/OrderManagementDashboard"
 import InvoicePrint from "../../components/InvoicePrint";
 import { AppContext } from "../../context/AppContext";
 import { toast } from 'react-toastify';
-import OrderDistrictsChart from '../../components/OrderDistrictsChart';
 
 const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -43,12 +43,11 @@ const OrderManagement = () => {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showOrderActions, setShowOrderActions] = useState(false);
     const [showDeliveryAssignment, setShowDeliveryAssignment] = useState(false);
-    const [showDeliveryModal, setShowDeliveryModal] = useState(false);
     const [deliveryFilter, setDeliveryFilter] = useState("unassigned");
     const [selectedPartner, setSelectedPartner] = useState("");
     const [estimatedDelivery, setEstimatedDelivery] = useState("");
     const [showOrderAnalytics, setShowOrderAnalytics] = useState(true);
-    const [selectedChart, setSelectedChart] = useState("Order Volume Trends");
+    const [selectedChart, setSelectedChart] = useState("");
     const [showOrderInfo, setShowOrderInfo] = useState(false);
     const printRef = useRef();
     const [deliveryPartners, setDeliveryPartners] = useState([]);
@@ -63,8 +62,15 @@ const OrderManagement = () => {
     const [statusSearch, setStatusSearch] = useState("");
     const [overviewSort, setOverviewSort] = useState("newest");
     const [statusSort, setStatusSort] = useState("newest");
-    const [deliverySearch, setDeliverySearch] = useState("");
-    const [deliverySort, setDeliverySort] = useState("newest");
+    // New states for payment and refund data
+    const [refundData, setRefundData] = useState([]);
+    const [revenueData, setRevenueData] = useState([]);
+    const [paymentSearchTerm, setPaymentSearchTerm] = useState("");
+    const [filteredPaymentData, setFilteredPaymentData] = useState([]);
+    const [paymentCurrentPage, setPaymentCurrentPage] = useState(1);
+    const pageSize = 5;
+
+
 
     const cancelReasons = [
         "Incorrect delivery address",
@@ -108,78 +114,113 @@ const OrderManagement = () => {
         'Kegalle': 'Sabaragamuwa Province'
     };
 
-    // Fetch orders from backend
-    const fetchOrdersData = async () => {
-        try {
-            const response = await axios.get("http://localhost:4000/api/orders/all");
-            if (response.data.success) {
-                setOrders(response.data.orders);
-            }
-        } catch (err) {
-            console.error("Failed to fetch orders", err);
-        }
-    };
+   // Fetch orders from backend
+     const fetchOrdersData = async () => {
+       try {
+         const response = await axios.get("http://localhost:4000/api/orders/all", {
+           headers: { Authorization: `Bearer ${aToken}` },
+         });
+         if (response.data.success) {
+           const formattedOrders = response.data.orders.map((order, index) => ({
+             ...order,
+             key: index.toString(),
+             customerName: `${order.shippingInfo.firstName} ${order.shippingInfo.lastName}`,
+           }));
+           setOrders(formattedOrders);
+           setFilteredPaymentData(formattedOrders);
+         }
+       } catch (err) {
+         console.error("Failed to fetch orders", err);
+         toast.error("Failed to fetch orders");
+       }
+     };
+
+     // Fetch refund and revenue data
+       const fetchRefunds = async () => {
+        const token = localStorage.getItem('aToken');
+         try {
+           const response = await axios.get("http://localhost:4000/api/refunds", {
+             headers: { Authorization: `Bearer ${token}` },
+           });
+           if (response.data.success) {
+             setRefundData(response.data.refunds);
+           }
+         } catch (err) {
+           console.error("Error fetching refund data:", err);
+           toast.error("Failed to fetch refunds");
+         }
+       };
+
+       const fetchRevenue = async () => {
+           try {
+             const response = await axios.get("http://localhost:4000/api/revenue", {
+               headers: { Authorization: `Bearer ${aToken}` },
+             });
+             if (response.data.success) {
+               setRevenueData(response.data.revenue);
+             }
+           } catch (err) {
+             console.error("Error fetching revenue data:", err);
+             toast.error("Failed to fetch revenue");
+           }
+         };
 
     // Update order status
-    const updateOrderStatus = async (orderId, newStatus, deliveryStatus) => {
-        try {
-            const response = await axios.post(
-                `${backendUrl}/api/orders/change-status`,
-                { orderId, status: newStatus, deliveryStatus }
-            );
-            if (response.data.success) {
-                // Update the local state with the new status
-                setOrders(prevOrders =>
-                    prevOrders.map(order =>
-                        order.orderId === orderId ? { ...order, status: newStatus, deliveryStatus } : order
-                    )
-                );
-                setShowStatusModal(false);
-                // Show success message
-                alert("Order status updated successfully!");
-            } else {
-                alert("Failed to update order status: " + response.data.message);
-            }
-        } catch (err) {
-            console.error("Failed to update order status", err);
-            alert("Failed to update order status. Please try again.");
-        }
-    };
+  const updateOrderStatus = async (orderId, newStatus, deliveryStatus) => {
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/orders/change-status`,
+        { orderId, status: newStatus, deliveryStatus },
+        { headers: { Authorization: `Bearer ${aToken}` } }
+      );
+      if (response.data.success) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.orderId === orderId ? { ...order, status: newStatus, deliveryStatus } : order
+          )
+        );
+        setShowStatusModal(false);
+        toast.success("Order status updated successfully!");
+      } else {
+        toast.error("Failed to update order status: " + response.data.message);
+      }
+    } catch (err) {
+      console.error("Failed to update order status", err);
+      toast.error("Failed to update order status. Please try again.");
+    }
+  };
 
     // Cancel order
-    const cancelOrder = async (orderId, reason) => {
-        try {
-            const response = await axios.patch(
-                `${backendUrl}/api/orders/${orderId}/cancel`,
-                { cancelReason: reason },
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            if (response.data.success) {
-                setOrders(prevOrders =>
-                    prevOrders.map(order =>
-                        order._id === orderId
-                            ? { ...order, status: "Cancelled", cancelReason: reason }
-                            : order
-                    )
-                );
-                setShowCancelModal(false);
-                alert("Order cancelled successfully!");
-            } else {
-                alert("Failed to cancel order: " + response.data.message);
-            }
-        } catch (err) {
-            console.error("Failed to cancel order", err);
-            alert("Failed to cancel order. Please try again.");
-        }
-    };
+  const cancelOrder = async (orderId, reason) => {
+    try {
+      const response = await axios.patch(
+        `${backendUrl}/api/orders/${orderId}/cancel`,
+        { cancelReason: reason },
+        { headers: { Authorization: `Bearer ${aToken}` } }
+      );
+      if (response.data.success) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.orderId === orderId ? { ...order, status: "Cancelled", cancelReason: reason } : order
+          )
+        );
+        setShowCancelModal(false);
+        toast.success("Order cancelled successfully!");
+        fetchRefunds(); // Refresh refunds after cancellation
+      } else {
+        toast.error("Failed to cancel order: " + response.data.message);
+      }
+    } catch (err) {
+      console.error("Failed to cancel order", err);
+      toast.error("Failed to cancel order. Please try again.");
+    }
+  };
 
     // Initial data fetch
     useEffect(() => {
         fetchOrdersData();
+        fetchRefunds();
+        fetchRevenue();
     }, []);
 
     // Update the fetchDeliveryPartners function
@@ -241,18 +282,6 @@ const OrderManagement = () => {
         console.log("Delivery partners state updated:", deliveryPartners);
     }, [deliveryPartners]);
 
-    // Update the handleAssignDelivery function
-    const handleAssignDelivery = async (order) => {
-        if (!order || !order._id) {
-            toast.error("Invalid order selected");
-            return;
-        }
-        
-        setSelectedOrder(order);
-        setShowDeliveryModal(true);
-        await fetchDeliveryPartners();
-    };
-
     // Update the handleSaveDeliveryAssignment function
     const handleSaveDeliveryAssignment = async () => {
         if (!selectedOrder || !selectedOrder._id) {
@@ -282,7 +311,7 @@ const OrderManagement = () => {
 
             if (response.data.success) {
                 toast.success("Delivery partner assigned successfully!");
-                setShowDeliveryModal(false);
+                setShowDeliveryAssignment(false);
                 setSelectedOrder(null);
                 setSelectedPartner("");
                 setEstimatedDelivery("");
@@ -296,40 +325,16 @@ const OrderManagement = () => {
         }
     };
 
-    // Update the handleMarkAsDelivered function
-    const handleMarkAsDelivered = async (order) => {
+    // Update the delivery assignment button
+    const handleAssignDelivery = async (order) => {
         if (!order || !order._id) {
-            toast.error("No order selected. Please try again.");
+            toast.error("Invalid order selected");
             return;
         }
-
-        try {
-            const response = await axios.post(
-                `${backendUrl}/api/orders/change-status`,
-                {
-                    orderId: order.orderId,
-                    status: "Delivered",
-                    deliveryStatus: "Delivered"
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${aToken}`
-                    }
-                }
-            );
-
-            if (response.data.success) {
-                toast.success("Order marked as delivered successfully!");
-                setShowDeliveryModal(false);
-                setSelectedOrder(null);
-                fetchOrdersData(); // Refresh orders list
-            } else {
-                toast.error(response.data.message || "Failed to mark order as delivered");
-            }
-        } catch (error) {
-            console.error("Error marking order as delivered:", error);
-            toast.error(error.response?.data?.message || "Failed to mark order as delivered. Please try again.");
-        }
+        
+        setSelectedOrder(order);
+        setShowDeliveryAssignment(true);
+        await fetchDeliveryPartners();
     };
 
     // Open Cancel Order Modal
@@ -379,6 +384,42 @@ const OrderManagement = () => {
     // Search Function: Filter orders by Order ID
     const handleSearch = (event) => {
         setSearchQuery(event.target.value);
+    };
+
+    // Update the handleMarkAsDelivered function
+    const handleMarkAsDelivered = async (order) => {
+        if (!order || !order._id) {
+            toast.error("No order selected. Please try again.");
+            return;
+        }
+
+        try {
+            const response = await axios.post(
+                `${backendUrl}/api/orders/change-status`,
+                {
+                    orderId: order.orderId,
+                    status: "Delivered",
+                    deliveryStatus: "Delivered"
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${aToken}`
+                    }
+                }
+            );
+
+            if (response.data.success) {
+                toast.success("Order marked as delivered successfully!");
+                setShowDeliveryAssignment(false);
+                setSelectedOrder(null);
+                fetchOrdersData(); // Refresh orders list
+            } else {
+                toast.error(response.data.message || "Failed to mark order as delivered");
+            }
+        } catch (error) {
+            console.error("Error marking order as delivered:", error);
+            toast.error(error.response?.data?.message || "Failed to mark order as delivered. Please try again.");
+        }
     };
 
     // Update the renderDeliveryPartnerDropdown function
@@ -487,30 +528,6 @@ const OrderManagement = () => {
         } else if (statusSort === "priceLow") {
             filtered.sort((a, b) => a.totalAmount - b.totalAmount);
         } else if (statusSort === "priceHigh") {
-            filtered.sort((a, b) => b.totalAmount - a.totalAmount);
-        }
-        return filtered;
-    };
-
-    // Sorting logic for delivery
-    const getDeliveryFilteredOrders = () => {
-        let filtered = orders.filter(order => {
-            const matchesSearch = deliverySearch === "" || 
-                order.orderId.toLowerCase().includes(deliverySearch.toLowerCase());
-            const matchesFilter = deliveryFilter === "all" || 
-                (deliveryFilter === "assigned" && order.deliveryPartner && order.estimatedDelivery && order.deliveryStatus === "Assigned") ||
-                (deliveryFilter === "unassigned" && order.status === "Pending" && (!order.deliveryPartner || !order.estimatedDelivery || order.deliveryStatus !== "Assigned")) ||
-                (deliveryFilter === "delivered" && order.deliveryStatus === "Delivered");
-            return matchesSearch && matchesFilter;
-        });
-
-        if (deliverySort === "newest") {
-            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-        } else if (deliverySort === "oldest") {
-            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
-        } else if (deliverySort === "priceLow") {
-            filtered.sort((a, b) => a.totalAmount - b.totalAmount);
-        } else if (deliverySort === "priceHigh") {
             filtered.sort((a, b) => b.totalAmount - a.totalAmount);
         }
         return filtered;
@@ -952,40 +969,53 @@ const OrderManagement = () => {
             {/* Delivery Assignment & Tracking */}
             {showDeliveryAssignment && (
                 <div className="mt-4 space-y-4">
-                    {/* Search Bar */}
-                    <div className="flex items-center mb-4 gap-2">
-                        <span className="text-gray-400 mr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Search by Order ID..."
-                            value={deliverySearch}
-                            onChange={e => setDeliverySearch(e.target.value)}
-                            className="w-full p-1.5 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                        {deliverySearch && (
+                    {/* Simplified Search Bar with Sorting */}
+                    <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                        <div className="flex flex-col sm:flex-row gap-4 items-center">
+                            {/* Order ID Search */}
+                            <div className="flex items-center flex-1">
+                                <span className="text-gray-400 mr-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Search by Order ID..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full p-1.5 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+
+                            {/* Sort Toggle Button */}
                             <button
-                                onClick={() => setDeliverySearch("")}
-                                className="ml-2 px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                                onClick={() => setSortOrder(prev => prev === "newest" ? "oldest" : "newest")}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    {sortOrder === "newest" ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    )}
                                 </svg>
+                                {sortOrder === "newest" ? "Newest First" : "Oldest First"}
                             </button>
-                        )}
-                        <select
-                            value={deliverySort}
-                            onChange={e => setDeliverySort(e.target.value)}
-                            className="ml-2 p-1.5 text-sm border rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                            <option value="newest">Newest to Oldest</option>
-                            <option value="oldest">Oldest to Newest</option>
-                            <option value="priceLow">Price: Low to High</option>
-                            <option value="priceHigh">Price: High to Low</option>
-                        </select>
+
+                            {/* Clear Search Button */}
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Clear Search
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Summary Cards */}
@@ -1016,26 +1046,23 @@ const OrderManagement = () => {
                             onClick={() => setDeliveryFilter("unassigned")}
                             className={`p-3 rounded-lg transition-all duration-300 flex items-center justify-between ${
                                 deliveryFilter === "unassigned" 
-                                    ? "bg-yellow-50 border-2 border-yellow-500" 
-                                    : "bg-white border border-gray-200 hover:border-yellow-300"
+                                    ? "bg-red-50 border-2 border-red-500" 
+                                    : "bg-white border border-gray-200 hover:border-red-300"
                             }`}
                         >
                             <div>
                                 <h3 className="text-sm font-semibold text-gray-800">Unassigned Deliveries</h3>
-                                <p className="text-xl font-bold text-yellow-600 mt-1">
-                                    {orders.filter(order => 
-                                        order.status === "Pending" && 
-                                        (!order.deliveryPartner || !order.estimatedDelivery || order.deliveryStatus !== "Assigned")
-                                    ).length}
+                                <p className="text-xl font-bold text-red-600 mt-1">
+                                    {orders.filter(order => !order.deliveryPartner || !order.estimatedDelivery).length}
                                 </p>
                                 <p className="text-xs text-gray-500">Orders needing assignment</p>
                             </div>
-                            <div className="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center">
-                                <span className="text-yellow-600 text-sm">!</span>
+                            <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+                                <span className="text-red-600 text-sm">!</span>
                             </div>
                         </button>
 
-                        {/* Delivered Orders Card */}
+                        {/* Delivered Card */}
                         <button 
                             onClick={() => setDeliveryFilter("delivered")}
                             className={`p-3 rounded-lg transition-all duration-300 flex items-center justify-between ${
@@ -1049,7 +1076,7 @@ const OrderManagement = () => {
                                 <p className="text-xl font-bold text-blue-600 mt-1">
                                     {orders.filter(order => order.deliveryStatus === "Delivered").length}
                                 </p>
-                                <p className="text-xs text-gray-500">Successfully delivered</p>
+                                <p className="text-xs text-gray-500">Successfully delivered orders</p>
                             </div>
                             <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
                                 <span className="text-blue-600 text-sm">✓</span>
@@ -1059,8 +1086,19 @@ const OrderManagement = () => {
 
                     {/* Orders List */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {getDeliveryFilteredOrders().length > 0 ? (
-                            getDeliveryFilteredOrders().map((order, index) => (
+                        {getOverviewFilteredOrders()
+                            .filter(order => order.status !== 'Cancelled')
+                            .filter(order => {
+                                if (deliveryFilter === "assigned") {
+                                    return order.deliveryPartner && order.estimatedDelivery && order.deliveryStatus === "Assigned";
+                                } else if (deliveryFilter === "unassigned") {
+                                    return !order.deliveryPartner || !order.estimatedDelivery;
+                                } else if (deliveryFilter === "delivered") {
+                                    return order.deliveryStatus === "Delivered";
+                                }
+                                return true;
+                            })
+                            .map((order, index) => (
                                 <div
                                     key={index}
                                     className="bg-white rounded-lg shadow-sm p-3 border border-gray-100 hover:shadow-md transition-all duration-300"
@@ -1103,7 +1141,7 @@ const OrderManagement = () => {
                                             )}
                                         </div>
 
-                                        {order.deliveryStatus === "Assigned" && order.status !== "Delivered" && order.status !== "Cancelled" && (
+                                        {order.deliveryStatus === "Assigned" && (
                                             <button
                                                 className="w-full px-2 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-xs"
                                                 onClick={() => {
@@ -1115,8 +1153,7 @@ const OrderManagement = () => {
                                                 <span className="text-sm">✓</span>
                                             </button>
                                         )}
-                                        {(!order.deliveryPartner || !order.estimatedDelivery || order.deliveryStatus !== "Assigned") && 
-                                        order.status !== "Delivered" && order.status !== "Cancelled" && (
+                                        {!order.deliveryPartner && (
                                             <button
                                                 className="w-full px-2 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 text-xs"
                                                 onClick={() => handleAssignDelivery(order)}
@@ -1127,21 +1164,13 @@ const OrderManagement = () => {
                                         )}
                                     </div>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="col-span-full text-center py-8">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <p className="mt-2 text-gray-500">No orders found matching your criteria</p>
-                            </div>
-                        )}
+                            ))}
                     </div>
                 </div>
             )}
 
             {/* Delivery Assignment Modal */}
-            {showDeliveryModal && selectedOrder && (
+            {showDeliveryAssignment && selectedOrder && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-96">
                         <h3 className="text-lg font-semibold mb-4">
@@ -1156,7 +1185,7 @@ const OrderManagement = () => {
                                         <button
                                             className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
                                             onClick={() => {
-                                                setShowDeliveryModal(false);
+                                                setShowDeliveryAssignment(false);
                                                 setSelectedOrder(null);
                                             }}
                                         >
@@ -1195,7 +1224,7 @@ const OrderManagement = () => {
                                         <button
                                             className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
                                             onClick={() => {
-                                                setShowDeliveryModal(false);
+                                                setShowDeliveryAssignment(false);
                                                 setSelectedOrder(null);
                                                 setSelectedPartner("");
                                                 setEstimatedDelivery("");
@@ -1219,139 +1248,111 @@ const OrderManagement = () => {
 
             {/* Order Analytics & Insights */}
             {showOrderAnalytics && (
-                <div className="mt-4 space-y-4">
-                    <div className="flex flex-col lg:flex-row gap-4">
+                <div className="mt-6 space-y-6">
+                    <div className="flex flex-col lg:flex-row gap-6">
                         {/* Sidebar with Analytics Cards */}
-                        <div className="w-full lg:w-[300px] space-y-3">
-                            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
-                                <h2 className="text-lg font-bold text-gray-800">Analytics Dashboard</h2>
-                                <p className="text-xs text-gray-500">Track order performance metrics</p>
+                        <div className="w-full lg:w-[350px] space-y-4">
+                            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-2">Analytics Dashboard</h2>
+                                <p className="text-gray-500 text-sm">Track and analyze order performance metrics</p>
                             </div>
                             
-                            <div className="space-y-3">
-                                {/* Order Volume Trends Card */}
+                            <div className="space-y-4">
                                 <div 
-                                    className={`cursor-pointer bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105 ${
+                                    className={`cursor-pointer bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl shadow-sm transition-all duration-300 transform hover:scale-105 ${
                                         selectedChart === "Order Volume Trends" ? "ring-2 ring-blue-500" : ""
                                     }`}
                                     onClick={() => setSelectedChart("Order Volume Trends")}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <h3 className="text-sm font-semibold text-gray-800">Order Volume Trends</h3>
-                                            <p className="text-xs text-gray-600">Daily order patterns</p>
+                                            <h3 className="text-lg font-semibold text-gray-800">Order Volume Trends</h3>
+                                            <p className="text-sm text-gray-600">Track daily order patterns and growth</p>
                                         </div>
-                                        <div className="text-blue-500 text-xl">📈</div>
+                                        <div className="text-blue-500 text-2xl">📈</div>
                                     </div>
-                                    <div className="mt-1 flex items-center gap-1">
-                                        <span className="text-xs text-blue-600">↑ 12%</span>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <span className="text-sm text-blue-600">↑ 12%</span>
                                         <span className="text-xs text-gray-500">from last month</span>
                                     </div>
                                 </div>
-                                {/* Fulfillment Efficiency Card */}
+                                
                                 <div 
-                                    className={`cursor-pointer bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105 ${
+                                    className={`cursor-pointer bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl shadow-sm transition-all duration-300 transform hover:scale-105 ${
                                         selectedChart === "Order Fulfillment Efficiency" ? "ring-2 ring-green-500" : ""
                                     }`}
                                     onClick={() => setSelectedChart("Order Fulfillment Efficiency")}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <h3 className="text-sm font-semibold text-gray-800">Fulfillment Efficiency</h3>
-                                            <p className="text-xs text-gray-600">Delivery speed metrics</p>
+                                            <h3 className="text-lg font-semibold text-gray-800">Fulfillment Efficiency</h3>
+                                            <p className="text-sm text-gray-600">Monitor delivery speed and efficiency</p>
                                         </div>
-                                        <div className="text-green-500 text-xl">⚡</div>
+                                        <div className="text-green-500 text-2xl">⚡</div>
                                     </div>
-                                    <div className="mt-1 flex items-center gap-1">
-                                        <span className="text-xs text-green-600">↓ 0.5 days</span>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <span className="text-sm text-green-600">↓ 0.5 days</span>
                                         <span className="text-xs text-gray-500">avg. delivery time</span>
                                     </div>
                                 </div>
-                                {/* Cancellation Rate Card */}
+                                
                                 <div 
-                                    className={`cursor-pointer bg-gradient-to-br from-red-50 to-red-100 p-3 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105 ${
+                                    className={`cursor-pointer bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-xl shadow-sm transition-all duration-300 transform hover:scale-105 ${
                                         selectedChart === "Order Cancellation Rate" ? "ring-2 ring-red-500" : ""
                                     }`}
                                     onClick={() => setSelectedChart("Order Cancellation Rate")}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <h3 className="text-sm font-semibold text-gray-800">Cancellation Rate</h3>
-                                            <p className="text-xs text-gray-600">Cancellation patterns</p>
+                                            <h3 className="text-lg font-semibold text-gray-800">Cancellation Rate</h3>
+                                            <p className="text-sm text-gray-600">Analyze cancellation patterns</p>
                                         </div>
-                                        <div className="text-red-500 text-xl">📊</div>
+                                        <div className="text-red-500 text-2xl">📊</div>
                                     </div>
-                                    <div className="mt-1 flex items-center gap-1">
-                                        <span className="text-xs text-red-600">↓ 1.1%</span>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <span className="text-sm text-red-600">↓ 1.1%</span>
                                         <span className="text-xs text-gray-500">from last month</span>
-                                    </div>
-                                </div>
-                                {/* Order Geography Insights Card */}
-                                <div 
-                                    className={`cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105 ${
-                                        selectedChart === "Order Geography Insights" ? "ring-2 ring-purple-500" : ""
-                                    }`}
-                                    onClick={() => setSelectedChart("Order Geography Insights")}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-gray-800">Order Geography Insights</h3>
-                                            <p className="text-xs text-gray-600">District & province breakdown</p>
-                                        </div>
-                                        <div className="text-purple-500 text-xl">📍</div>
-                                    </div>
-                                    <div className="mt-1 flex items-center gap-1">
-                                        <span className="text-xs text-purple-600">Map & stats</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Analytics Summary */}
-                            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
-                                <h3 className="text-sm font-semibold text-gray-800 mb-3">Quick Stats</h3>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Stats</h3>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                         <div>
-                                            <span className="text-xs text-gray-600">Total</span>
-                                            <p className="text-lg font-bold text-gray-800">{orders.length}</p>
+                                        <span className="text-sm text-gray-600">Total Orders</span>
+                                            <p className="text-2xl font-bold text-gray-800">{orders.length}</p>
                                         </div>
-                                        <div className="text-gray-400 text-xl">📦</div>
+                                        <div className="text-gray-400 text-2xl">📦</div>
                                     </div>
-                                    <div className="flex justify-between items-center p-2 bg-yellow-50 rounded-lg">
+                                    <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
                                         <div>
-                                            <span className="text-xs text-gray-600">Pending</span>
-                                            <p className="text-lg font-bold text-yellow-600">
-                                                {orders.filter(order => order.status === "Pending").length}
+                                        <span className="text-sm text-gray-600">Pending Orders</span>
+                                            <p className="text-2xl font-bold text-yellow-600">
+                                            {orders.filter(order => order.status === "Pending").length}
                                             </p>
                                         </div>
-                                        <div className="text-yellow-400 text-xl">⏳</div>
+                                        <div className="text-yellow-400 text-2xl">⏳</div>
                                     </div>
-                                    <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                                         <div>
-                                            <span className="text-xs text-gray-600">Shipped</span>
-                                            <p className="text-lg font-bold text-blue-600">
-                                                {orders.filter(order => order.status === "Shipped").length}
+                                        <span className="text-sm text-gray-600">Completed Orders</span>
+                                            <p className="text-2xl font-bold text-green-600">
+                                            {orders.filter(order => order.status === "Delivered").length}
                                             </p>
                                         </div>
-                                        <div className="text-blue-400 text-xl">🚚</div>
+                                        <div className="text-green-400 text-2xl">✅</div>
                                     </div>
-                                    <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                                         <div>
-                                            <span className="text-xs text-gray-600">Completed</span>
-                                            <p className="text-lg font-bold text-green-600">
-                                                {orders.filter(order => order.status === "Delivered").length}
+                                        <span className="text-sm text-gray-600">Cancelled Orders</span>
+                                            <p className="text-2xl font-bold text-red-600">
+                                            {orders.filter(order => order.status === "Cancelled").length}
                                             </p>
                                         </div>
-                                        <div className="text-green-400 text-xl">✅</div>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 bg-red-50 rounded-lg">
-                                        <div>
-                                            <span className="text-xs text-gray-600">Cancelled</span>
-                                            <p className="text-lg font-bold text-red-600">
-                                                {orders.filter(order => order.status === "Cancelled").length}
-                                            </p>
-                                        </div>
-                                        <div className="text-red-400 text-xl">❌</div>
+                                        <div className="text-red-400 text-2xl">❌</div>
                                     </div>
                                 </div>
                             </div>
@@ -1359,56 +1360,47 @@ const OrderManagement = () => {
 
                         {/* Main Analytics Content */}
                         <div className="flex-1">
-                            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100 h-full">
+                            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
                                 {selectedChart ? (
-                                    <div className="space-y-4">
-                                        {selectedChart === "Order Fulfillment Efficiency" ? (
+                                    <div className="space-y-6">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                             <div>
-                                                <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                                                    Order Fulfillment Efficiency
+                                                <h3 className="text-xl font-semibold text-gray-800">
+                                                    {selectedChart}
                                                 </h3>
-                                                <p className="text-xs text-gray-500 mb-1">
-                                                    Average time taken for each fulfillment stage
+                                                <p className="text-sm text-gray-500 mt-1">
+                                                    {selectedChart === "Order Volume Trends" && "Daily order volume trends over time"}
+                                                    {selectedChart === "Order Fulfillment Efficiency" && "Average time taken for each fulfillment stage"}
+                                                    {selectedChart === "Order Cancellation Rate" && "Order completion and cancellation rates"}
                                                 </p>
-                                                <OrderFulfillmentChart />
                                             </div>
-                                        ) : selectedChart === "Order Geography Insights" ? (
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                                                    Order Geography Insights
-                                                </h3>
-                                                <p className="text-xs text-gray-500 mb-4">
-                                                    See which districts and provinces your orders are coming from
-                                                </p>
-                                                <OrderDistrictsChart />
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div>
-                                                    <h3 className="text-lg font-semibold text-gray-800">
-                                                        {selectedChart}
-                                                    </h3>
-                                                    <p className="text-xs text-gray-500">
-                                                        {selectedChart === "Order Volume Trends" && "Daily order volume trends over time"}
-                                                        {selectedChart === "Order Cancellation Rate" && "Order completion and cancellation rates"}
-                                                    </p>
+                                        </div>
+
+                                        <div className="h-[500px] bg-gray-50 rounded-lg p-4">
+                                            {selectedChart === "Order Volume Trends" && (
+                                                <OrderVolumeChart />
+                                            )}
+                                            {selectedChart === "Order Fulfillment Efficiency" && (
+                                                <div className="h-full flex items-center justify-center">
+                                                    <OrderFulfillmentChart />
                                                 </div>
-                                                <div className="h-[400px] bg-gray-50 rounded-lg p-3">
-                                                    {selectedChart === "Order Volume Trends" && <OrderVolumeChart />}
-                                                    {selectedChart === "Order Cancellation Rate" && <CancellationRateChart />}
+                                            )}
+                                            {selectedChart === "Order Cancellation Rate" && (
+                                                <div className="h-full">
+                                                    <CancellationRateChart />
                                                 </div>
-                                            </>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="h-[400px] flex items-center justify-center">
+                                    <div className="h-[500px] flex items-center justify-center">
                                         <div className="text-center">
-                                            <div className="text-4xl mb-2">📊</div>
-                                            <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                                            <div className="text-6xl mb-4">📊</div>
+                                            <h3 className="text-xl font-semibold text-gray-700 mb-2">
                                                 Select an Analytics View
                                             </h3>
-                                            <p className="text-xs text-gray-500 max-w-md mx-auto">
-                                                Choose from the available analytics options to view detailed insights
+                                            <p className="text-gray-500 max-w-md mx-auto">
+                                                Choose from the available analytics options to view detailed insights about your orders
                                             </p>
                                         </div>
                                     </div>
@@ -1423,3 +1415,4 @@ const OrderManagement = () => {
 };
 
 export default OrderManagement;
+

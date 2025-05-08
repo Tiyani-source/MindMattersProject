@@ -1,3 +1,4 @@
+// src/components/OrderConfirmation.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -31,8 +32,11 @@ const OrderConfirmation = () => {
             <h1 className="text-3xl font-bold text-green-600 mb-2">Thank You!</h1>
             <p className="text-lg text-gray-700 mb-1">Your order has been placed successfully.</p>
             <p className="text-gray-500 mb-4">
-              We'll notify you when your order is ready for dispatch.
+              Payment Status: {order?.paymentStatus || "N/A"}
+              {order?.paymentDetails?.cardLast4 &&
+                ` (Card ending in ${order.paymentDetails.cardLast4})`}
             </p>
+            <p className="text-gray-500 mb-4">Total Amount: LKR {order?.totalAmount || "N/A"}</p>
             <div className="bg-gray-50 rounded-xl p-4">
               <p className="text-gray-600">
                 You can view additional details or track the status of your order anytime via the{" "}

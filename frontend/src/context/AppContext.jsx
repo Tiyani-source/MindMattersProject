@@ -41,7 +41,6 @@ const AppContextProvider = (props) => {
         }
 
     }
-
     // Getting User Profile using API
     const loadUserProfileData = async () => {
         try {
@@ -65,7 +64,7 @@ const AppContextProvider = (props) => {
         }
 
       };
-      // Getting Student Profile using API
+    // Getting Student Profile using API
     const loadStudentProfileData = async () => {
         try {
             const { data } = await axios.get(backendUrl + '/api/student/get-profile', { 
@@ -76,6 +75,7 @@ const AppContextProvider = (props) => {
 
             if (data.success) {
                 setStudentData(data.studentData);
+                localStorage.setItem('studentData', JSON.stringify(data.studentData));
             } else {
                 toast.error(data.message);
             }
@@ -85,8 +85,8 @@ const AppContextProvider = (props) => {
         }
     };
 
-     // Create a new order
-     const createOrder = async (orderData) => {
+    // Create a new order
+    const createOrder = async (orderData) => {
         try {
             const { data } = await axios.post(`${backendUrl}/api/orders/create`, orderData, {
                 headers: { 
@@ -105,49 +105,50 @@ const AppContextProvider = (props) => {
         }
     };
 
-   //  Fetch orders by studentId
-   const fetchOrders = async (studentId) => {
-    try {
-        const { data } = await axios.get(`${backendUrl}/api/orders/user/${studentId}`, {
-            headers: { 
-                Authorization: `Bearer ${token}` 
+    //  Fetch orders by studentId
+    const fetchOrders = async (studentId) => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/orders/user/${studentId}`, {
+                headers: { 
+                    Authorization: `Bearer ${token}` 
+                }
+            });
+            
+            if (data.success) {
+                setOrders(data.data || []);
+            } else {
+                toast.error(data.message || "Failed to fetch orders");
+                setOrders([]);
             }
-        });
-        
-        if (data.success) {
-            setOrders(data.data || []);
-        } else {
-            toast.error(data.message || "Failed to fetch orders");
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+            toast.error(error.response?.data?.message || "Failed to fetch orders");
             setOrders([]);
         }
-    } catch (error) {
-        console.error("Error fetching orders:", error);
-        toast.error(error.response?.data?.message || "Failed to fetch orders");
-        setOrders([]);
-    }
-};
-   //Cancel Order
-   const cancelOrder = async (userId, orderId, cancelReason) => {
-    try {
-        const { data } = await axios.patch(
-            `${backendUrl}/api/orders/${orderId}/cancel`,
-            { cancelReason }, 
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-      
-        if (data.success) {
-            fetchOrders(userId);
-            toast.success("Order cancelled successfully");
-        } else {
-            toast.error(data.message);
-        }
-    } catch (error) {
-        console.error("Failed to cancel order:", error);
-        toast.error(error.response?.data?.message || "Something went wrong while cancelling the order");
-    }
-};
+    };
 
-    // Generates and downloads a PDF invoice
+    //Cancel Order
+    const cancelOrder = async (userId, orderId, cancelReason) => {
+        try {
+            const { data } = await axios.patch(
+                `${backendUrl}/api/orders/${orderId}/cancel`,
+                { cancelReason }, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+          
+            if (data.success) {
+                fetchOrders(userId);
+                toast.success("Order cancelled successfully");
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            console.error("Failed to cancel order:", error);
+            toast.error(error.response?.data?.message || "Something went wrong while cancelling the order");
+        }
+    };
+
+     // Generates and downloads a PDF invoice
     const handlePrintInvoice = (order) => {
         const doc = new jsPDF();
         
@@ -299,18 +300,16 @@ const AppContextProvider = (props) => {
         doc.save(`Invoice_${order.orderId}.pdf`);
     };
 
-
     // Returns filtered orders list by status
     const getFilteredOrders = (orders, filter) => {
         if (filter === "All") return orders;
-
+          
         if (filter === "PendingOrShipped") {
             return orders.filter(order => order.status === "Pending" || order.status === "Shipped");
         }
-
+          
         return orders.filter(order => order.status === filter);
     };
-
 
 // Get user's wishlist
 const getWishlist = async () => {
@@ -340,6 +339,7 @@ const getWishlist = async () => {
     }
 };
 
+// Add item to wishlist
 // Add item to wishlist
 const addToWishlist = async (itemData) => {
     try {
@@ -391,7 +391,7 @@ const addToWishlist = async (itemData) => {
     }
 };
 
- // Remove item from wishlist
+// Remove item from wishlist
 const removeFromWishlist = async (productId) => {
     try {
         if (!productId) {
@@ -461,6 +461,7 @@ const removeFromWishlist = async (productId) => {
         setIsLoading(false);
     }
 };
+
     // Get student's cart
     const getCart = async () => {
         try {
@@ -488,38 +489,39 @@ const removeFromWishlist = async (productId) => {
             setIsLoading(false);
         }
     };
-   // Add item to cart
-   const addToCart = async (cartItem) => {
-    try {
-        setIsLoading(true);
-        const { data } = await axios.post(
-            `${backendUrl}/api/cart`,
-            cartItem,
-            { 
-                headers: { 
-                    Authorization: `Bearer ${token}` 
-                } 
+
+    // Add item to cart
+    const addToCart = async (cartItem) => {
+        try {
+            setIsLoading(true);
+            const { data } = await axios.post(
+                `${backendUrl}/api/cart`,
+                cartItem,
+                { 
+                    headers: { 
+                        Authorization: `Bearer ${token}` 
+                    } 
+                }
+            );
+            if (data.success) {
+                setCart(data.cart || { items: [], shippingCost: 500 });
+                toast.success('Item added to cart successfully');
+            } else {
+                toast.error(data.message || 'Failed to add item to cart');
             }
-        );
-        if (data.success) {
-            setCart(data.cart || { items: [], shippingCost: 500 });
-            toast.success('Item added to cart successfully');
-        } else {
-            toast.error(data.message || 'Failed to add item to cart');
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            if (error.response?.status === 401) {
+                toast.error('Please login again');
+                setToken('');
+                localStorage.removeItem('token');
+            } else {
+                toast.error(error.response?.data?.message || 'Failed to add item to cart');
+            }
+        } finally {
+            setIsLoading(false);
         }
-    } catch (error) {
-        console.error('Error adding to cart:', error);
-        if (error.response?.status === 401) {
-            toast.error('Please login again');
-            setToken('');
-            localStorage.removeItem('token');
-        } else {
-            toast.error(error.response?.data?.message || 'Failed to add item to cart');
-        }
-    } finally {
-        setIsLoading(false);
-    }
-};
+    };
 
     // Remove item from cart
     const removeFromCart = async (productId) => {
@@ -552,6 +554,7 @@ const removeFromWishlist = async (productId) => {
             setIsLoading(false);
         }
     };
+
     // Clear entire cart
     const clearCart = async () => {
         try {
@@ -583,7 +586,6 @@ const removeFromWishlist = async (productId) => {
             setIsLoading(false);
         }
     };
-     
 
     const getTherapistData = async () => {
         try {
@@ -946,9 +948,11 @@ const removeFromWishlist = async (productId) => {
         }
     };
 
+
     useEffect(() => {
         getDoctosData()
         getTherapistData()
+
     }, [])
 
     useEffect(() => {
@@ -966,8 +970,9 @@ const removeFromWishlist = async (productId) => {
         }
     }, [token])
 
+
     const value = {
-        doctors, getDoctosData,
+        doctors, getDoctosData, 
         therapist, getTherapistData, appointments, getUserAppointments,
         therapistAvailability, getTherapistAvailability,
         getFormattedAvailability,
@@ -998,7 +1003,6 @@ const removeFromWishlist = async (productId) => {
         clearCart,
         updateCartItemQuantity,
         isLoading
-
     }
 
     return (

@@ -21,6 +21,18 @@ import {
 import { Star, StarHalf } from "lucide-react";
 import { motion } from "framer-motion";
 
+const initialRatings = [
+  { id: 1, rating: 8, review: "Great session!", month: "January" },
+  { id: 2, rating: 9, review: "Very understanding.", month: "January" },
+  { id: 3, rating: 7, review: "Good but could be better.", month: "February" },
+  { id: 4, rating: 10, review: "Outstanding!", month: "March" },
+  { id: 5, rating: 6, review: "Average experience.", month: "April" },
+  { id: 6, rating: 8, review: "Helpful and kind.", month: "April" },
+  { id: 7, rating: 9, review: "Professional.", month: "May" },
+  { id: 8, rating: 7, review: "Nice overall.", month: "May" },
+  { id: 9, rating: 10, review: "Amazing session!", month: "June" },
+  { id: 10, rating: 9, review: "Loved it!", month: "June" },
+];
 
 const COLORS = [
   "#0088FE",

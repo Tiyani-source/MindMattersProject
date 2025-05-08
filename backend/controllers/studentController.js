@@ -1,7 +1,6 @@
 import StudentModel from "../models/studentModel.js";
 import bcrypt from "bcryptjs";
 
-
 // Get all students
 export const getAllStudents = async (req, res) => {
   try {
@@ -114,8 +113,6 @@ export const deleteStudentProfile = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 export const changeStudentPassword = async (req, res) => {
   try {
     const userId = req.userId;

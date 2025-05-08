@@ -250,7 +250,7 @@ Partner: ${p.name}
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
+  
   const handleViewOrders = async (partnerId, type) => {
     try {
       const response = await axios.get(`http://localhost:4000/api/orders/all`, {
@@ -482,20 +482,20 @@ Partner: ${p.name}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button
+                      <button
                           onClick={() => handleViewOrders(partner._id, 'active')}
                           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
                         >
                           <Activity className="w-3 h-3" />
                           Active: {partner.assignedOrdersCount || 0}
-                        </button>
+                          </button>
                         <button
                           onClick={() => handleViewOrders(partner._id, 'completed')}
                           className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800"
                         >
                           <CheckCircle2 className="w-3 h-3" />
                           Completed: {partner.completedOrdersCount || 0}
-                        </button>
+                          </button>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -743,7 +743,7 @@ Partner: ${p.name}
             </div>
           </div>
         )}
-
+        
         {/* Add OrdersPopup component */}
         <OrdersPopup />
       </div>

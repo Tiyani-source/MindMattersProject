@@ -7,6 +7,7 @@
     "@lottiefiles/react-lottie-player": "^3.6.0",
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.8",
+    "googleapis": "^148.0.0",
     "jspdf": "^3.0.1",
     "mdb-react-ui-kit": "^9.0.0",
     "react-bootstrap": "^2.10.9",
