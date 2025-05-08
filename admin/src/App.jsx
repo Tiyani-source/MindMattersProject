@@ -49,8 +49,6 @@ import SupplierDashboard from './pages/supplyManager/supplyManagerDashboard.jsx'
 import OrderPaymentDashboard from "./pages/Payment/orderPaymentDashboard.jsx";
 import ChatEmbed from "./components/ChatEmbed";
 
-
-import ChatEmbed from "./components/ChatEmbed";
 const App = () => {
   const { dToken } = useContext(DoctorContext);
   const { dToken: therapistToken } = useContext(TherapistContext);
