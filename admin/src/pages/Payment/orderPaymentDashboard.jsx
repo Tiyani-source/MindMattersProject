@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Line } from 'react-chartjs-2';
 
+
 const OrderPaymentDashboard = () => {
   // State for search, filter, and data
   const [searchTerm, setSearchTerm] = useState('');
@@ -166,52 +167,60 @@ const OrderPaymentDashboard = () => {
     document.body.removeChild(link);
   };
   
-  // Download PDF report with jsPDF
-  const downloadPDF = () => {
-    try {
-      // Import jsPDF dynamically to avoid SSR issues
-      import('jspdf').then(({ default: jsPDF }) => {
-        import('jspdf-autotable').then(() => {
-          const doc = new jsPDF();
-          
-          // Add title
-          doc.setFontSize(18);
-          doc.text('Order Payment Report', 14, 22);
-          
-          // Add report metadata
-          doc.setFontSize(11);
-          doc.setTextColor(100);
-          doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
-          doc.text(`Total Orders: ${filteredData.length}`, 14, 36);
-          
-          // Add the table
-          doc.autoTable({
-            head: [['Order ID', 'Customer Name', 'Amount', 'Payment Status', 'Date']],
-            body: filteredData.map(item => [
-              item.orderId,
-              item.customerName,
-              item.amount,
-              item.paymentStatus, 
-              item.date
-            ]),
-            startY: 45,
-            styles: { fontSize: 10, cellPadding: 3 },
-            headStyles: { fillColor: [66, 139, 202] }
-          });
-          
-          // Save the PDF
-          doc.save(`order_payment_report_${new Date().toISOString().split('T')[0]}.pdf`);
-        });
-      }).catch(err => {
-        console.error('Error loading jsPDF:', err);
-        alert('Could not generate PDF. Please ensure jsPDF is installed.');
-      });
-    } catch (err) {
-      console.error('Error generating PDF:', err);
-      alert('Error generating PDF report. Please try again.');
+ // Download PDF report with jsPDF
+const downloadPDF = async () => {
+  if (!filteredData || filteredData.length === 0) {
+    alert('No data to export.');
+    return;
+  }
+
+  try {
+    const { default: jsPDF } = await import('jspdf');
+    await import('jspdf-autotable'); // This extends jsPDF prototype
+
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFontSize(18);
+    doc.text('Order Payment Report', 14, 22);
+
+    // Metadata
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Total Orders: ${filteredData.length}`, 14, 36);
+
+    // Table
+    if (typeof doc.autoTable !== 'function') {
+      console.error('autoTable plugin not loaded.');
+      alert('Failed to load table plugin. Please check jsPDF-autotable installation.');
+      return;
     }
-  };
-  
+
+    doc.autoTable({
+      head: [['Order ID', 'Customer Name', 'Amount', 'Payment Status', 'Date']],
+      body: filteredData.map(item => [
+        item.orderId,
+        item.customerName,
+        item.amount,
+        item.paymentStatus,
+        item.date,
+      ]),
+      startY: 45,
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [66, 139, 202] },
+    });
+
+    // Save the file
+    const filename = `order_payment_report_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
+
+  } catch (err) {
+    console.error('Error generating PDF:', err);
+    alert('Error generating PDF report.');
+  }
+};
+
   // Prepare chart data
   const prepareChartData = () => {
     const statusCounts = {};
@@ -578,6 +587,7 @@ const OrderPaymentDashboard = () => {
               >
                 Export CSV
               </button>
+
               <button
                 onClick={downloadPDF}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

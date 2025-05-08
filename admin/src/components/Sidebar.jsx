@@ -34,7 +34,10 @@ export default function Sidebar() {
           <NavItem to="/doctor-list" label="Doctors List" Icon={UserPlus} />
           <NavItem to="/admin-profile" label="Profile" Icon={UserCircle} />
           <NavItem to="/requests" label="Requests" Icon={ClipboardList} />
-          <NavItem to="/payment-dashboard" label="Payment List" Icon={CreditCard} />
+          
+         {/* <NavItem to="/payment-dashboard" label="Payment List" Icon={CreditCard} /> */}
+
+          
           <NavItem to="/order-payment-dashboard" label="Order Payment" Icon={CreditCard} />
           <NavItem to="/order-insights" label="Order Insights & Actions" Icon={BarChart4} />
           <NavItem to="/delivery-partners" label="Delivery Partners" Icon={Truck} />
