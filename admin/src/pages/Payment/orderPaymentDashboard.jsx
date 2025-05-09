@@ -35,7 +35,7 @@ const OrderPaymentDashboard = () => {
             key: index.toString(),
             orderId: order.orderId,
             customerName: `${order.shippingInfo.firstName} ${order.shippingInfo.lastName}`,
-            amount: `LKR${(order.totalAmount / 100).toFixed(2)}`, // Assuming amount is in cents
+            amount: `LKR${(order.totalAmount).toFixed(2)}`, // Assuming amount is in cents
             paymentStatus: mapOrderStatusToPaymentStatus(order.status),
             date: new Date(order.date).toISOString().split('T')[0],
             rawData: order // Keep the raw data for additional details if needed
