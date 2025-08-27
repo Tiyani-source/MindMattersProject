@@ -322,7 +322,5 @@ This project was developed as a collaborative effort by our team to demonstrate:
 - User interface design and user experience
 - Project management and collaboration
 - Modern web development practices
-- **Security best practices** - Environment variable management and API key protection
-- **Version control best practices** - Proper .gitignore and sensitive data handling
 
 **Built with ❤️ for better mental health care**
