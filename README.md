@@ -74,6 +74,12 @@ MindMattersProject/
 - MongoDB
 - npm or yarn
 
+### ⚠️ Important Security Note
+- **Never commit .env files** to version control
+- **Use .env.example files** as templates for your environment setup
+- **Keep API keys secure** and never share them publicly
+- **Follow the setup instructions** carefully to avoid exposing sensitive data
+
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
@@ -87,6 +93,11 @@ npm install
 ```
 
 Create a `.env` file in the backend directory:
+```bash
+cp backend/.env.example backend/.env
+```
+
+Then edit `backend/.env` with your actual values:
 ```env
 PORT=4000
 MONGODB_URI=your_mongodb_connection_string
@@ -110,6 +121,11 @@ npm install
 ```
 
 Create a `.env` file in the frontend directory:
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Then edit `frontend/.env` with your actual values:
 ```env
 VITE_API_URL=http://localhost:4000/api
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
@@ -261,6 +277,9 @@ The platform implements role-based access control with JWT tokens:
 - Secure file uploads
 - HTTPS enforcement
 - Environment variable protection
+- **Git Security**: .env files are excluded from version control
+- **API Key Protection**: Sensitive keys are stored in environment variables only
+- **Secure Development**: Template files (.env.example) provided for safe setup
 
 ## 📁 Project Structure
 
@@ -303,5 +322,7 @@ This project was developed as a collaborative effort by our team to demonstrate:
 - User interface design and user experience
 - Project management and collaboration
 - Modern web development practices
+- **Security best practices** - Environment variable management and API key protection
+- **Version control best practices** - Proper .gitignore and sensitive data handling
 
 **Built with ❤️ for better mental health care**
