@@ -44,3 +44,6 @@ const wishlistSchema = new mongoose.Schema({
 const wishlistModel = mongoose.models.wishlist || mongoose.model("wishlist", wishlistSchema);
 
 export default wishlistModel;
+
+
+

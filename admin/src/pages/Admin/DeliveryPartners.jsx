@@ -75,7 +75,7 @@ const DeliveryPartners = () => {
   useEffect(() => {
     fetchDeliveryPartners();
   }, []);
-
+ // Get all delivery partners
   const fetchDeliveryPartners = async () => {
     try {
       const response = await axios.get('http://localhost:4000/api/deliveryPartners', {
@@ -89,6 +89,7 @@ const DeliveryPartners = () => {
     }
   };
 
+  // Add Partner
   const handleAddPartner = async (e) => {
     e.preventDefault();
     try {
@@ -114,7 +115,7 @@ const DeliveryPartners = () => {
       console.error('Error adding delivery partner:', error);
     }
   };
-
+ // Edit Partner
   const handleEditPartner = async (e) => {
     e.preventDefault();
     try {
@@ -130,7 +131,7 @@ const DeliveryPartners = () => {
       console.error('Error updating delivery partner:', error);
     }
   };
-
+ // Delete Partner
   const handleDeletePartner = async (id) => {
     setPartnerToDelete(id);
     setShowDeleteModal(true);
